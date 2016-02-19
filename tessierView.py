@@ -203,8 +203,8 @@ class tessierView(object):
         <meta http-equiv="Expires" content="0">
         
         <div id='outer'>
-    
     {% set columncount = 1 %}
+    {% set ncolumns = 3 %}
     {% set lastdate = '' %}
     {% for item in items %}
     
@@ -217,7 +217,7 @@ class tessierView(object):
             <div class='datesep'> {{item.datedir}} </div>                
         {% endif %}
         
-        {% if (columncount % 3 == 1) %}
+        {% if (columncount % ncolumns == 1) %}
             <div class='row'>
         {% endif %}
 
@@ -256,7 +256,7 @@ class tessierView(object):
                     </form>            
                 </div>
             </div>
-        {% if (columncount % 3 == 0) %}
+        {% if (columncount % ncolumns == 0) %}
             </div>
         {% endif %}
 
@@ -348,7 +348,7 @@ class tessierView(object):
         </script>
         
         <style type="text/css">
-/*         .container { width:100% !important; } */
+         .container { width:95% !important; } 
         @media (min-width: 30em) {
             .row {  width: auto; 
                     display: table; 
