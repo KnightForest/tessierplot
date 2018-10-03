@@ -1,8 +1,37 @@
+
 #tessier.py
 #tools for plotting all kinds of files, with fiddle control etc
 
-import matplotlib.pyplot as plt
+##Only load this part on first import, calling this on reload has dire consequences
+## Note: there is still a bug where closing a previously plotted window and plotting another plot causes the window and the kernel to hang
+
+try:
+	from PyQt5 import QtCore
+except:
+	isqt5 = False
+	try:
+		from PyQt4 import QtCore
+	except:
+		isqt4 = False
+	else:
+		isqt4 = True
+else:
+	isqt5=True
+
+import IPython
+ipy=IPython.get_ipython()
+if isqt5:
+	ipy.magic("pylab qt5")
+	qtaggregator = 'Qt5Agg'
+elif isqt4:
+	ipy.magic("pylab qt")
+	qtaggregator = 'Qt4Agg'
+else:
+	print('no backend found.')
+
 import matplotlib as mpl
+import matplotlib.pyplot as plt
+
 import matplotlib.gridspec as gridspec
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -14,31 +43,47 @@ import math
 import re
 
 #all tessier related imports
-from gui import *
-import styles
-from data import Data
-import helpers
-import colorbar
-from matplotlib import ticker
+from .gui import *
+from . import styles
+from .data import Data
+from . import helpers
+from . import colorbar
 
-mpl.rcParams['font.family'] = 'serif'
-##Only load this part on first import, calling this on reload has dire consequences
-## Note: there is still a bug where closing a previously plotted window and plotting another plot causes the window and the kernel to hang
-try:
-	magichappened
-except:
-	import IPython
-	ipy=IPython.get_ipython()
-	ipy.magic("pylab qt")
-	magichappened = False
-else:
-	magichappened = True
+_plot_width = 7. # in inch (ffing inches eh)
+_plot_height = 5. # in inch
 
+_plot_width_thumb = 4. # in inch (ffing inches eh)
+_plot_height_thumb = 3. # in inch
 
+_fontsize_plot_title = 10
+_fontsize_axis_labels = 10
+_fontsize_axis_tick_labels = 10
 
+_fontsize_plot_title = 10
+_fontsize_axis_labels = 10
+_fontsize_axis_tick_labels = 10
+
+rcP = {  'figure.figsize': (_plot_width, _plot_height), #(width in inch, height in inch)
+		'axes.labelsize':  _fontsize_axis_labels,
+		'xtick.labelsize': _fontsize_axis_tick_labels,
+		'ytick.labelsize': _fontsize_axis_tick_labels,
+		'legend.fontsize': 5.,
+		'backend':qtaggregator
+		}
+
+rcP_thumb = {  'figure.figsize': (_plot_width_thumb, _plot_height_thumb), #(width in inch, height in inch)
+		'axes.labelsize':  _fontsize_axis_labels,
+		'xtick.labelsize': _fontsize_axis_tick_labels,
+		'ytick.labelsize': _fontsize_axis_tick_labels,
+		'legend.fontsize': 5.,
+		'backend':qtaggregator
+		}
+		
 def parseUnitAndNameFromColumnName(input):
 	reg = re.compile(r'\{(.*?)\}')
 	z = reg.findall(input)
+	if not z: # if names don't follow the convention, just use what you get
+		z = input
 	return z
 
 
@@ -50,62 +95,86 @@ def loadCustomColormap(file=helpers.get_asset('cube1.txt')):
 	ccmap.set_over(do[-1])
 	return ccmap
 
-
 class plotR(object):
-	def __init__(self,file):
+	def __init__(self,file,isthumbnail=False,thumbs = None):
 		self.fig = None
 		self.file = file
+		self.isthumbnail = isthumbnail
+		if (thumbs is not None):
+			self.thumbfile = thumbs[0]
+			self.thumbfile_datadir = thumbs[1]
 
 		self.data  = Data.from_file(filepath=file)
 		self.name  = file
 		self.exportData = []
 		self.exportDataMeta = []
 		self.bControls = True #boolean controlling state of plot manipulation buttons
-		mpl.rcParams['font.family'] = 'serif'
-		mpl.rcParams['font.size']= '8'
-
+		
 	def is2d(self,**kwargs):
 		nDim = self.data.ndim_sparse
 		#if the uniques of a dimension is less than x, plot in sequential 2d, otherwise 3d
 
 		#maybe put logic here to plot some uniques as well from nonsequential axes?
 		filter = self.data.dims < 5
-		filter_neg = np.array([not x for x in filter])
+		filter_neg = np.array([not x for x in filter],dtype="bool")
 
 		coords = np.array(self.data.coordkeys)
 
 		return len(coords[filter_neg]) < 2
 
+<<<<<<< HEAD
 	def quickplot_processed(self,**kwargs):
 		coords = np.array(self.data.coordkeys)
 		filter = self.data.dims < 5
-		
+
 		uniques_col_str = coords[filter]
-
-		print uniques_col_str
-
-		if self.is2d():
-			fig = self.plot2d(uniques_col_str=uniques_col_str,**kwargs)
-		else:
-			fig = self.plot3d(uniques_col_str=uniques_col_str,**kwargs)
-			#self.exportToMtx()
-
+		try:
+			if self.isthumbnail:
+				for k in rcP:
+					mpl.rcParams[k] = rcP_thumb[k]
+			else:
+				for k in rcP:
+					mpl.rcParams[k] = rcP[k]
+			if self.is2d():
+				fig = self.plot2d(uniques_col_str=uniques_col_str,**kwargs)
+			else:
+				fig = self.plot3d(uniques_col_str=uniques_col_str,**kwargs)
+				self.exportToMtx()
+			if self.isthumbnail:
+				fig.savefig(self.thumbfile,bbox_inches='tight' )
+				fig.savefig(self.thumbfile_datadir,bbox_inches='tight' )
+				plt.close(fig)
+		except Exception as e:
+			print('fail in quickplot')
+			print(e)
+		
 		return fig
 
 	def quickplot(self,**kwargs):
 		coords = np.array(self.data.coordkeys)
 		filter = self.data.dims < 5
-		
+
 		uniques_col_str = coords[filter]
-
-		print uniques_col_str
-
-		if self.is2d():
-			fig = self.plot2d(uniques_col_str=uniques_col_str,**kwargs)
-		else:
-			fig = self.plot3d(uniques_col_str=uniques_col_str,**kwargs)
-			#self.exportToMtx()
-
+		try:
+			if self.isthumbnail:
+				for k in rcP:
+					mpl.rcParams[k] = rcP_thumb[k]
+			else:
+				for k in rcP:
+					mpl.rcParams[k] = rcP[k]
+			if self.is2d():
+				fig = self.plot2d(uniques_col_str=uniques_col_str,**kwargs)
+			else:
+				fig = self.plot3d(uniques_col_str=uniques_col_str,**kwargs)
+				self.exportToMtx()
+			if self.isthumbnail:
+				fig.savefig(self.thumbfile,bbox_inches='tight' )
+				fig.savefig(self.thumbfile_datadir,bbox_inches='tight' )
+				plt.close(fig)
+		except Exception as e:
+			print('fail in quickplot')
+			print(e)
+		
 		return fig
 
 	def autoColorScale(self,data):
@@ -113,10 +182,13 @@ class plotR(object):
 		data = data[np.isfinite(data)]
 		values, edges = np.histogram(data, 256)
 		maxima = edges[argrelmax(values,order=24)]
-		if maxima.size>0:
-			cminlim , cmaxlim = maxima[0] , np.max(data)
-		else:
-			cminlim , cmaxlim = np.min(data) , np.max(data)
+		try:
+			if maxima.size>0:
+				cminlim , cmaxlim = maxima[0] , np.max(data)
+			else:
+				cminlim , cmaxlim = np.min(data) , np.max(data)
+		except Exception as e:
+			print('autocolorscale crashed')
 		return (cminlim,cmaxlim)
 
 
@@ -124,7 +196,7 @@ class plotR(object):
 						uniques_col_str=[],
 						drawCbar=True,
 						cax_destination=None,
-						subplots_args={'top':0.90, 'bottom':0.17, 'left':0.14, 'right':0.85,'hspace':0.0},
+						subplots_args={'top':0.96, 'bottom':0.17, 'left':0.14, 'right':0.85,'hspace':0.0},
 						ax_destination=None,
 						n_index=None,
 						style='log',
@@ -174,13 +246,13 @@ class plotR(object):
 		n_subplots = n_subplots *width
 		gs = gridspec.GridSpec(int(n_subplots/width)+n_subplots%width, width)
 		
-
 		cnt=0 #subplot counter
+
 		#enumerate over the generated list of unique values specified in the uniques columns
 		for j,ind in enumerate(self.data.make_filter_from_uniques_in_columns(uniques_col_str)):
 			#each value axis needs a plot
+
 			for value_axis in value_axes:
-				
 				#plot only if number of the plot is indicated
 				if n_index is not None:
 					if j not in n_index:
@@ -198,26 +270,22 @@ class plotR(object):
 				#now find out if there are multiple value axes
 				value_keys = self.data.valuekeys
 
-
 				x=data_slice.loc[:,coord_keys[-2]]
 				y=data_slice.loc[:,coord_keys[-1]]
 				z=data_slice.loc[:,value_keys[value_axis]]
 
 				xu = np.size(x.unique())
 				yu = np.size(y.unique())
-
-
+				
 				## if the measurement is not complete this will probably fail so trim off the final sweep?
 				print('xu: {:d}, yu: {:d}, lenz: {:d}'.format(xu,yu,len(z)))
 				if xu*yu != len(z):
-					xu = (len(z) / yu) #dividing integers so should automatically floor the value
-
+					xu = int(np.floor(len(z) / yu)) #dividing integers so should automatically floor the value
 				#trim the first part of the sweep, for different min max, better to trim last part?
 				#or the first since there has been sorting
 				#this doesnt work for e.g. a hilbert measurement
 
-				print('xu: {:d}, yu: {:d}, lenz: {:d}'.format(xu,yu,len(z)))
-
+				print('xu: {:d}, yu: {:d}, lenz: {:d} after trimming'.format(xu,yu,len(z)))
 				#sorting sorts negative to positive, so beware:
 				#sweep direction determines which part of array should be cut off
 				if sweepoverride: ##if sweep True, override the detect value
@@ -231,6 +299,7 @@ class plotR(object):
 				XX = np.reshape(z,(xu,yu))
 				if hasattr(self, 'XX_processed'):
 					XX = self.XX_processed
+
 				self.x = x
 				self.y = y
 				self.z = z
@@ -239,9 +308,10 @@ class plotR(object):
 				ylims = (y.min(),y.max())
 
 				#determine stepsize for di/dv, inprincipe only y step is used (ie. the diff is also taken in this direction and the measurement swept..)
-				xstep = (xlims[1] - xlims[0])/(xu-1)
-				ystep = (ylims[1] - ylims[0])/(yu-1)
+				xstep = float(xlims[1] - xlims[0])/(xu-1)
+				ystep = float(ylims[1] - ylims[0])/(yu-1)
 				print xstep,ystep
+				
 				ext = xlims+ylims
 				self.extent = ext
 				self.XX = XX
@@ -259,8 +329,8 @@ class plotR(object):
 						'zname':'unused',
 						'datasetname':self.name}
 					self.exportDataMeta = np.append(self.exportDataMeta,m)
-				except Exception,e:
-					print e
+				except Exception as e:
+					print(e)
 					pass
 				if ax_destination is None:
 					ax = plt.subplot(gs[cnt])
@@ -268,24 +338,26 @@ class plotR(object):
 					ax = ax_destination
 				cbar_title = ''
 
-
-
 				if type(style) != list:
 					style = list([style])
 
-
 				measAxisDesignation = parseUnitAndNameFromColumnName(value_keys[value_axis])
 				#wrap all needed arguments in a datastructure
-				cbar_quantity = measAxisDesignation[0]
-				cbar_unit = measAxisDesignation[1]
+				if measAxisDesignation:
+					if measAxisDesignation[1]:
+						cbar_quantity = measAxisDesignation[0]
+						cbar_unit = measAxisDesignation[1]
+					else:
+						cbar_quantity = measAxisDesignation
+						cbar_unit = ''
+
 				cbar_trans = [] #trascendental tracer :P For keeping track of logs and stuff
 				w = styles.getPopulatedWrap(style)
-				w2 = {'ext':ext, 'ystep':ystep,'XX': XX, 'cbar_quantity': cbar_quantity, 'cbar_unit': cbar_unit, 'cbar_trans':cbar_trans, 'buffer':buffer, 'xlabel':coord_keys[-2], 'ylabel':coord_keys[-1]}
+				w2 = {'ext':ext, 'ystep':ystep,'XX': XX, 'cbar_quantity': cbar_quantity, 'cbar_unit': cbar_unit, 'cbar_trans':cbar_trans}
 				for k in w2:
 					w[k] = w2[k]
 				w['massage_func']=massage_func
 				styles.processStyle(style, w)
-
 				#unwrap
 				ext = w['ext']
 				XX = w['XX']
@@ -293,7 +365,6 @@ class plotR(object):
 				cbar_title = cbar_trans_formatted + w['cbar_quantity'] + ' (' + w['cbar_unit'] + ')'
 				if len(w['cbar_trans']) is not 0:
 					cbar_title = cbar_title + ')'
-				
 				self.stylebuffer = w['buffer']
 				self.xlabel= w['xlabel']
 				self.ylabel= w['ylabel']
@@ -322,7 +393,6 @@ class plotR(object):
 						if imshow:
 							#masked_array_nans = np.ma.array(np.rot90(XX), mask=np.isnan(np.rot90(XX)))
 							masked_array_nans = np.rot90(XX)
-							
 							colormap = (plt.get_cmap(self.ccmap))
 							colormap.set_bad('grey',1.0)
 							#self.im = ax.imshow(masked_array_nans,extent=ext, cmap=colormap,aspect=aspect,interpolation=interpolation, clim=clim)
@@ -332,22 +402,20 @@ class plotR(object):
 						xs = np.linspace(ext[0],ext[1],XX.shape[0])
 						ys = np.linspace(ext[2],ext[3],XX.shape[1])
 						xv,yv = np.meshgrid(xs,ys) 
-						vmin, vmax = clim
 						colormap = (plt.get_cmap(self.ccmap))
 						colormap.set_bad('none',1.0)
-						Zm = np.ma.array(XX,mask=np.isnan(XX))
-						self.im = ax.pcolormesh(xv,yv,np.rot90(np.fliplr(Zm)),cmap=colormap, vmin=vmin, vmax=vmax, rasterized=True)
+						self.im = ax.pcolormesh(xv,yv,np.rot90(np.fliplr(XX)),cmap=plt.get_cmap(self.ccmap))
 						#self.im.set_edgecolor('none')
 					if not clim:
 						self.im.set_clim(self.autoColorScale(XX.flatten()))
-				ax.locator_params(nbins=5, axis='y') #Added to hardcode number of x ticks.
-				ax.locator_params(nbins=7, axis='x')
+				#ax.locator_params(nbins=5, axis='y') #Added to hardcode number of x ticks.
+				#ax.locator_params(nbins=7, axis='x')
 				if 'flipaxes' in style:
-					ax.set_xlabel(self.ylabel)
-					ax.set_ylabel(self.xlabel)
+					ax.set_xlabel(coord_keys[-1])
+					ax.set_ylabel(coord_keys[-2])
 				else:
-					ax.set_xlabel(self.xlabel)
-					ax.set_ylabel(self.ylabel)
+					ax.set_xlabel(coord_keys[-2])
+					ax.set_ylabel(coord_keys[-1])
 
 
 				title = ''
@@ -365,9 +433,9 @@ class plotR(object):
 						cax = cax_destination
 					elif cbar_location == 'inset':
 						if cbar_orientation == 'horizontal':
-							cax = inset_axes(ax,width='20%',height='5%',loc=2,borderpad=2)
+							cax = inset_axes(ax,width='30%',height='10%',loc=2,borderpad=1)
 						else:
-							cax = inset_axes(ax,width='3%',height='10%',loc=1)
+							cax = inset_axes(ax,width='30%',height='10%',loc=1)
 					else:
 						divider = make_axes_locatable(ax)
 						if cbar_orientation == 'horizontal':
@@ -378,35 +446,34 @@ class plotR(object):
 							cax = divider.append_axes("right", size="2.5%", pad=0.05)
 						pos = list(ax.get_position().bounds)
 					if hasattr(self, 'im'):
-						self.cbar = colorbar.create_colorbar(cax, self.im, orientation=cbar_orientation, spacing='uniform')
+						self.cbar = colorbar.create_colorbar(cax, self.im, orientation=cbar_orientation)
 						cbar = self.cbar
+
 						if cbar_orientation == 'horizontal':
 							cbar.set_label(cbar_title,labelpad=-15, x = -0.3, horizontalalignment='right')
 							cbar.ax.xaxis.set_label_position('top')
 							cbar.ax.xaxis.set_ticks_position('top')
 							tick_locator = ticker.MaxNLocator(nbins=3)
 							cbar.locator = tick_locator
-							#cbar.set_ticks([clim[0],clim[1]], update_ticks=True)
-							
-							cbar.update_ticks()
-							plt.show()
-							#cbar.ax.xaxis.fraction('top')
-							#cbar.ax.yaxis.set_label_position('left')
+
 						else:
 							tick_locator = ticker.MaxNLocator(nbins=3)
 							cbar.locator = tick_locator
 							cbar.set_label(cbar_title)#,labelpad=-19, x=1.32)
 							cbar.update_ticks()
-							self.cbar = cbar
-							plt.show()
+						
+						self.cbar = cbar
+						cbar.update_ticks()
+						plt.show()
 				self.ax = ax
 				cnt+=1 #counter for subplots
-				break
-
-		if self.fig and (mpl.get_backend() in ['Qt4Agg' , 'nbAgg']):
+		
+		
+		if self.fig and (mpl.get_backend() in [qtaggregator , 'nbAgg']):
 			self.toggleFiddle()
 			self.toggleLinedraw()
 			self.toggleLinecut()
+	
 		return self.fig
 
 	def plot2d(self,fiddle=False,
@@ -414,7 +481,7 @@ class plotR(object):
 					value_axis = -1,
 					style=['normal'],
 					uniques_col_str=[],
-					legend=True,
+					legend=False,
 					ax_destination=None,
 					subplots_args={'top':0.96, 'bottom':0.17, 'left':0.14, 'right':0.85,'hspace':0.0},
 					massage_func=None,
@@ -461,13 +528,10 @@ class plotR(object):
 		n_subplots = n_subplots * width
 		gs = gridspec.GridSpec(int(n_subplots/width)+n_subplots%width, width)
 
-		
 		uniques_axis_designations = []
 		#do some filtering of the colstr to get separate name and unit of said name
 		for a in uniques_col_str:
 			uniques_axis_designations.append(parseUnitAndNameFromColumnName(a))
-
-
 		if n_index is not None:
 			n_index = np.array(n_index)
 			n_subplots = len(n_index)
@@ -512,12 +576,36 @@ class plotR(object):
 				if legend:
 					plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
 						   ncol=2, mode="expand", borderaxespad=0.)
-		# 		ax = self.fig.axes[0]
+				ax = self.fig.axes[0]
 				xaxislabel = parseUnitAndNameFromColumnName(coord_keys[-1])
 				yaxislabel = parseUnitAndNameFromColumnName(value_keys[value_axis])
+
+				if xaxislabel:
+					if not isinstance(xaxislabel, np.ndarray):
+						xaxisquantity = xaxislabel
+						xaxisunit = ''
+					else:
+						xaxisquantity = xaxislabel[0]
+						xaxisunit = xaxislabel[1]
+
+				if yaxislabel:
+					if not isinstance(yaxislabel, np.ndarray):
+						yaxisquantity = yaxislabel
+						yaxisunit = ''
+					else:
+						yaxisquantity = yaxislabel[0]
+						yaxisunit = yaxislabel[1]
+
 				if ax:
-					ax.set_xlabel(xaxislabel[0]+'(' + xaxislabel[1] +')')
-					ax.set_ylabel(yaxislabel[0]+'(' + yaxislabel[1] +')')
+					if isinstance(xaxislabel, np.ndarray):
+						ax.set_xlabel(xaxisquantity+'(' + xaxisunit +')')
+					else:
+						ax.set_xlabel(coord_keys[-1]) # in case the label format does not fit our regex
+					if isinstance(yaxislabel, np.ndarray):
+						ax.set_ylabel(yaxisquantity+'(' +yaxisunit +')')
+					else:
+						ax.set_ylabel(value_keys[value_axis])
+		
 		return self.fig
 
 
@@ -556,8 +644,8 @@ class plotR(object):
 
 		#autodidv function
 		y=self.data.sorted_data.iloc[:,-2]
- 		if (max(y) == -1*min(y) and max(y) <= 15000):
- 			style.extend(['mov_avg(m=1,n=10)','didv','mov_avg(m=1,n=5)','abs'])
+		if (max(y) == -1*min(y) and max(y) <= 150):
+			style.extend(['mov_avg(m=1,n=10)','didv','mov_avg(m=1,n=5)','abs'])
 
 		#default style is 'log'
 		style.append('log')
@@ -570,7 +658,7 @@ class plotR(object):
 		self.linedraw=Linedraw(self.fig)
 
 		self.fig.drawbutton = toggleButton('draw', self.linedraw.connect)
-		topwidget = self.fig.canvas.topLevelWidget()
+		topwidget = self.fig.canvas.window()
 		toolbar = topwidget.children()[2]
 		action = toolbar.addWidget(self.fig.drawbutton)
 
@@ -579,7 +667,7 @@ class plotR(object):
 		self.linecut=Linecut(self.fig,self)
 
 		self.fig.cutbutton = toggleButton('cut', self.linecut.connect)
-		topwidget = self.fig.canvas.topLevelWidget()
+		topwidget = self.fig.canvas.window()
 		toolbar = topwidget.children()[2]
 		action = toolbar.addWidget(self.fig.cutbutton)
 
@@ -587,14 +675,16 @@ class plotR(object):
 
 	def toggleFiddle(self):
 		from IPython.core import display
+
 		self.fiddle = Fiddle(self.fig)
 		self.fig.fiddlebutton = toggleButton('fiddle', self.fiddle.connect)
-		topwidget = self.fig.canvas.topLevelWidget()
+		topwidget = self.fig.canvas.window()
 		toolbar = topwidget.children()[2]
 		action = toolbar.addWidget(self.fig.fiddlebutton)
+
 		#attach to the relevant figure to make sure the object does not go out of scope
 		self.fig.fiddle = self.fiddle
-
+	
 	def exportToMtx(self):
 
 		for j, i in enumerate(self.exportData):

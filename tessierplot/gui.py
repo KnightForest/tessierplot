@@ -1,13 +1,24 @@
-from PyQt4.QtGui import QToolButton
-from PyQt4 import QtCore,QtGui
+try:
+	from PyQt5.QtWidgets import QToolButton
+	from PyQt5.QtGui import QIcon as qticon
+	from PyQt5 import QtCore,QtGui
+	from PyQt5 import QtWidgets as qtwdgt
+except ImportError:
+	try:
+		from PyQt4.QtGui import QToolButton
+		from PyQt4.QtGui import QIcon as qticon
+		from PyQt4 import QtCore
+		from PyQt4 import QtGui as qtwdgt
+	except ImportError:
+		print('You need PyQT4 or PyQT5')
+
 import numpy as np
 from matplotlib.widgets import Line2D
-import numpy as np
 import matplotlib.pyplot as plt
 
-import helpers
+from . import helpers
 
-class toggleButton(QtGui.QToolButton):
+class toggleButton(qtwdgt.QToolButton):
     state = 0
     name = ''
     def __init__(self,name,whenclicked):
@@ -26,9 +37,9 @@ class toggleButton(QtGui.QToolButton):
 
     def updateIcon(self):
         if self.state == 0:
-            icon = QtGui.QIcon(helpers.get_asset('{:s}_off.png'.format(self.name)))
+            icon = qticon(helpers.get_asset('{:s}_off.png'.format(self.name)))
         elif self.state == 1:
-            icon = QtGui.QIcon(helpers.get_asset('{:s}_on.png'.format(self.name)))
+            icon = qticon(helpers.get_asset('{:s}_on.png'.format(self.name)))
         self.setIcon(icon)
         self.setIconSize(QtCore.QSize(32, 32))
         self.update()
