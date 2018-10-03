@@ -1,10 +1,4 @@
 
-<<<<<<< HEAD:tessierplot/view.py
-import plot as ts
-import data
-import jinja2 as jj
-=======
->>>>>>> 76083e55f4181dcc8052c2e73209b0bf42e5bffc:tessierplot/view.py
 import matplotlib.pyplot as plt
 from . import plot as ts
 from . import data
@@ -16,15 +10,12 @@ import re
 import win32api
 from IPython.display import VimeoVideo
 from IPython.display import display, HTML, display_html
-<<<<<<< HEAD:tessierplot/view.py
-import gzip
-import shutil
-import time
-=======
+#import gzip
+#import shutil
+#import time
 
 if os.name == 'nt':
     import win32api
->>>>>>> 76083e55f4181dcc8052c2e73209b0bf42e5bffc:tessierplot/view.py
 
 import imp
 imp.reload(ts)
@@ -50,7 +41,6 @@ def getthumbdatapath(file):
 
     thumbdatapath = f + '_thumb.png'
 
-<<<<<<< HEAD:tessierplot/view.py
 def gzipit(self): #compresses all .dat files to .gz, deletes .dat files.
     file_Path, file_Extension = os.path.splitext(self)
     if file_Extension == '.dat':
@@ -68,25 +58,15 @@ def gzipit(self): #compresses all .dat files to .gz, deletes .dat files.
             os.unlink(datfile)
 
 class tessierView(object):
-    def __init__(self, rootdir='./', filemask='.*\.dat(?:\.gz)?$',filterstring='',headercheck=None):
-=======
-    return thumbdatapath
-
-class tessierView(object):
     def __init__(self, rootdir='./', filemask='.*\.dat(?:\.gz)?$',filterstring='',override=False,headercheck=None,style=[],showfilenames=False):
->>>>>>> 76083e55f4181dcc8052c2e73209b0bf42e5bffc:tessierplot/view.py
         self._root = rootdir
         self._filemask = filemask
         self._filterstring = filterstring
         self._allthumbs = []
         self._headercheck = headercheck
-<<<<<<< HEAD:tessierplot/view.py
-        
-=======
         self._style = style
         self._override = override
         self._showfilenames = showfilenames
->>>>>>> 76083e55f4181dcc8052c2e73209b0bf42e5bffc:tessierplot/view.py
         
         #check for and create thumbnail dir
         thumbnaildir = os.path.dirname(getthumbcachepath('./'))
@@ -102,17 +82,14 @@ class tessierView(object):
     
     def makethumbnail(self, filename,override=False,style=[]):
         #create a thumbnail and store it in the same directory and in the thumbnails dir for local file serving, override options for if file already exists
-<<<<<<< HEAD:tessierplot/view.py
-        gzipit(file)
-        thumbfile = getthumbcachepath(file)
-        #print file, 'even testen hoe dit werkt'
-        thumbfile_datadir =  getthumbdatapath(file)
-=======
+        gzipall = 0 #finds all uncompressed files and compresses them. Also deletes all *.dat files. Only use if short on diskspace.
+        if gzipall == 1
+            gzipit(file)
+
         thumbfile = getthumbcachepath(filename)
         
         thumbfile_datadir =  getthumbdatapath(filename)
         
->>>>>>> 76083e55f4181dcc8052c2e73209b0bf42e5bffc:tessierplot/view.py
         try:
             if os.path.exists(thumbfile):
                 thumbnailStale = os.path.getmtime(thumbfile) < os.path.getmtime(filename)   #check modified date with file modified date, if file is newer than thumbfile refresh the thumbnail
@@ -147,14 +124,6 @@ class tessierView(object):
             thumbfile = None #if fail no thumbfile was created
             print('Error {:s} for file {:s}'.format(str(e),filename))
             pass
-<<<<<<< HEAD:tessierplot/view.py
-        finally:
-            #put back the old settings
-            pylab.rcParams.update(rcP_old)
-
-=======
-        
->>>>>>> 76083e55f4181dcc8052c2e73209b0bf42e5bffc:tessierplot/view.py
         return thumbfile
     
 
@@ -185,15 +154,6 @@ class tessierView(object):
                     matches.append(fullpath)
             #found at least one file that matches the filemask
             if matches: 
-<<<<<<< HEAD:tessierplot/view.py
-                fullpath = matches[0]  
-                fullname,fullext = os.path.split(fullpath)
-                fullname = win32api.GetShortPathName(fullname)    
-                fullpath = fullname + '/' + fullext          
-                
-                dir,basename =  os.path.split(fullpath)
-                #dir = win32api.GetShortPathName(dir)
-=======
                 fullpath = matches[0]
 
                 # check if filterstring can be found in the path
@@ -207,7 +167,6 @@ class tessierView(object):
                 if os.name == 'nt': # avoid problems with very long path names in windows
                     dir = win32api.GetShortPathName(dir)
                     fullpath = dir + '/' + basename
->>>>>>> 76083e55f4181dcc8052c2e73209b0bf42e5bffc:tessierplot/view.py
                 
                 measname,ext1 = os.path.splitext(basename)
                 #dirty, if filename ends e.g. in gz, also chops off the second extension
@@ -215,26 +174,11 @@ class tessierView(object):
                 ext = ext2+ext1
                 
 
-<<<<<<< HEAD:tessierplot/view.py
-                if filterstring in open(self.getsetfilepath(fullpath)).read():   #liable for improvement
-                #check for certain parameters with filterstring in the set file: e.g. 'dac4: 1337.0'
-
-                    #df = data.Data.load_header_only(fullpath)
-                    #if headercheck is None or df.coordkeys[-2] == headercheck:
-                        thumbpath = self.makethumbnail(fullpath,**kwargs)
-                        if thumbpath:
-                            self._allthumbs.append({'datapath':fullpath,
-                                                 'thumbpath':thumbpath,
-                                                 'datedir':datedir, 
-                                                 'measname':measname})
-                            images += 1
-=======
                 #check if filterstring can be found in the set file (e.g. 'dac4: 1337.0')
                 if not isinfilterstring:
                     setfilepath = data.filetype.getsetfilepath(fullpath)
                     if setfilepath: # only check for filterstring if set file exists
                         isinfilterstring = filterstring in open(setfilepath).read()
->>>>>>> 76083e55f4181dcc8052c2e73209b0bf42e5bffc:tessierplot/view.py
 
                 if isinfilterstring:    #liable for improvement
                     if self._showfilenames:
@@ -244,7 +188,7 @@ class tessierView(object):
                         thumbpath = self.makethumbnail(fullpath,**kwargs)
 
                         if thumbpath:
-                            thumbpath_html = thumbpath.replace('#','%23') # html doesn not like number signs in file paths
+                            thumbpath_html = thumbpath.replace('#','%23') # html does not like number signs in file paths
                             self._allthumbs.append({'datapath':fullpath,
                                                  'thumbpath':thumbpath_html,
                                                  'datedir':datedir, 
@@ -253,15 +197,6 @@ class tessierView(object):
         return self._allthumbs
 
     def _ipython_display_(self):
-<<<<<<< HEAD:tessierplot/view.py
-        display_html(HTML(self.genhtml(refresh=False)))
-    
-    def htmlout(self,refresh=False):
-        display(HTML(self.genhtml(refresh=refresh)))
-        
-    def genhtml(self,refresh=False):
-        self.walk(filemask=self._filemask,filterstring='dac',headercheck=self._headercheck,override=refresh) #Change override to True if you want forced refresh of thumbs
-=======
         
         display_html(HTML(self.genhtml(refresh=False,style=self._style)))
         
@@ -269,7 +204,6 @@ class tessierView(object):
         if self._override:
             refresh = True
         self.walk(filemask=self._filemask,filterstring=self._filterstring,headercheck=self._headercheck,override=refresh,**kwargs) #Change override to True if you want forced refresh of thumbs
->>>>>>> 76083e55f4181dcc8052c2e73209b0bf42e5bffc:tessierplot/view.py
         #unobfuscate the file relative to the working directory
         #since files are served from ipyhton notebook from ./files/
         all_relative = [{ 
@@ -287,19 +221,11 @@ class tessierView(object):
         <div id='outer'>
     
     {% set ncolumns = 4 %}
-<<<<<<< HEAD:tessierplot/view.py
-
-=======
->>>>>>> 76083e55f4181dcc8052c2e73209b0bf42e5bffc:tessierplot/view.py
     {% set vars = {'lastdate': '', 'columncount': 1} %}
 
     {% for item in items %}
     
         {% set isnewdate = (vars.lastdate != item.datedir) %}
-<<<<<<< HEAD:tessierplot/view.py
-        
-=======
->>>>>>> 76083e55f4181dcc8052c2e73209b0bf42e5bffc:tessierplot/view.py
         {% if isnewdate %}
             {% if vars.update({'columncount': 1}) %} {% endif %}
             {% if loop.index != 1 %}
@@ -328,7 +254,6 @@ class tessierView(object):
                     <button id='{{ item.datapath }}' onClick='plotwithStyle(this.id)' class='plotStyleSelect'>Plot with</button>
                     <form name='{{ item.datapath }}'>
                     <select name="selector">
-<<<<<<< HEAD:tessierplot/view.py
                         <option value="{{"[\\'\\']"|e}}">normal</option>
                         <option value="{{"[\\'abs\\']"|e}}">abs</option>
                         <option value="{{"[\\'log\\']"|e}}">log</option>
@@ -350,19 +275,6 @@ class tessierView(object):
                         <option value="{{"[\\'meansubtract\\',\\'deinterlace0\\',\\'mov_avg\\',\\'didv\\']"|e}} ">deinterlace0,didv</option>
                         <option value="{{"[\\'meansubtract\\',\\'deinterlace1\\',\\'mov_avg\\',\\'didv\\']"|e}} ">deinterlace1,didv</option>
                         <option value="{{"[\\'crosscorr\\']"|e}} ">Crosscorr</option>
-=======
-                        <option value="{{"\\'\\'"|e}}">normal</option>
-                        <option value="{{"\\'abs\\'"|e}}">abs</option>
-                        <option value="{{"\\'log\\'"|e}}">log</option>
-                        <option value="{{"\\'savgol\\',\\'log\\'"|e}}">savgol,log</option>
-                        <option value="{{"\\'sgdidv\\'"|e}}">sgdidv</option>
-                        <option value="{{"\\'sgdidv\\',\\'log\\'"|e}} ">sgdidv,log</option>
-                        <option value="{{"\\'mov_avg(m=1,n=15)\\',\\'didv\\',\\'mov_avg(m=1,n=15)\\',\\'abs\\',\\'log\\' "|e}} ">Ultrasmooth didv</option>
-                        <option value="{{"\\'mov_avg\\',\\'didv\\',\\'abs\\'"|e}} ">mov_avg,didv,abs</option>
-                        <option value="{{"\\'mov_avg\\',\\'didv\\',\\'abs\\',\\'log\\'"|e}} ">mov_avg,didv,abs,log</option>
-                        <option value="{{"\\'deinterlace0\\',\\'log\\'"|e}} ">deinterlace</option>
-                        <option value="{{"\\'crosscorr\\'"|e}} ">Crosscorr</option>
->>>>>>> 76083e55f4181dcc8052c2e73209b0bf42e5bffc:tessierplot/view.py
                     </select>
                     <input type="checkbox" name="stylechecker" value="{{"\\'flipaxes\\',"|e}} ">Flip axes
                     </form>            
@@ -371,15 +283,9 @@ class tessierView(object):
         {% if (vars.columncount % ncolumns == 0) %}
             </div>
         {% endif %}
-<<<<<<< HEAD:tessierplot/view.py
-        {% if vars.update({'columncount': vars.columncount+1}) %} {% endif %}
-        {% if vars.update({'lastdate': item.datedir}) %} {% endif %}
-        
-=======
 
         {% if vars.update({'columncount': vars.columncount+1}) %} {% endif %}
         {% if vars.update({'lastdate': item.datedir}) %} {% endif %}
->>>>>>> 76083e55f4181dcc8052c2e73209b0bf42e5bffc:tessierplot/view.py
     {% endfor %}    
     </div>
     
@@ -540,19 +446,9 @@ class tessierView(object):
         """
         temp = jj.Template(out)
 
-<<<<<<< HEAD:tessierplot/view.py
-        plotcommand = """from tessierplot import plot as ts; reload(ts); p = ts.plotR(file); p.quickplot(style= %s) """
-        import datetime
-        d=datetime.datetime.utcnow()
-        nowstring = d.strftime('%Y%m%d%H%M%S')
-        t = temp.render(items=all_relative,plotcommand=plotcommand,nowstring=nowstring)
-        
-        return t
-=======
         plotcommand = """\\nimport matplotlib.pyplot as plt\\nimport imp\\nif not plt.get_fignums():\\n from tessierplot import plot as ts\\n imp.reload(ts)\\np = ts.plotR(filename)\\np.quickplot(style= %s)\\n"""
         
         import datetime
         d=datetime.datetime.utcnow()
         nowstring = d.strftime('%Y%m%d%H%M%S')
         return temp.render(items=all_relative,plotcommand=plotcommand,nowstring=nowstring)
->>>>>>> 76083e55f4181dcc8052c2e73209b0bf42e5bffc:tessierplot/view.py
