@@ -44,11 +44,11 @@ def getthumbdatapath(file):
 def gzipit(self): #compresses all .dat files to .gz, deletes .dat files.
     file_Path, file_Extension = os.path.splitext(self)
     if file_Extension == '.dat':
-        print self
+        print(self)
         gzfile = self + '.gz'
         if os.path.isfile(gzfile)==False:
             with open(self, 'rb') as f_in, gzip.open(self+'.gz', 'wb') as f_out:
-                print 'Do the GZIP, do the GZIP'
+                print('Do the GZIP, do the GZIP')
                 shutil.copyfileobj(f_in, f_out)
         os.unlink(self)
     elif file_Extension == '.gz':
@@ -83,7 +83,7 @@ class tessierView(object):
     def makethumbnail(self, filename,override=False,style=[]):
         #create a thumbnail and store it in the same directory and in the thumbnails dir for local file serving, override options for if file already exists
         gzipall = 0 #finds all uncompressed files and compresses them. Also deletes all *.dat files. Only use if short on diskspace.
-        if gzipall == 1
+        if gzipall == 1:
             gzipit(file)
 
         thumbfile = getthumbcachepath(filename)

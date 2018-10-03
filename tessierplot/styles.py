@@ -60,11 +60,11 @@ def helper_fixlabels(w):
 	#print cbar_q, cbar_u
 	#print ylabel, xlabel
 	if cbar_q.find('Current') != -1:
-		print 'found current'
+		print('found current')
 		cbar_q = '$I_\mathrm{D}$'
 		cbar_unit = '(nA)'
 	if cbar_q.find('Voltage') != -1:
-		print 'found voltage'
+		print('found voltage')
 		cbar_q = '$V_\mathrm{SD}$'
 		cbar_unit = '(mV)'
 
@@ -105,10 +105,10 @@ def helper_fixlabels(w):
 	w['cbar_unit'] = cbar_u
 
 def helper_changeaxis(w):
-	print w['ext']
+	print(w['ext'])
 	newext = (float(w['changeaxis_xfactor'])*w['ext'][0],float(w['changeaxis_xfactor'])*w['ext'][1],float(w['changeaxis_yfactor'])*w['ext'][2],float(w['changeaxis_yfactor'])*w['ext'][3])
 	w['ext'] = newext
-	print w['ext']
+	print(w['ext'])
 	#print float(w['changeaxis_datafactor'])
 	w['XX'] = w['XX']*float(w['changeaxis_datafactor'])
 	if w['changeaxis_dataunit'] != None:
@@ -175,7 +175,7 @@ def helper_hardgap(w):
 	gaplimpos = np.abs(yaxis-gaprange[1]).argmin()
 	outsidegaplimneg = np.abs(yaxis-outsidegaprange[0]).argmin()
 	outsidegaplimpos = np.abs(yaxis-outsidegaprange[1]).argmin()
-	print gaplimneg, gaplimpos, outsidegaplimneg,outsidegaplimpos
+	print(gaplimneg, gaplimpos, outsidegaplimneg,outsidegaplimpos)
 	alllens, gapconductance,outsidegapconductance,hardness = np.array([None]*xn),np.array([None]*xn),np.array([None]*xn),np.array([None]*xn)
 	for i in range(0,xn):
 		gapconductance[i] = np.mean([XX[i,gaplimneg:gaplimpos]])
@@ -289,7 +289,7 @@ def helper_movingmeansubtract(w):
 		meanarray[i] = np.mean(XX[i][:])
 	#print meanarray.shape
 	win=int(w['movingmeansubtract_window'])
-	print win
+	print(win)
 	padleft = int(round((win-1+0.0001)/2))
 	padright = int(np.floor((win-1)/2))
 	valleft = meanarray[0]
@@ -311,7 +311,7 @@ def helper_movingmeansubtract(w):
 	
 def helper_meansubtract(w):
 	offset = np.mean(w['XX'])
-	print 'Subtracted mean:' + str(offset)
+	print('Subtracted mean:' + str(offset))
 	w['XX'] = w['XX']-offset
 
 def helper_deleteouterdatapoints(w):
@@ -320,7 +320,7 @@ def helper_deleteouterdatapoints(w):
 	xn, yn = XX.shape
 	newylim1 = w['ext'][2]+n*w['ystep']
 	newylim2 = w['ext'][3]-n*w['ystep']
-	print 'n to be deleted:' + str(n)
+	print('n to be deleted:' + str(n))
 	XX_new = np.zeros(shape=(xn,(yn-2*n)))
 	for i in range(0,xn):
 		y1 = n
@@ -398,15 +398,15 @@ def helper_ivreverser(w):
 	w['ext'] = (w['ext'][0],w['ext'][1],ylimitneg,ylimitpos)
 	w['ystep'] = (ylimitpos-ylimitneg)/(len(gridyaxis)-1)
 	#print ylimitpos, ylimitneg, len(gridyaxis)
-	print 'new ystep:'+ str(w['ystep'])
+	print('new ystep:'+ str(w['ystep']))
 	w['ext'] = (w['ext'][0],w['ext'][1],ylimitneg,ylimitpos)
 	if w['ylabel'].find('nA') != -1:
-		print 'I sourced detected'
+		print('I sourced detected')
 		w['ylabel'] = '$V_\mathrm{SD}$ (mV)'
 		w['cbar_quantity'] = '$I_\mathrm{S}$'
 		w['cbar_unit'] = 'nA'
 	elif w['ylabel'].find('mV') != -1:
-		print 'V sourced detected'
+		print('V sourced detected')
 		w['ylabel'] = '$I_\mathrm{D}$ (nA)'
 		w['cbar_quantity'] = '$V_\mathrm{SD}$'
 		w['cbar_unit'] = 'mV' 
@@ -453,7 +453,7 @@ def helper_linecut(w):
 	else:
 		linecutvalue = [w['linecut_value']]
 	linecutvalue = [float(i) for i in linecutvalue]
-	print linecutvalue
+	print(linecutvalue)
 	axis = w['linecut_axis']
 	fig = plt.figure()
 	if axis == 'x':
@@ -541,7 +541,7 @@ def helper_dbmtovolt(w):
 	w['ext'] = (xlimitneg,xlimitpos,w['ext'][2],w['ext'][3])
 	w['xstep'] = (xlimitpos-xlimitneg)/len(gridxaxis)
 	#print ylimitpos, ylimitneg, len(gridyaxis)
-	print 'new xstep:'+ str(w['xstep'])
+	print('new xstep:'+ str(w['xstep']))
 	w['xlabel'] = '$V_\mathrm{rms}$ (V)'
 
 
@@ -617,16 +617,16 @@ def helper_histogram2(w):
 	histbins = 500
 	binrange = np.linspace(histrange[0],histrange[1],yn)
 	isteps = np.zeros(shape=(xn,histbins))
-	print yaxis
+	print(yaxis)
 	for i in range(0,xn):
 		bindata = XX[i,:]
 		xvalsmax = stats.binned_statistic(bindata,yaxis, 'max', bins=histbins, range=histrange)
-		print xvalsmax
+		print(xvalsmax)
 		xvalsmin = stats.binned_statistic(bindata,yaxis, 'min', bins=histbins, range=histrange)
-		print xvalsmin
+		print(xvalsmin)
 		isteps[i] = xvalsmax[0][:]-xvalsmin[0][:]
-		print isteps[i]
-	print isteps
+		print(isteps[i])
+	print(isteps)
 	w['XX'] = isteps
 	w['ext'] = [w['ext'][0],w['ext'][1],histrange[0],histrange[1]]
 		# for j in range(0,histbins):
@@ -727,15 +727,15 @@ def helper_ic(w):
     helper_deinterlace(w)
     X0 = w['deinterXXodd']
     X1 = w['deinterXXeven']
-    print X0.shape, X1.shape
+    print(X0.shape, X1.shape)
     xn,yn = data.shape 
     # even/odd statements work on even deinterlacing (X1) since this is the largest
     if (yn % 2 == 0):
-        print 'y is even'
+        print('y is even')
         cutb = int(yn/2+1)
         #print cutb
     else:
-        print 'y is uneven'
+        print('y is uneven')
         cutb = int(yn/2)
         #print cutb
     #take the op of X0 (even) and check for even/uneven
@@ -787,7 +787,7 @@ def helper_icvsx(w):
 	strictzero = w['icvsx_strictzero']
 	limhigh = float(w['icvsx_plateaulim'])
 	limmin = float(w['icvsx_gapmax'])
-	print useonlythreshold,pixelnoiserange,peaktoplateauthreshold,stepoffset,strictzero
+	print(useonlythreshold,pixelnoiserange,peaktoplateauthreshold,stepoffset,strictzero)
 	# def reject_outliers(data, m = 2.):
 		# d = np.abs(data - np.median(data))
 		# mdev = np.median(d)
@@ -799,7 +799,7 @@ def helper_icvsx(w):
 	
 	XX = w['XX']
 	xn, yn = XX.shape
-	print yn,xn
+	print(yn,xn)
 	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
 	yaxis = np.linspace(w['ext'][2],w['ext'][3],w['XX'].shape[1])
 	ic = np.zeros((3,xn))
@@ -831,10 +831,9 @@ def helper_icvsx(w):
 		else:
 			poslow,neglow = np.mean((posarray[0:3]+negarray[0:3])/2),np.mean((posarray[0:3]+negarray[0:3])/2)
 			if poslow>limmin:
-				print 'minlimfix'
+				print('minlimfix')
 				poslow=limmin
 			if neglow>limmin:
-				'minlimfix'
 				neglow=limmin
 		#print neghigh,poshigh
 		#print neglow,poslow
@@ -864,16 +863,16 @@ def helper_icvsx(w):
 				indexnegnopeak = np.array([0])
 		except:
 			e = sys.exc_info()[0]
-			print e
-			print 'exceptneg'#indexnegnopeak = np.array([0])
+			print(e)
+			print('exceptneg')#indexnegnopeak = np.array([0]))
 		try:
 			indexposnopeak = [x[0] for x in enumerate(posarray) if x[1] > thresposabs]
 			if len(indexposnopeak) == 0:
 				indexposnopeak = np.array([0])
 		except:
 			e = sys.exc_info()[0]
-			print e
-			print 'exceptpos'#indexposnopeak = np.array([0])
+			print(e)
+			print('exceptpos')#indexposnopeak = np.array([0])
 			
 		if useonlythreshold == 1:
 			indexneg = indexnegnopeak
@@ -894,14 +893,14 @@ def helper_icvsx(w):
 					finalindexneg = indexneg[0]
 			except:
 				e = sys.exc_info()[0]
-				print 'negexcept'
-				print e
+				print('negexcept')
+				print(e)
 				indexneg = np.array([0])
 				if indexneg[0] + pixelnoiserange > len(negarray):
 					finalindexneg = indexneg[0]#+int(yn/2)
 				else:
 					finalindexneg = 0
-					print 'Index ' + str(i) + 'neg not found'
+					print('Index ' + str(i) + 'neg not found')
 				peaknoise = False
 		firstpeakpos = indexpos[0]
 		peaknoise = True
@@ -919,14 +918,14 @@ def helper_icvsx(w):
 					finalindexpos = indexpos[0]
 			except:
 				e = sys.exc_info()[0]
-				print 'posexcept'
-				print e
+				print('posexcept')
+				print(e)
 				indexpos = np.array([0])
 				if indexpos[0] + pixelnoiserange > len(posarray):
 					finalindexpos = indexpos[0]+int(yn/2)
 				else:
 					finalindexpos = 0
-					print 'Index ' + str(i) + 'pos not found'
+					print('Index ' + str(i) + 'pos not found')
 				peaknoise = False
 		#print finalindexpos,finalindexneg
 		#if sindex[0] > 2:
@@ -1139,8 +1138,8 @@ def getPopulatedWrap(style=[]):
 				i += 1
 		except Exception as e:
 			print('getPolulatedWrap(): Style {:s} does not exist ({:s})'.format(s, str(e)))
-			print e.__doc__
-			print e.args
+			print(e.__doc__)
+			print(e.args)
 			pass
 	return w
 
@@ -1152,8 +1151,8 @@ def processStyle(style, wrap):
 			func(wrap)
 		except Exception as e:
 			print('processStyle(): Style {:s} does not exist ({:s})'.format(s, str(e)))
-			print e.__doc__
-			print e.args
+			print(e.__doc__)
+			print(e.args)
 			pass
 
 

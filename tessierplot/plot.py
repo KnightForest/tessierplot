@@ -122,7 +122,6 @@ class plotR(object):
 
 		return len(coords[filter_neg]) < 2
 
-<<<<<<< HEAD
 	def quickplot_processed(self,**kwargs):
 		coords = np.array(self.data.coordkeys)
 		filter = self.data.dims < 5
@@ -310,7 +309,7 @@ class plotR(object):
 				#determine stepsize for di/dv, inprincipe only y step is used (ie. the diff is also taken in this direction and the measurement swept..)
 				xstep = float(xlims[1] - xlims[0])/(xu-1)
 				ystep = float(ylims[1] - ylims[0])/(yu-1)
-				print xstep,ystep
+				print(xstep,ystep)
 				
 				ext = xlims+ylims
 				self.extent = ext
@@ -376,7 +375,7 @@ class plotR(object):
 					self.imshow_norm = w['imshow_norm']
 				if norm == 'nan':
 					self.imshow_norm = None
-				print self.imshow_norm
+				print(self.imshow_norm)
 				if 'deinterlace' in style:
 					self.fig = plt.figure()
 					ax_deinter_odd  = plt.subplot(2, 1, 1)
