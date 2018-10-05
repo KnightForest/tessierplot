@@ -312,18 +312,12 @@ class Data(pandas.DataFrame):
     @classmethod
     def load_file(cls,filepath):
         parser = cls.determine_parser(filepath)
-<<<<<<< HEAD
-        p = parser(filepath)
-        p.parse()
-
-=======
         p = parser(filename=filepath,filebuffer=open(filepath,mode='rb'))
         
         if p._filebuffer is None:
             p = None
             return None,None
         p.parse()
->>>>>>> f415bcba6971d71c86d2335d3ce7273bd4e386a4
         return p._data,p._header
 
     @classmethod
