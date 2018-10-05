@@ -60,28 +60,46 @@ class qcodes_parser(dat_parser):
     def parseheader(self):
         #read in the .json file
         json_file = ''.join((os.path.dirname(self._file),'/snapshot.json'))
-        filebuffer = open(json_file)
-        json_s=filebuffer.read()
+        json_filebuffer = open(json_file)
+        json_s=json_filebuffer.read()
+
+        #read the column names from the .dat file
+        filebuffer = self._filebuffer
+        firstline = filebuffer.readline().decode('utf-8')
+        secondline = filebuffer.readline().decode('utf-8')
+        
+        raw = r'\".*?\"'
+        reggy = re.compile(raw)
+        columnname = reggy.findall(secondline)
+        columnname = [i.replace('\"','') for i in columnname]
 
         #look for the part where the data file meta info is stored
         json_data = json.loads(json_s)
         headerdict = json_data['arrays']
-        header=[]
+        headervalues=[]
+        units = []
         headerlength=0
 
         for i,val in enumerate(headerdict):
-            if headerdict[val]['is_setpoint']:
+            if headerdict[val]['is_setpoint']:                
                 line=[i,headerdict[val]['name'],'coordinate']
                 line_x = zip(['column','name','type'],line)
-                header.append(line_x)
-                headerlength=headerlength+1
+                headervalues.append(line_x)
+                units.append(headerdict[val]['unit'])
             else:
                 line=[i,headerdict[val]['name'],'value']
                 line_x = zip(['column','name','type'],line)
-                header.append(line_x)
-                headerlength=headerlength+1
+                headervalues.append(line_x)
 
-        header = [dict(x) for x in header]
+        headervalues = [dict(x) for x in headervalues]
+
+        # sort according to the column order in the dat file
+        header=[]
+        for i, col in enumerate(columnname):
+            for j, h in enumerate(headervalues):
+                if col == h['name']:
+                    header.append(h)
+                    break
         
         #set_trace()
         return header,headerlength
@@ -185,7 +203,10 @@ def factory_gz_parser(cls):
                 gz = super(gz_parser,self).__init__(filename=filename,filebuffer=gzip.GzipFile(fileobj=f))
                 return gz
             else:
-                raise Exception('Not a valid gzip file')
+                #raise Exception('Not a valid gzip file')
+                print('Not a valid gzip file')
+                gz = super(gz_parser,self).__init__(filename=filename,filebuffer=None)
+                return gz
     
     return gz_parser
 
@@ -272,6 +293,9 @@ class Data(pandas.DataFrame):
     def load_header_only(cls,filepath):
         parser = cls.determine_parser(filepath)
         p = parser(filename=filepath,filebuffer=open(filepath,mode='rb'))
+        if p._filebuffer is None:
+            p = None
+            return None
         header,headerlength = p.parseheader()
         df = Data()
         df._header = header
@@ -288,9 +312,18 @@ class Data(pandas.DataFrame):
     @classmethod
     def load_file(cls,filepath):
         parser = cls.determine_parser(filepath)
+<<<<<<< HEAD
         p = parser(filepath)
         p.parse()
 
+=======
+        p = parser(filename=filepath,filebuffer=open(filepath,mode='rb'))
+        
+        if p._filebuffer is None:
+            p = None
+            return None,None
+        p.parse()
+>>>>>>> f415bcba6971d71c86d2335d3ce7273bd4e386a4
         return p._data,p._header
 
     @classmethod

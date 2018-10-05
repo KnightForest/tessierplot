@@ -199,6 +199,8 @@ class plotR(object):
 						ax_destination=None,
 						n_index=None,
 						style='log',
+						xlims_manual=None,
+						ylims_manual=None,
 						clim=None,
 						aspect='auto',
 						interpolation='nearest',
@@ -231,7 +233,7 @@ class plotR(object):
 			n_subplots = len(n_index)
 
 		if n_subplots > 1:
-			width = 2
+			width = 1
 		else:
 			width = 1
 		n_valueaxes = len(self.data.valuekeys)	
@@ -241,10 +243,11 @@ class plotR(object):
 		else:
 			value_axes = list([value_axis])
 		
-		width = len(value_axes)
-		n_subplots = n_subplots *width
-		gs = gridspec.GridSpec(int(n_subplots/width)+n_subplots%width, width)
-		
+		width = 1#len(value_axes)
+		height = len(value_axes)
+		n_subplots = n_subplots *width#int(n_subplots/width)+n_subplots%width
+		#gs = gridspec.GridSpec(int(n_subplots/width)+n_subplots%width, width)
+		gs = gridspec.GridSpec(height,width)
 		cnt=0 #subplot counter
 
 		#enumerate over the generated list of unique values specified in the uniques columns
@@ -305,6 +308,24 @@ class plotR(object):
 				#now set the lims
 				xlims = (x.min(),x.max())
 				ylims = (y.min(),y.max())
+				xnew = xlims
+				ynew = ylims
+
+				if not (xlims_manual == None):
+					xnew = xlims
+					if xlims_manual[0] > xlims[0]:
+						xnew[0] = xlims_manual[0]
+					
+					if xlims_manual[1] > xlims[1]:
+						xnew[1] = xlims_manual[1]
+
+				if not (ylims_manual == None):
+					ynew = ylims
+					if ylims_manual[0] > ylims[0]:
+						ynew[0] = ylims_manual[0]
+					
+					if ylims_manual[1] > ylims[1]:
+						ynew[1] = ylims_manual[1]
 
 				#determine stepsize for di/dv, inprincipe only y step is used (ie. the diff is also taken in this direction and the measurement swept..)
 				xstep = float(xlims[1] - xlims[0])/(xu-1)
@@ -343,7 +364,7 @@ class plotR(object):
 				measAxisDesignation = parseUnitAndNameFromColumnName(value_keys[value_axis])
 				#wrap all needed arguments in a datastructure
 				if measAxisDesignation:
-					if measAxisDesignation[1]:
+					if measAxisDesignation[1] and not isinstance(measAxisDesignation,str):
 						cbar_quantity = measAxisDesignation[0]
 						cbar_unit = measAxisDesignation[1]
 					else:
@@ -525,7 +546,7 @@ class plotR(object):
 		
 		width = len(value_axes)
 		n_subplots = n_subplots * width
-		gs = gridspec.GridSpec(int(n_subplots/width)+n_subplots%width, width)
+		gs = gridspec.GridSpec(width,int(n_subplots/width)+n_subplots%width)
 
 		uniques_axis_designations = []
 		#do some filtering of the colstr to get separate name and unit of said name
@@ -575,10 +596,10 @@ class plotR(object):
 				if legend:
 					plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
 						   ncol=2, mode="expand", borderaxespad=0.)
-				ax = self.fig.axes[0]
+				#ax = self.fig.axes[0]
 				xaxislabel = parseUnitAndNameFromColumnName(coord_keys[-1])
 				yaxislabel = parseUnitAndNameFromColumnName(value_keys[value_axis])
-
+				
 				if xaxislabel:
 					if not isinstance(xaxislabel, np.ndarray):
 						xaxisquantity = xaxislabel

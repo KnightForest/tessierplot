@@ -140,7 +140,7 @@ class tessierView(object):
     def walk(self, filemask, filterstring, headercheck=None,**kwargs):
         paths = (self._root,)
         images = 0
-        self.allthumbs = []
+        self._allthumbs = []
         reg = re.compile(self._filemask) #get only files determined by filemask
         
         for root,dirnames,filenames in chain.from_iterable(os.walk(path) for path in paths):
@@ -158,7 +158,7 @@ class tessierView(object):
 
                 # check if filterstring can be found in the path
                 isinfilterstring = filterstring.lower() in fullpath.lower()
-                
+
                 dir,basename =  os.path.split(fullpath)
 
                 #extract the directory which is the date of measurement
@@ -172,7 +172,6 @@ class tessierView(object):
                 #dirty, if filename ends e.g. in gz, also chops off the second extension
                 measname,ext2 = os.path.splitext(measname)
                 ext = ext2+ext1
-                
 
                 #check if filterstring can be found in the set file (e.g. 'dac4: 1337.0')
                 if not isinfilterstring:
