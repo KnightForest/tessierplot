@@ -132,9 +132,9 @@ class plotR(object):
 			if self.isthumbnail:
 				for k in rcP:
 					mpl.rcParams[k] = rcP_thumb[k]
-			else:
-				for k in rcP:
-					mpl.rcParams[k] = rcP[k]
+			# else:
+			# 	for k in rcP:
+			# 		mpl.rcParams[k] = rcP[k]
 			if self.is2d():
 				fig = self.plot2d(uniques_col_str=uniques_col_str,**kwargs)
 			else:
@@ -159,9 +159,9 @@ class plotR(object):
 			if self.isthumbnail:
 				for k in rcP:
 					mpl.rcParams[k] = rcP_thumb[k]
-			else:
-				for k in rcP:
-					mpl.rcParams[k] = rcP[k]
+			# else:
+			# 	for k in rcP:
+			# 		mpl.rcParams[k] = rcP[k]
 			if self.is2d():
 				fig = self.plot2d(uniques_col_str=uniques_col_str,**kwargs)
 			else:
@@ -374,10 +374,11 @@ class plotR(object):
 					else:
 						cbar_quantity = measAxisDesignation
 						cbar_unit = ''
-
+				#print(cbar_quantity,cbar_unit)
+				sbuffer = ''
 				cbar_trans = [] #trascendental tracer :P For keeping track of logs and stuff
 				w = styles.getPopulatedWrap(style)
-				w2 = {'ext':ext, 'ystep':ystep,'XX': XX, 'cbar_quantity': cbar_quantity, 'cbar_unit': cbar_unit, 'cbar_trans':cbar_trans}
+				w2 = {'ext':ext, 'ystep':ystep,'XX': XX, 'cbar_quantity': cbar_quantity, 'cbar_unit': cbar_unit, 'cbar_trans':cbar_trans, 'buffer':sbuffer, 'xlabel':coord_keys[-2], 'ylabel':coord_keys[-1]}
 				for k in w2:
 					w[k] = w2[k]
 				w['massage_func']=massage_func
@@ -390,10 +391,10 @@ class plotR(object):
 				if len(w['cbar_trans']) is not 0:
 					cbar_title = cbar_title + ')'
 
-				#self.stylebuffer = w['buffer'] # Probably for testing, disabling
-				#self.xlabel= w['xlabel']
-				#self.ylabel= w['ylabel']
-				#self.XX_processed = XX
+				self.stylebuffer = w['buffer'] 
+				self.xlabel= w['xlabel']
+				self.ylabel= w['ylabel']
+				self.XX_processed = XX
 
 				if w['imshow_norm'] == None: # Support for plotting NaN values in a different color
 					self.imshow_norm = colorbar.MultiPointNormalize()
@@ -437,12 +438,11 @@ class plotR(object):
 				#ax.locator_params(nbins=5, axis='y') #Added to hardcode number of x ticks.
 				#ax.locator_params(nbins=7, axis='x')
 				if 'flipaxes' in style:
-					ax.set_xlabel(coord_keys[-1])
-					ax.set_ylabel(coord_keys[-2])
+					ax.set_xlabel(self.ylabel)
+					ax.set_ylabel(self.xlabel)
 				else:
-					ax.set_xlabel(coord_keys[-2])
-					ax.set_ylabel(coord_keys[-1])
-
+					ax.set_xlabel(self.xlabel)
+					ax.set_ylabel(self.ylabel)
 
 				title = ''
 				for i in uniques_col_str:
@@ -453,7 +453,7 @@ class plotR(object):
 				# create an axes on the right side of ax. The width of cax will be 5%
 				# of ax and the padding between cax and ax will be fixed at 0.05 inch.
 				if drawCbar:
-					from mpl_toolkits.axes_grid.inset_locator import inset_axes
+					from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 					cax = None
 					if cax_destination:
 						cax = cax_destination

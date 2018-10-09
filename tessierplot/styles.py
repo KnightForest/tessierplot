@@ -53,12 +53,12 @@ def helper_mov_avg(w):
 	#win = signal.kaiser(m,8.6,sym=False)
 
 def helper_fixlabels(w):
-	ylabel = w['ylabel']
-	xlabel = w['xlabel']
-	cbar_q = w['cbar_quantity']
-	cbar_u = w['cbar_unit']
-	#print cbar_q, cbar_u
-	#print ylabel, xlabel
+	ylabel = (w['ylabel'])
+	xlabel = (w['xlabel'])
+	cbar_q = (w['cbar_quantity'])
+	cbar_u = (w['cbar_unit'])
+	print(cbar_q, cbar_u)
+	print(ylabel, xlabel)
 	if cbar_q.find('Current') != -1:
 		print('found current')
 		cbar_q = '$I_\mathrm{D}$'
@@ -103,6 +103,7 @@ def helper_fixlabels(w):
 	w['xlabel'] = xlabel
 	w['cbar_quantity'] = cbar_q
 	w['cbar_unit'] = cbar_u
+	#print(w)
 
 def helper_changeaxis(w):
 	print(w['ext'])
@@ -262,7 +263,7 @@ def helper_fancylog(w):
 
 	'''
 	Use a logarithmic normalising function for plotting.
-	This might be incompatible with Fiddle.
+	This might be incompatible with Fiddle. <- Can confirm
 	'''
 	w['XX'] = abs(w['XX'])
 	(cmin, cmax) = (w['fancylog_cmin'], w['fancylog_cmax'])
@@ -341,22 +342,21 @@ def helper_vbiascorrector(w):
 	import math
 	from matplotlib.mlab import griddata
 	import numpy.ma as ma
-	import numpy as np
 	XX = w['XX']#+1e3/float(w['vbiascorrector_seriesr'])
 	xn, yn = XX.shape
 	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
 	yaxis = np.linspace(w['ext'][2],w['ext'][3],w['XX'].shape[1])
-	voffset = w['vbiascorrector_voffset'] #0.1545 #mV
-	seriesr = w['vbiascorrector_seriesr'] #22.25 #kOhm, filters+modules
+	voffset = w['vbiascorrector_voffset'] # Voltage offset
+	seriesr = w['vbiascorrector_seriesr'] # Series resistance
 	ycorrected = np.zeros(shape=(xn,yn))
-	gridresolutionfactor = w['vbiascorrector_gridresolutionfactor']
+	gridresolutionfactor = w['vbiascorrector_gridresolutionfactor'] # Example: Factor of 2 doubles the number of y datapoints for non-linear interpolation
 	for i in range(0,xn):
 		ycorrected[i,:] = yaxis-voffset-XX[i,:]*seriesr*1e-3
 	ylimitneg,ylimitpos = math.floor(np.amin(ycorrected*10))/10, math.ceil(np.amax(ycorrected*10))/10
 	gridyaxis = np.linspace(ylimitneg,ylimitpos,int(yn*gridresolutionfactor))
 	gridxaxis = xaxis
 	XX_new = np.zeros(shape=(xn,len(gridyaxis)))
-	if w['vbiascorrector_didv'] == True:
+	if w['vbiascorrector_didv'] == True: # Calls didv within helper_vbiascorrector before interpolation to prevent artefacts.
 		helper_didv(w)
 		XX = w['XX']
 		#print XX.shape, w['XX'].shape
@@ -366,11 +366,11 @@ def helper_vbiascorrector(w):
 		for i in range(0,xn):
 			XX_new[i,:] = np.interp(gridyaxis,ycorrected[i,:],XX[i,:], left=np.nan, right=np.nan)
 	w['XX'] = XX_new
-	w['ystep'] = (ylimitpos-ylimitneg)/len(gridyaxis)
+	w['ystep'] = (ylimitpos-ylimitneg)/len(gridyaxis) #wrap ystep for analysis
 	#print w['ystep']
 	w['ext'] = [w['ext'][0],w['ext'][1],ylimitneg,ylimitpos]
 
-def helper_ivreverser(w):
+def helper_ivreverser(w): #Inverse I and V-bias measurements (works on both) by interpolating y-data on new homogeneous x-axis.
 	import math
 	from matplotlib.mlab import griddata
 	import numpy.ma as ma
@@ -380,7 +380,7 @@ def helper_ivreverser(w):
 	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
 	yaxis = np.linspace(w['ext'][2],w['ext'][3],w['XX'].shape[1])
 	ycorrected = np.zeros(shape=(xn,yn))
-	gridresolutionfactor = int(w['ivreverser_gridresolutionfactor'])
+	gridresolutionfactor = int(w['ivreverser_gridresolutionfactor']) # Example: Factor of 2 doubles the number of y datapoints for non-linear interpolation
 	
 	for i in range(0,xn):
 		ycorrected[i,:] = XX[i,:] #y-axis becomes data axis
@@ -411,13 +411,13 @@ def helper_ivreverser(w):
 		w['cbar_quantity'] = '$V_\mathrm{SD}$'
 		w['cbar_unit'] = 'mV' 
 
-def helper_excesscurrent(w):
+def helper_excesscurrent(w): #Designed for I-bias. Calculate excess current by performing linear fit at high bias and calculate the zero-crossing of the x-axis
 	XX = w['XX']
 	xn, yn = XX.shape
-	limitfactor = w['excesscurrent_rangefactor']
-	limitfactor = limitfactor#Percentual range of y-axis to use in polyfit. 
+	limitfactor = w['excesscurrent_rangefactor'] #Percentual range of y-axis to use in polyfit. 
 	#0.1 means that the top and bottom 10% are used (20% of total plot)
-	datacutoff = int(w['excesscurrent_datacutoff']) #Discards datapoints on the beginning/end of the sweep
+	limitfactor = limitfactor
+	datacutoff = int(w['excesscurrent_datacutoff']) #Number of datapoints to discard at the beginning/end of the sweep
 	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
 	yaxis = np.linspace(w['ext'][2],w['ext'][3],w['XX'].shape[1])
 	pospoly,negpoly,excesscurrpos,excesscurrneg = [None]*xn,[None]*xn,[None]*xn,[None]*xn
@@ -436,25 +436,22 @@ def helper_excesscurrent(w):
 	plt.plot(xaxis,excesscurrpos,xaxis,excesscurrneg)
 	plt.xlabel(xlabel)
 	plt.ylabel(ylabel)
-	w['buffer']={'labels': [xlabel,ylabel], 'data':[dataarray], 'xaxis':[xaxis], 'measdata':[XX]}
-	#if plot != 0:
-	#	fig = plt.figure()
-	#	
+	w['buffer']={'labels': [xlabel,ylabel], 'data':[dataarray], 'xaxis':[xaxis], 'measdata':[XX]} #wrapping for analaysis
 	
-def helper_linecut(w):
+def helper_linecut(w): #Make a linecut on specified axis and value.
 	XX = w['XX']
 	xn, yn = XX.shape
 	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
 	yaxis = np.linspace(w['ext'][2],w['ext'][3],w['XX'].shape[1])
 	linecutvalue = w['linecut_value']
 	#print type(linecutvalue)
-	if type(w['linecut_value']) is str:
+	if type(w['linecut_value']) is str: #If multiple linecuts are given separated by '_', unpack.
 		linecutvalue = w['linecut_value'].split('_')
-	else:
+	else: 
 		linecutvalue = [w['linecut_value']]
 	linecutvalue = [float(i) for i in linecutvalue]
 	print(linecutvalue)
-	axis = w['linecut_axis']
+	axis = w['linecut_axis'] #Specified axis either 'x' or 'y'
 	fig = plt.figure()
 	if axis == 'x':
 		dataarray = np.zeros((len(linecutvalue),yn))
@@ -477,10 +474,10 @@ def helper_linecut(w):
 		ylabel = w['cbar_quantity'] + ' ('+ w['cbar_unit'] + ')'
 	plt.xlabel(xlabel)
 	plt.ylabel(ylabel)
-	w['buffer']={'labels': [xlabel,ylabel], 'data':[dataarray], 'xaxis':[xaxis], 'vals':[linecutvalue]}
+	w['buffer']={'labels': [xlabel,ylabel], 'data':[dataarray], 'xaxis':[xaxis], 'vals':[linecutvalue]} #wrapping for further analysis
 
 
-def helper_resistance(w):
+def helper_resistance(w): #Calculate resistance of one sweep. Pretty old, not sure if it still works.
 	XX = w['XX']
 	xn, yn = XX.shape
 	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
@@ -505,13 +502,13 @@ def helper_resistance(w):
 	plt.plot(xaxis,resistance)
 	w['buffer'] = [xaxis,resistance,conductance]
 
-def helper_dbmtovolt(w):
+def helper_dbmtovolt(w): #Convert dmb to 'volt', rf-amplifier (type?) conversion table included. Interpolates linear to logarithmic power axis.
 	XX = w['XX']
 	xn, yn = XX.shape
 	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
 	yaxis = np.linspace(w['ext'][2],w['ext'][3],w['XX'].shape[1])
 
-	def linrfamp(xaxis):
+	def linrfamp(xaxis): #Conversion to volt using rf-amplifier
 		dbin = np.linspace(-20,12,(20+12+1))
 		dbout = [9.8, 10.7, 11.7, 12.6, 13.6, 14.5, 15.5, 16.5, 17.4, 18.4, 19.3, 20.2, 21.1, 22, 22.8, 23.5, 24, 24.8, 25.3, 25.7, 26.1, 26.4, 26.6, 26.8, 27, 27.1, 27.2, 27.3, 27.4, 27.45, 27.5, 27.5, 27.5]
 		dbfit = np.poly1d(np.polyfit(dbin,dbout,deg=4))
@@ -522,13 +519,13 @@ def helper_dbmtovolt(w):
 		vxaxis = np.sqrt(np.power(10, ((xaxis-30-attenuation)/10)))
 		return vxaxis
 
-	if w['dbmtovolt_rfamp']==True:
+	if w['dbmtovolt_rfamp']==True: # Creates new power axis using attenuation and optional rf-amp
 		xaxislin = dbmtovolt(linrfamp(xaxis), w['dbmtovolt_attenuation'])
 	else:
 		xaxislin = dbmtovolt(xaxis, w['dbmtovolt_attenuation'])
 		ycorrected = np.zeros(shape=(xn,yn))
 	
-	gridresolutionfactor = int(w['dbmtovolt_gridresolutionfactor'])
+	gridresolutionfactor = int(w['dbmtovolt_gridresolutionfactor']) #Factor multiplying original resolution for interpolation of new power axis.
 	xlimitneg,xlimitpos = np.amin(xaxislin), np.amax(xaxislin)
 	gridxaxis = np.linspace(xlimitneg,xlimitpos,int(yn*gridresolutionfactor))
 	gridyaxis = yaxis
@@ -545,12 +542,12 @@ def helper_dbmtovolt(w):
 	w['xlabel'] = '$V_\mathrm{rms}$ (V)'
 
 
-def helper_shapiro(w):
+def helper_shapiro(w): #Looks for expected voltage of Shapiro step as function of applied frequency and order and returns closest measured index.
 	planck = 4.135668e-15
 	electron = 1#1.60e-19
-	rffreq = w['shapiro_rffreq']
-	nsteps = int(w['shapiro_nsteps'])
-	w['XX'] = w['XX']*2*electron/(planck*rffreq*1000)
+	rffreq = w['shapiro_rffreq'] #Freq in GHz
+	nsteps = int(w['shapiro_nsteps']) #Up to which order
+	w['XX'] = w['XX']*2*electron/(planck*rffreq*1000) #Convert XX to energy
 	w['cbar_quantity'] = '$V_\mathrm{SD}$'
 	w['cbar_unit'] = '$hf/2e$'
 	#print rffreq
@@ -583,16 +580,15 @@ def helper_shapiro(w):
 	w['buffer'] = shapiro
 	w['buffer']={'labels': [xlabel,ylabel], 'data':[shapiro], 'xaxis':[xaxis]}
 
-def helper_histogram(w):
+def helper_histogram(w): #Make a histogram
 	XX = w['XX']
 	xn, yn = XX.shape
 	#print yn,xn
 	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
 	yaxis = np.linspace(w['ext'][2],w['ext'][3],w['XX'].shape[1])
 	histbins = 250
-	histrange = [-15,15]
-	histrange = [w['histogram_rangemin'],w['histogram_rangemax']]
-	histbins = int(w['histogram_bins'])#250
+	histrange = [w['histogram_rangemin'],w['histogram_rangemax']] #Range to histogram
+	histbins = int(w['histogram_bins']) #Nr. of bins
 	#print histbins,histrange
 	newvaxis = np.linspace(histrange[0],histrange[1],histbins)
 	fullhist = np.zeros(shape=(xn,histbins))
@@ -606,7 +602,7 @@ def helper_histogram(w):
 	w['ylabel'] = '$V_\mathrm{SD}$ (hf/2e)'
 	w['ext'] = [w['ext'][0],w['ext'][1],histrange[0],histrange[1]]
 
-def helper_histogram2(w):
+def helper_histogram2(w): #Make histogram using stats.binned_statistics. Not sure what the advantage was.
 	from scipy import stats
 	XX = w['XX']
 	xn, yn = XX.shape
@@ -637,16 +633,16 @@ def helper_histogram2(w):
 			# else:
 				# step[j] = 0
 
-def helper_minsubtract(w):
+def helper_minsubtract(w): #Subtract smallest value from data
 	w['XX'] = w['XX'] - np.min(w['XX'])
 
-def helper_factor(w):
+def helper_factor(w): #Multiply data with a factor
 	w['XX'] = w['XX']*float(w['factor_factor'])
 	#w['cbar_trans'] = ['abs'] + w['cbar_trans']
 	#w['cbar_quantity'] = '|' +w['cbar_quantity']+'|'
 	#w['cbar_unit'] = w['cbar_unit']
 
-def helper_abs(w):
+def helper_abs(w): #ABSOLUTELY
 	w['XX'] = np.abs(w['XX'])
 	#w['cbar_trans'] = ['abs'] + w['cbar_trans']
 	w['cbar_quantity'] = '|' +w['cbar_quantity']+'|'
@@ -722,7 +718,8 @@ def helper_deint_cross(w):
 		A[i,:] = np.interp(x-offset,x,A[i,:])
 	w['XX'] = A
 
-def helper_ic(w):
+def helper_ic(w): #For meander + SC measurements: split file at zero bias and use 0 to finite sweep direction values for
+	# both pos and neg bias. Next stick them together again.
     data = w['XX']
     helper_deinterlace(w)
     X0 = w['deinterXXodd']
@@ -753,7 +750,8 @@ def helper_ic(w):
     # print bottom.shape
     # print top.shape
 
-def helper_iretrap(w):
+def helper_iretrap(w): #For meander + SC measurements: split file at zero bias and use finite to 0 sweep direction values (different 
+	# from helper_ic) values for both pos and neg bias. Next stick them together again.
     data = w['XX']
     helper_deinterlace(w)
     X0 = w['deinterXXodd']
@@ -776,7 +774,8 @@ def helper_iretrap(w):
     #top = X1[1:,:yn/2]
     w['XX']=np.hstack((top,bottom))
 
-def helper_icvsx(w):
+def helper_icvsx(w): #Finds switching current or retrapping current by peak fitting. Preparation of data required by various other styles.
+	# Correct use is complicated and requires lots of tuning (see comments). Styles to use before: 
 	import sys
 	from IPython.display import display
 	import peakutils
@@ -1113,9 +1112,9 @@ def getPopulatedWrap(style=[]):
 					else:
 						val = spregex.group(2)
 						#bool posing as string?
-						if val.lower() == 'true':
+						if val.lower() == True:
 							val = True
-						elif val.lower() == 'false':
+						elif val.lower() == False:
 							val = False
 						if type(val) is not bool:
 							try:
