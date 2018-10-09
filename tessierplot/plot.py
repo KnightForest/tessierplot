@@ -41,6 +41,7 @@ from scipy.signal import argrelmax
 import numpy as np
 import math
 import re
+import matplotlib.ticker as ticker
 
 #all tessier related imports
 from .gui import *
@@ -87,7 +88,7 @@ def parseUnitAndNameFromColumnName(input):
 	return z
 
 
-def loadCustomColormap(file=helpers.get_asset('cube1.txt')):
+def loadCustomColormap(file=helpers.get_asset('cube2.txt')):
 	do = np.loadtxt(file)
 	ccmap = mpl.colors.LinearSegmentedColormap.from_list('name',do)
 
@@ -209,8 +210,8 @@ class plotR(object):
 						imshow=True,
 						cbar_orientation='vertical',
 						cbar_location ='normal',
-						supress_plot = False,
-						norm = 'None',
+						#supress_plot = False, #Added suppression of plot option
+						norm = 'None', #Added for NaN value support
 						**kwargs):
 		#some housekeeping
 		if not self.fig and not ax_destination:
@@ -287,6 +288,9 @@ class plotR(object):
 				#or the first since there has been sorting
 				#this doesnt work for e.g. a hilbert measurement
 
+				if x.index[0] > x.index[-1]:
+					sweepoverride = True
+
 				print('xu: {:d}, yu: {:d}, lenz: {:d} after trimming'.format(xu,yu,len(z)))
 				#sorting sorts negative to positive, so beware:
 				#sweep direction determines which part of array should be cut off
@@ -298,7 +302,7 @@ class plotR(object):
 					z = z[:xu*yu]
 					x = x[:xu*yu]
 					y = y[:xu*yu]
-				XX = np.reshape(z,(xu,yu))
+				XX = z.values.reshape(xu,yu)
 				if hasattr(self, 'XX_processed'):
 					XX = self.XX_processed
 
@@ -385,18 +389,20 @@ class plotR(object):
 				cbar_title = cbar_trans_formatted + w['cbar_quantity'] + ' (' + w['cbar_unit'] + ')'
 				if len(w['cbar_trans']) is not 0:
 					cbar_title = cbar_title + ')'
-				self.stylebuffer = w['buffer']
-				self.xlabel= w['xlabel']
-				self.ylabel= w['ylabel']
-				self.XX_processed = XX
-				#XX = np.rot90(XX)
-				if w['imshow_norm'] == None:
+
+				#self.stylebuffer = w['buffer'] # Probably for testing, disabling
+				#self.xlabel= w['xlabel']
+				#self.ylabel= w['ylabel']
+				#self.XX_processed = XX
+
+				if w['imshow_norm'] == None: # Support for plotting NaN values in a different color
 					self.imshow_norm = colorbar.MultiPointNormalize()
 				else:
 					self.imshow_norm = w['imshow_norm']
 				if norm == 'nan':
 					self.imshow_norm = None
 				print(self.imshow_norm)
+
 				if 'deinterlace' in style:
 					self.fig = plt.figure()
 					ax_deinter_odd  = plt.subplot(2, 1, 1)
@@ -407,25 +413,25 @@ class plotR(object):
 					ax_deinter_even = plt.subplot(2, 1, 2)
 					xx_even = np.rot90(w['deinterXXeven'])
 					ax_deinter_even.imshow(xx_even,extent=ext, cmap=plt.get_cmap(self.ccmap),aspect=aspect,interpolation=interpolation)
-					self.deinterXXeven_data = xx_evenf
+					self.deinterXXeven_data = xx_even
 				else:
 					if imshow:
-						if imshow:
-							#masked_array_nans = np.ma.array(np.rot90(XX), mask=np.isnan(np.rot90(XX)))
-							masked_array_nans = np.rot90(XX)
-							colormap = (plt.get_cmap(self.ccmap))
-							colormap.set_bad('grey',1.0)
-							#self.im = ax.imshow(masked_array_nans,extent=ext, cmap=colormap,aspect=aspect,interpolation=interpolation, clim=clim)
-							#self.im = ax.imshow(np.rot90(XX) ,extent=ext, cmap=plt.get_cmap(self.ccmap) ,aspect=aspect,interpolation=interpolation, clim=clim)
-							self.im = ax.imshow(np.rot90(XX) ,extent=ext, cmap=plt.get_cmap(self.ccmap) ,aspect=aspect,interpolation=interpolation, norm=self.imshow_norm,clim=clim)
+						#masked_array_nans = np.ma.array(np.rot90(XX), mask=np.isnan(np.rot90(XX)))
+						masked_array_nans = np.rot90(XX)
+						colormap = (plt.get_cmap(self.ccmap))
+						colormap.set_bad('grey',1.0)
+						#self.im = ax.imshow(masked_array_nans,extent=ext, cmap=colormap,aspect=aspect,interpolation=interpolation, clim=clim)
+						#self.im = ax.imshow(np.rot90(XX) ,extent=ext, cmap=plt.get_cmap(self.ccmap) ,aspect=aspect,interpolation=interpolation, clim=clim)
+						self.im = ax.imshow(np.rot90(XX), extent=ext, cmap=plt.get_cmap(self.ccmap), aspect=aspect, interpolation=interpolation, norm=self.imshow_norm,clim=clim)
 					else:
 						xs = np.linspace(ext[0],ext[1],XX.shape[0])
 						ys = np.linspace(ext[2],ext[3],XX.shape[1])
 						xv,yv = np.meshgrid(xs,ys) 
-						colormap = (plt.get_cmap(self.ccmap))
+
+						colormap = (plt.get_cmap(self.ccmap)) # Support for plotting NaN values
 						colormap.set_bad('none',1.0)
+						
 						self.im = ax.pcolormesh(xv,yv,np.rot90(np.fliplr(XX)),cmap=plt.get_cmap(self.ccmap))
-						#self.im.set_edgecolor('none')
 					if not clim:
 						self.im.set_clim(self.autoColorScale(XX.flatten()))
 				#ax.locator_params(nbins=5, axis='y') #Added to hardcode number of x ticks.
@@ -458,7 +464,7 @@ class plotR(object):
 							cax = inset_axes(ax,width='30%',height='10%',loc=1)
 					else:
 						divider = make_axes_locatable(ax)
-						if cbar_orientation == 'horizontal':
+						if cbar_orientation == 'horizontal': # Added some hardcode config for colorbar, more pretty out of the box
 							cax = divider.append_axes("top", size="5%", pad=0.05)
 							cax.set_aspect(0.1)
 							cax.set_anchor('E')
@@ -469,7 +475,7 @@ class plotR(object):
 						self.cbar = colorbar.create_colorbar(cax, self.im, orientation=cbar_orientation)
 						cbar = self.cbar
 
-						if cbar_orientation == 'horizontal':
+						if cbar_orientation == 'horizontal': #Added some hardcode config for colorbar, more pretty out of the box
 							cbar.set_label(cbar_title,labelpad=-15, x = -0.3, horizontalalignment='right')
 							cbar.ax.xaxis.set_label_position('top')
 							cbar.ax.xaxis.set_ticks_position('top')
@@ -580,7 +586,9 @@ class plotR(object):
 				title =''
 
 				for i,z in enumerate(uniques_col_str):
-					title = '\n'.join([title, '{:s}: {:g}'.format(uniques_axis_designations[i],data[z].iloc[0])])
+					pass
+					# this crashes sometimes. did not investiagte yet what the problem is. switched off in the meantime
+					#title = '\n'.join([title, '{:s}: {:g}'.format(uniques_axis_designations[i],data[z].iloc[0])])
 				
 				wrap = styles.getPopulatedWrap(style)
 				wrap['XX'] = y
@@ -671,8 +679,6 @@ class plotR(object):
 		style.append('log')
 
 		return style
-
-
 
 	def toggleLinedraw(self):
 		self.linedraw=Linedraw(self.fig)
