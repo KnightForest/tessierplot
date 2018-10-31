@@ -31,14 +31,14 @@ class dat_parser(parser):
             self._filebuffer = filebuffer
         
         self._header,self._headerlength = self.parseheader()
-        
+        names = [i['name'] for i in self._header]
+
         self._data = pandas.read_csv(f,
-                                 sep='\t', \
+                                 sep='\t',
                                  comment='#',
                                  skiprows=self._headerlength,
                                  header=None,
                                  names=[i['name'] for i in self._header])
-        
         return super(dat_parser,self).parse()
 
     def parse_header(self):
@@ -79,6 +79,7 @@ class qcodes_parser(dat_parser):
         headervalues=[]
         units = []
         headerlength=0
+        VNAflag = True # Different parsing routine for header if VNA was used.
 
         for i,val in enumerate(headerdict):
             if headerdict[val]['is_setpoint']:                
@@ -90,17 +91,27 @@ class qcodes_parser(dat_parser):
                 line=[i,headerdict[val]['name'],'value']
                 line_x = zip(['column','name','type'],line)
                 headervalues.append(line_x)
+            
+            if 'full_name' in [i,headerdict[val]]: #Added to check for use of VNA
+                if headerdict[val]['full_name'].find('VNA')!=-1:
+                    VNAflag = True
+                    print('vnaflag')
 
         headervalues = [dict(x) for x in headervalues]
-
         # sort according to the column order in the dat file
         header=[]
         for i, col in enumerate(columnname):
             for j, h in enumerate(headervalues):
-                if col == h['name']:
-                    header.append(h)
-                    break
-        
+                h['name'] = h['name'].replace('_',' ')
+                if VNAflag == True:
+                    if col.find(h['name'])!=-1:
+                        h['name'] = col
+                        header.append(h)
+                        break
+                else:
+                    if col == h['name']:
+                        header.append(h)
+                        break
         #set_trace()
         return header,headerlength
 

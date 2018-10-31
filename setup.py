@@ -10,9 +10,9 @@ setup(name='tessierplot',
       packages=['tessierplot'],
       install_requires=[
           'matplotlib',
-          'pyperclip'
           'pyperclip',
           'six',
-          'pandas'
+          'pandas',
+          'pywin32'
       ],
       zip_safe=False)
