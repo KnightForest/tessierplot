@@ -39,6 +39,7 @@ class dat_parser(parser):
                                  skiprows=self._headerlength,
                                  header=None,
                                  names=[i['name'] for i in self._header])
+        #print(self._data)
         return super(dat_parser,self).parse()
 
     def parse_header(self):
@@ -102,12 +103,10 @@ class qcodes_parser(dat_parser):
         header=[]
         for i, col in enumerate(columnname):
             for j, h in enumerate(headervalues):
-                h['name'] = h['name'].replace('_',' ')
                 if VNAflag == True:
-                    if col.find(h['name'])!=-1:
-                        h['name'] = col
+                    if col == h['name'] or col.find(h['name'].replace('_',' '))!=-1:
                         header.append(h)
-                        break
+                        break                      
                 else:
                     if col == h['name']:
                         header.append(h)
