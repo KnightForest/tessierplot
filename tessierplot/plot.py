@@ -51,10 +51,10 @@ from . import helpers
 from . import colorbar
 
 _plot_width = 7. # in inch (ffing inches eh)
-_plot_height = 5. # in inch
+_plot_height = 7. # in inch
 
 _plot_width_thumb = 4. # in inch (ffing inches eh)
-_plot_height_thumb = 3. # in inch
+_plot_height_thumb = 4. # in inch
 
 _fontsize_plot_title = 10
 _fontsize_axis_labels = 10
@@ -196,10 +196,10 @@ class plotR(object):
 						uniques_col_str=[],
 						drawCbar=True,
 						cax_destination=None,
-						subplots_args={'top':0.96, 'bottom':0.17, 'left':0.14, 'right':0.85,'hspace':0.0},
+						subplots_args={'top':0.96, 'bottom':0.17, 'left':0.14, 'right':0.85,'hspace':0.4},
 						ax_destination=None,
 						n_index=None,
-						style='log',
+						style='fixlabels',
 						xlims_manual=None,
 						ylims_manual=None,
 						clim=None,
@@ -303,8 +303,8 @@ class plotR(object):
 					x = x[:xu*yu]
 					y = y[:xu*yu]
 				XX = z.values.reshape(xu,yu)
-				if hasattr(self, 'XX_processed'):
-					XX = self.XX_processed
+				#if hasattr(self, 'XX_processed'):
+				#	XX = self.XX_processed
 
 				self.x = x
 				self.y = y
@@ -393,6 +393,7 @@ class plotR(object):
 
 				self.stylebuffer = w['buffer'] 
 				self.xlabel= w['xlabel']
+				#print(self.xlabel)
 				self.ylabel= w['ylabel']
 				self.XX_processed = XX
 
@@ -676,7 +677,7 @@ class plotR(object):
 			style.extend(['mov_avg(m=1,n=10)','didv','mov_avg(m=1,n=5)','abs'])
 
 		#default style is 'log'
-		style.append('log')
+		style.append('fixlabels')
 
 		return style
 

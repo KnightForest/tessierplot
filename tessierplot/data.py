@@ -39,6 +39,7 @@ class dat_parser(parser):
                                  skiprows=self._headerlength,
                                  header=None,
                                  names=[i['name'] for i in self._header])
+        #print(self._header)
         #print(self._data)
         return super(dat_parser,self).parse()
 
@@ -80,7 +81,7 @@ class qcodes_parser(dat_parser):
         headervalues=[]
         units = []
         headerlength=0
-        VNAflag = True # Different parsing routine for header if VNA was used.
+        VNAflag = False # Different parsing routine for header if VNA was used.
 
         for i,val in enumerate(headerdict):
             if headerdict[val]['is_setpoint']:                
@@ -92,19 +93,21 @@ class qcodes_parser(dat_parser):
                 line=[i,headerdict[val]['name'],'value']
                 line_x = zip(['column','name','type'],line)
                 headervalues.append(line_x)
-            
-            if 'full_name' in [i,headerdict[val]]: #Added to check for use of VNA
-                if headerdict[val]['full_name'].find('VNA')!=-1:
+            if 'full_name' in [i,headerdict[val]][1]:  #Added to check for use of VNA. JSON and columns in DAT file are inconsistent
+                if [i,headerdict[val]['full_name']][1].find('VNA')!=-1:
+                    #print([i,headerdict[val]['full_name']][1])
                     VNAflag = True
-                    print('vnaflag')
 
         headervalues = [dict(x) for x in headervalues]
         # sort according to the column order in the dat file
         header=[]
         for i, col in enumerate(columnname):
             for j, h in enumerate(headervalues):
-                if VNAflag == True:
-                    if col == h['name'] or col.find(h['name'].replace('_',' '))!=-1:
+                if VNAflag == True: # If VNA found, use looser restrictions to match columns
+                    col2 = col.lower() # Convert both to lowercase to remove inconsistencies
+                    hname2 = h['name'].lower()
+                    if col == h['name'] or col2.find(hname2.replace('_',' '))!=-1: #Remove inconsistent underscores
+                        h['name'] = col #Names in columns are more correct than in JSON.
                         header.append(h)
                         break                      
                 else:
