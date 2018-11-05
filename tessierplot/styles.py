@@ -95,10 +95,22 @@ def helper_fixlabels(w):
 		gn = re.search(r'\d+', xlabel).group()
 		xlabel = '$V_\mathrm{g'+gn+'}$ (mV)'
 
-	
 	if ylabel.find('nA') != -1:
 		ylabel = '$I_\mathrm{S}$ (nA)'
-		
+
+	if ylabel == 'S21 frequency':
+		ylabel = 'S21 freq. (Hz)'
+	if xlabel == 'S21 frequency':
+		xlabel = 'S21 freq. (Hz)'
+	if cbar_q == 'S21 magnitude':
+		cbar_q = 'S21 magn.'
+		cbar_u = 'arb.'
+	if cbar_q == 'S21 phase':
+		cbar_u = '$\phi$'
+	print('after:')
+	print(cbar_q, cbar_u)
+	print(ylabel, xlabel)
+
 	w['ylabel'] = ylabel
 	w['xlabel'] = xlabel
 	w['cbar_quantity'] = cbar_q
