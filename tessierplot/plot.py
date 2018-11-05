@@ -506,11 +506,11 @@ class plotR(object):
 	def plot2d(self,fiddle=False,
 					n_index=None,
 					value_axis = -1,
-					style=['normal'],
+					style=['fixlabels'],
 					uniques_col_str=[],
 					legend=False,
 					ax_destination=None,
-					subplots_args={'top':0.96, 'bottom':0.17, 'left':0.14, 'right':0.85,'hspace':0.0},
+					subplots_args={'top':0.96, 'bottom':0.17, 'left':0.14, 'right':0.85,'hspace':0.3},
 					massage_func=None,
 					**kwargs):
 					

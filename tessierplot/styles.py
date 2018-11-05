@@ -57,8 +57,8 @@ def helper_fixlabels(w):
 	xlabel = (w['xlabel'])
 	cbar_q = (w['cbar_quantity'])
 	cbar_u = (w['cbar_unit'])
-	print(cbar_q, cbar_u)
-	print(ylabel, xlabel)
+	#print(cbar_q, cbar_u)
+	#print(ylabel, xlabel)
 	if cbar_q.find('Current') != -1:
 		print('found current')
 		cbar_q = '$I_\mathrm{D}$'
@@ -78,11 +78,11 @@ def helper_fixlabels(w):
 	if xlabel.find('oop') != -1:
 		xlabel = r'$B_{\bot}$ (mT)'
 	
-	if xlabel.find('B_X') != -1 or xlabel.find('Bx') != -1:
+	if xlabel.find('B_X') != -1 or xlabel.find('Bx') != -1 or xlabel == 'x_field':
 		xlabel = '$B_\mathrm{X}$ (T)'
-	if xlabel.find('B_Y') != -1 or xlabel.find('By') != -1:
+	if xlabel.find('B_Y') != -1 or xlabel.find('By') != -1 or xlabel == 'y_field':
 		xlabel = '$B_\mathrm{Y}$ (T)'
-	if xlabel.find('B_Z') != -1 or xlabel.find('Bz') != -1:
+	if xlabel.find('B_Z') != -1 or xlabel.find('Bz') != -1 or xlabel == 'z_field':
 		xlabel = '$B_\mathrm{Z}$ (T)'
 	if xlabel.find('Power') != -1:
 		xlabel = 'Applied RF Power (dBm)'
@@ -102,14 +102,12 @@ def helper_fixlabels(w):
 		ylabel = 'S21 freq. (Hz)'
 	if xlabel == 'S21 frequency':
 		xlabel = 'S21 freq. (Hz)'
+
 	if cbar_q == 'S21 magnitude':
 		cbar_q = 'S21 magn.'
 		cbar_u = 'arb.'
 	if cbar_q == 'S21 phase':
 		cbar_u = '$\phi$'
-	print('after:')
-	print(cbar_q, cbar_u)
-	print(ylabel, xlabel)
 
 	w['ylabel'] = ylabel
 	w['xlabel'] = xlabel
