@@ -1,5 +1,4 @@
-
-#tessier.py
+#tessier.py_
 #tools for plotting all kinds of files, with fiddle control etc
 
 ##Only load this part on first import, calling this on reload has dire consequences
