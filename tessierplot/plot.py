@@ -639,7 +639,7 @@ class plotR(object):
 					else:
 						yaxisquantity = yaxislabel[0]
 						yaxisunit = yaxislabel[1]
-
+						
 				if ax:
 					if isinstance(xaxislabel, np.ndarray):
 						ax.set_xlabel(xaxisquantity+'(' + xaxisunit +')')

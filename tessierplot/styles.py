@@ -58,6 +58,7 @@ def helper_fixlabels(w):
 	if not isinstance(w['ylabel'], np.ndarray):
 		ylabel = (w['ylabel'])
 	else:
+
 		ylabel = w['ylabel'][0]
 		yunit = w['ylabel'][1]
 	if not isinstance(w['xlabel'], np.ndarray):
@@ -126,7 +127,8 @@ def helper_fixlabels(w):
 		cbar_u = '$\phi$'
 
 	#Right now units for x and y are discarded and are hardcoded in fixlabels in the label itself. This may not be the best approach
-	#but it's also inconsistent in plot.py between 2d and 3d plots. 
+	#but it's also inconsistent in plot.py between 2d and 3d plots. Running this style now always destroys x and y units as determined by
+	# the default method.
 	w['ylabel'] = ylabel 
 	w['xlabel'] = xlabel
 	w['cbar_quantity'] = cbar_q
