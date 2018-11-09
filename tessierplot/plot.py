@@ -199,7 +199,7 @@ class plotR(object):
 						subplots_args={'top':0.96, 'bottom':0.17, 'left':0.14, 'right':0.85,'hspace':0.4},
 						ax_destination=None,
 						n_index=None,
-						style='fixlabels',
+						style=['fixlabels'],
 						xlims_manual=None,
 						ylims_manual=None,
 						clim=None,
@@ -367,6 +367,7 @@ class plotR(object):
 
 				measAxisDesignation = parseUnitAndNameFromColumnName(value_keys[value_axis])
 				#wrap all needed arguments in a datastructure
+				#We should add valueaxes and extract them properly here using parseUnitAndNameFromColumnName()
 				if measAxisDesignation:
 					if measAxisDesignation[1] and not isinstance(measAxisDesignation,str):
 						cbar_quantity = measAxisDesignation[0]
@@ -562,7 +563,8 @@ class plotR(object):
 		if n_index is not None:
 			n_index = np.array(n_index)
 			n_subplots = len(n_index)
-
+		print(uniques_col_str)
+		print(uniques_axis_designations)
 		ax = None
 		for i,j in enumerate(self.data.make_filter_from_uniques_in_columns(uniques_col_str)):
 		
@@ -583,6 +585,9 @@ class plotR(object):
 
 				x=data.loc[:,coord_keys[-1]]
 				y=data.loc[:,value_keys[value_axis]]
+
+				xaxislabel = parseUnitAndNameFromColumnName(coord_keys[-1])
+				yaxislabel = parseUnitAndNameFromColumnName(value_keys[value_axis])
 	
 				title =''
 
@@ -591,9 +596,14 @@ class plotR(object):
 					# this crashes sometimes. did not investiagte yet what the problem is. switched off in the meantime
 					#title = '\n'.join([title, '{:s}: {:g}'.format(uniques_axis_designations[i],data[z].iloc[0])])
 				
+				#if type(style) != list:
+				#	style = list([style])
+
 				wrap = styles.getPopulatedWrap(style)
 				wrap['XX'] = y
 				wrap['X']  = x
+				wrap['xlabel'] = xaxislabel
+				wrap['ylabel'] = yaxislabel
 				wrap['massage_func'] = massage_func
 				styles.processStyle(style,wrap)
 				if ax_destination:
@@ -606,9 +616,14 @@ class plotR(object):
 					plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
 						   ncol=2, mode="expand", borderaxespad=0.)
 				#ax = self.fig.axes[0]
-				xaxislabel = parseUnitAndNameFromColumnName(coord_keys[-1])
-				yaxislabel = parseUnitAndNameFromColumnName(value_keys[value_axis])
-				
+				#print(self.xlabel)
+				self.ylabel= wrap['ylabel']
+				self.xlabel= wrap['xlabel']
+				xaxislabel = self.xlabel
+				yaxislabel = self.ylabel
+
+				print(xaxislabel,yaxislabel)
+
 				if xaxislabel:
 					if not isinstance(xaxislabel, np.ndarray):
 						xaxisquantity = xaxislabel
@@ -629,11 +644,11 @@ class plotR(object):
 					if isinstance(xaxislabel, np.ndarray):
 						ax.set_xlabel(xaxisquantity+'(' + xaxisunit +')')
 					else:
-						ax.set_xlabel(coord_keys[-1]) # in case the label format does not fit our regex
+						ax.set_xlabel(xaxislabel) # in case the label format does not fit our regex
 					if isinstance(yaxislabel, np.ndarray):
 						ax.set_ylabel(yaxisquantity+'(' +yaxisunit +')')
 					else:
-						ax.set_ylabel(value_keys[value_axis])
+						ax.set_ylabel(yaxislabel)
 		
 		return self.fig
 

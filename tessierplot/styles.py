@@ -53,8 +53,19 @@ def helper_mov_avg(w):
 	#win = signal.kaiser(m,8.6,sym=False)
 
 def helper_fixlabels(w):
-	ylabel = (w['ylabel'])
-	xlabel = (w['xlabel'])
+	# List of hardcoded label replacements to make plots instantly look nicer. Will be different for every user/measurement though!
+
+	if not isinstance(w['ylabel'], np.ndarray):
+		ylabel = (w['ylabel'])
+	else:
+		ylabel = w['ylabel'][0]
+		yunit = w['ylabel'][1]
+	if not isinstance(w['xlabel'], np.ndarray):
+		xlabel = (w['xlabel'])
+	else:
+		xlabel = w['xlabel'][0]
+		xunit = w['xlabel'][1]
+
 	cbar_q = (w['cbar_quantity'])
 	cbar_u = (w['cbar_unit'])
 	#print(cbar_q, cbar_u)
@@ -103,13 +114,20 @@ def helper_fixlabels(w):
 	if xlabel == 'S21 frequency':
 		xlabel = 'S21 freq. (Hz)'
 
+	if ylabel == 'S21 magnitude':
+		ylabel = 'S21 magn. (arb.)'
+	if ylabel == 'S21 phase':
+		ylabel = 'S21 phase ($\phi$)'
+
 	if cbar_q == 'S21 magnitude':
 		cbar_q = 'S21 magn.'
 		cbar_u = 'arb.'
 	if cbar_q == 'S21 phase':
 		cbar_u = '$\phi$'
 
-	w['ylabel'] = ylabel
+	#Right now units for x and y are discarded and are hardcoded in fixlabels in the label itself. This may not be the best approach
+	#but it's also inconsistent in plot.py between 2d and 3d plots. 
+	w['ylabel'] = ylabel 
 	w['xlabel'] = xlabel
 	w['cbar_quantity'] = cbar_q
 	w['cbar_unit'] = cbar_u
