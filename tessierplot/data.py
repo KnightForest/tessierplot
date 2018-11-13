@@ -67,14 +67,17 @@ class qcodes_parser(dat_parser):
 
         #read the column names from the .dat file
         filebuffer = self._filebuffer
-        firstline = filebuffer.readline().decode('utf-8')
-        secondline = filebuffer.readline().decode('utf-8')
+        firstline = (filebuffer.readline().decode('utf-8')).rstrip()
+        secondline = filebuffer.readline().decode('utf-8')     
+        raw2 = r'\".*?\"'
+        reggy2 = re.compile(raw2)
+        columnname2 = reggy2.findall(secondline)
+        columnname2 = [i.replace('\"','') for i in columnname2]
+        columnname = re.split(r'\t+', firstline)
+        columnname[0] = columnname[0][2::]
+                
+        #print(columnname,columnname2)
         
-        raw = r'\".*?\"'
-        reggy = re.compile(raw)
-        columnname = reggy.findall(secondline)
-        columnname = [i.replace('\"','') for i in columnname]
-
         #look for the part where the data file meta info is stored
         json_data = json.loads(json_s)
         headerdict = json_data['arrays']
@@ -85,36 +88,30 @@ class qcodes_parser(dat_parser):
 
         for i,val in enumerate(headerdict):
             if headerdict[val]['is_setpoint']:                
-                line=[i,headerdict[val]['name'],'coordinate']
+                headerdictval = [i,headerdict[val]['array_id']][1]
+                line=[i,headerdictval,'coordinate']
                 line_x = zip(['column','name','type'],line)
                 headervalues.append(line_x)
                 units.append(headerdict[val]['unit'])
             else:
-                line=[i,headerdict[val]['name'],'value']
+                headerdictval = [i,headerdict[val]['array_id']][1]
+                line=[i,headerdictval,'value']
                 line_x = zip(['column','name','type'],line)
                 headervalues.append(line_x)
-            if 'full_name' in [i,headerdict[val]][1]:  #Added to check for use of VNA. JSON and columns in DAT file are inconsistent
-                if [i,headerdict[val]['full_name']][1].find('VNA')!=-1:
-                    #print([i,headerdict[val]['full_name']][1])
-                    VNAflag = True
 
         headervalues = [dict(x) for x in headervalues]
+        #print(headervalues)
+        #print(columnname)
         # sort according to the column order in the dat file
         header=[]
         for i, col in enumerate(columnname):
             for j, h in enumerate(headervalues):
-                if VNAflag == True: # If VNA found, use looser restrictions to match columns
-                    col2 = col.lower() # Convert both to lowercase to remove inconsistencies
-                    hname2 = h['name'].lower()
-                    if col == h['name'] or col2.find(hname2.replace('_',' '))!=-1: #Remove inconsistent underscores
-                        h['name'] = col #Names in columns are more correct than in JSON.
-                        header.append(h)
-                        break                      
-                else:
+                    #print(col,h['name'])
                     if col == h['name']:
+                        h['name'] = columnname2[i] #Names in columns are more correct than in JSON.
                         header.append(h)
                         break
-        #set_trace()
+        #print(header)
         return header,headerlength
 
 class qtlab_parser(dat_parser):

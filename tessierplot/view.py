@@ -101,7 +101,7 @@ class tessierView(object):
                     is2d = p.is2d()
                     
                     if is2d:
-                        guessStyle = ['normal']
+                        guessStyle = ['fixlabels']
                     else :
                         guessStyle = p.guessStyle()
                     
