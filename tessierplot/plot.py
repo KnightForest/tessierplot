@@ -563,8 +563,6 @@ class plotR(object):
 		if n_index is not None:
 			n_index = np.array(n_index)
 			n_subplots = len(n_index)
-		print(uniques_col_str)
-		print(uniques_axis_designations)
 		ax = None
 		for i,j in enumerate(self.data.make_filter_from_uniques_in_columns(uniques_col_str)):
 		
@@ -621,8 +619,6 @@ class plotR(object):
 				self.xlabel= wrap['xlabel']
 				xaxislabel = self.xlabel
 				yaxislabel = self.ylabel
-
-				print(xaxislabel,yaxislabel)
 
 				if xaxislabel:
 					if not isinstance(xaxislabel, np.ndarray):
