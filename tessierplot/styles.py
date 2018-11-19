@@ -126,6 +126,8 @@ def helper_fixlabels(w):
 	if cbar_q == 'VNA_S21_phase':
 		cbar_u = '$\phi$'
 
+	if xlabel == 'S21 frequency':
+		xlabel = 'S21 freq. (Hz)'
 	if ylabel == 'S21 frequency':
 		ylabel = 'S21 freq. (Hz)'
 

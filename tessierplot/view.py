@@ -27,9 +27,9 @@ def getthumbcachepath(file):
     datedir = os.path.split(oneupdir)[1] #directory name should be datedir, if not 
     #relative to project/working directory
     dir,basename =  os.path.split(file)
-    print(datedir, basename)    
+    #print(datedir, basename)    
     #print(os.path.split(os.path.dirname(file))[1])
-    cachepath = os.path.normpath(os.path.join(os.getcwd(),'thumbnails', datedir + '_'+basename+ '_thumb.png'))
+    cachepath = os.path.normpath(os.path.join(os.getcwd(),'thumbnails', datedir + os.path.split(os.path.dirname(file))[1] + '_'+basename+ '_thumb.png'))
     #print(cachepath)
     return cachepath
     
