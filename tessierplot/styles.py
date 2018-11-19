@@ -110,10 +110,24 @@ def helper_fixlabels(w):
 	if ylabel.find('nA') != -1:
 		ylabel = '$I_\mathrm{S}$ (nA)'
 
+	if ylabel == 'S21_frequency_set':
+		ylabel = 'S21 freq. (Hz)'
+	if xlabel == 'VNA_S21_frequency_set':
+		xlabel = 'S21 freq. (Hz)'
+
+	if ylabel == 'VNA_S21_magnitude':
+		ylabel = 'S21 magn. (arb.)'
+	if ylabel == 'VNA_S21_phase':
+		ylabel = 'S21 phase ($\phi$)'
+
+	if cbar_q == 'VNA_S21_magnitude':
+		cbar_q = 'S21 magn.'
+		cbar_u = 'arb.'
+	if cbar_q == 'VNA_S21_phase':
+		cbar_u = '$\phi$'
+
 	if ylabel == 'S21 frequency':
 		ylabel = 'S21 freq. (Hz)'
-	if xlabel == 'S21 frequency':
-		xlabel = 'S21 freq. (Hz)'
 
 	if ylabel == 'S21 magnitude':
 		ylabel = 'S21 magn. (arb.)'
@@ -123,7 +137,7 @@ def helper_fixlabels(w):
 	if cbar_q == 'S21 magnitude':
 		cbar_q = 'S21 magn.'
 		cbar_u = 'arb.'
-	if cbar_q == 'S21 phase':
+	if cbar_q == 'VNA_S21_phase':
 		cbar_u = '$\phi$'
 
 	#Right now units for x and y are discarded and are hardcoded in fixlabels in the label itself. This may not be the best approach

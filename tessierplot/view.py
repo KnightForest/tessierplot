@@ -25,10 +25,12 @@ plotstyle = 'normal'
 def getthumbcachepath(file):
     oneupdir = os.path.abspath(os.path.join(os.path.dirname(file),os.pardir))
     datedir = os.path.split(oneupdir)[1] #directory name should be datedir, if not 
-        
     #relative to project/working directory
-    cachepath = os.path.normpath(os.path.join(os.getcwd(),'thumbnails', datedir + '_'+os.path.split(os.path.dirname(file))[1] + '_thumb.png'))
-
+    dir,basename =  os.path.split(file)
+    print(datedir, basename)    
+    #print(os.path.split(os.path.dirname(file))[1])
+    cachepath = os.path.normpath(os.path.join(os.getcwd(),'thumbnails', datedir + '_'+basename+ '_thumb.png'))
+    #print(cachepath)
     return cachepath
     
 def getthumbdatapath(file):
@@ -146,15 +148,23 @@ class tessierView(object):
         for root,dirnames,filenames in chain.from_iterable(os.walk(path) for path in paths):
             dirnames.sort(reverse=True)
             matches = []
+            basenames = []
+            #print(filenames)
             #in the current directory find all files matching the filemask
             for filename in filenames:
                 fullpath = os.path.join(root,filename)
                 res = reg.findall(filename)
+                #print(res)
                 if res:
-                    matches.append(fullpath)
+                    dir,basename =  os.path.split(fullpath)
+                    basenames.append(basename) #collect basenames in folder (no ext)
+                    #print(basenames)
+                    if (basename in s for s in basenames): #if basename does not exist, append
+                        matches.append(fullpath)
             #found at least one file that matches the filemask
-            if matches: 
-                fullpath = matches[0]
+            #print(matches)
+            for fullpath in matches: 
+                #fullpath = matches[match]
 
                 # check if filterstring can be found in the path
                 isinfilterstring = filterstring.lower() in fullpath.lower()
@@ -165,8 +175,8 @@ class tessierView(object):
                 datedir = os.path.basename(os.path.normpath(dir+'/../'))
                 
                 if os.name == 'nt': # avoid problems with very long path names in windows
-                    dir = win32api.GetShortPathName(dir)
-                    fullpath = dir + '/' + basename
+                   dir = win32api.GetShortPathName(dir)
+                   fullpath = dir + '/' + basename
                 
                 measname,ext1 = os.path.splitext(basename)
                 #dirty, if filename ends e.g. in gz, also chops off the second extension
