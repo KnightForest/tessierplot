@@ -151,9 +151,13 @@ def helper_fixlabels(w):
 	w['cbar_unit'] = cbar_u
 	#print(w)
 
+
 def helper_changeaxis(w):
 	print(w['ext'])
-	newext = (float(w['changeaxis_xfactor'])*w['ext'][0],float(w['changeaxis_xfactor'])*w['ext'][1],float(w['changeaxis_yfactor'])*w['ext'][2],float(w['changeaxis_yfactor'])*w['ext'][3])
+	newext = (float(w['changeaxis_xfactor'])*w['ext'][0]+w['changeaxis_xoffset'],
+		float(w['changeaxis_xfactor'])*w['ext'][1]+w['changeaxis_xoffset'],
+		float(w['changeaxis_yfactor'])*w['ext'][2]+w['changeaxis_yoffset'],
+		float(w['changeaxis_yfactor'])*w['ext'][3]+w['changeaxis_yoffset'])
 	w['ext'] = newext
 	print(w['ext'])
 	#print float(w['changeaxis_datafactor'])
@@ -218,6 +222,7 @@ def helper_hardgap(w):
 	yaxis = np.linspace(w['ext'][2],w['ext'][3],w['XX'].shape[1])
 	gaprange = [-float(w['hardgap_gaprange']),float(w['hardgap_gaprange'])]
 	outsidegaprange = [float(w['hardgap_outsidegapmin']),float(w['hardgap_outsidegapmax'])]
+	alphafactor = float(w['hardgap_alphafactor'])
 	gaplimneg = np.abs(yaxis-gaprange[0]).argmin()
 	gaplimpos = np.abs(yaxis-gaprange[1]).argmin()
 	outsidegaplimneg = np.abs(yaxis-outsidegaprange[0]).argmin()
@@ -230,6 +235,16 @@ def helper_hardgap(w):
 	hardness = abs(gapconductance)/abs(outsidegapconductance)
 	win = np.ones((2,))
 	hardness = moving_average_1d(hardness[:], win)
+	gateshift = np.mean(outsidegaprange)*1e-3/alphafactor
+	gateshiftsteps = abs(int(round(gateshift/abs(xaxis[0]-xaxis[1]))))
+	outsidegapconductancecorr = outsidegapconductance[gateshiftsteps::]
+	outsidegapconductancecorr = np.append(outsidegapconductancecorr,[np.nan] * gateshiftsteps)
+	print('gateshift:',gateshift,'gateshiftsteps:',gateshiftsteps,'outsidegapconductancecorr:',len(outsidegapconductancecorr), 'alphafactor', alphafactor)
+	hardnesscorr = abs(gapconductance)/abs(outsidegapconductancecorr)
+	hardnesscorr = moving_average_1d(hardnesscorr[:], win)
+
+	#print 'gateshift:', gateshift
+
 	fig = plt.figure()
 	plt.plot(xaxis,outsidegapconductance,xaxis,gapconductance)#,xaxis,gapconductance)		
 	fig = plt.figure()
@@ -240,7 +255,7 @@ def helper_hardgap(w):
 	plt.xlabel(xlabel)
 	plt.ylabel(ylabel)
 	#Plot styling specified for 20170403\121507~1/121507_BiasSpec_W6_1E09_NW6T_LowNoiseaftertryingtokillit_ BG_2300-8500mV.dat.gz
-	w['buffer']={'labels': [xlabel,ylabel], 'data':[[gapconductance],[outsidegapconductance],[hardness]], 'xaxis':[xaxis]}
+	w['buffer']={'labels': [xlabel,ylabel], 'data':[[gapconductance],[outsidegapconductance],[hardness],[outsidegapconductancecorr],[hardnesscorr]], 'xaxis':[xaxis]}
 
 def helper_int(w):
 	XX = w['XX']#+1e3/20
@@ -864,7 +879,7 @@ def helper_icvsx(w): #Finds switching current or retrapping current by peak fitt
 		
 		fullarray = XX[i,:]
 		#print negarray
-		posmax,negmax = np.amax(posarray),np.amax(negarray)
+		posmax,negmax = np.amax(posarray),np.amax(negarray) #getting min and max values for both positive and negative bias
 		posmin,negmin = np.amin(posarray),np.amin(negarray)
 		poshigh,neghigh = np.mean(posarray[-20:-5]),np.mean(negarray[-20:-5])
 		if poshigh>limhigh:
@@ -902,6 +917,7 @@ def helper_icvsx(w): #Finds switching current or retrapping current by peak fitt
 		indexpos = peakutils.indexes(posarray,thres=threspos, min_dist=1)
 		# if indexpos.size == 0:
 			# indexpos = np.array([0])
+		#print(indexneg,indexpos)
 		try:
 			indexnegnopeak = [x[0] for x in enumerate(negarray) if x[1] > thresnegabs]
 			if len(indexnegnopeak) == 0:
@@ -972,19 +988,22 @@ def helper_icvsx(w): #Finds switching current or retrapping current by peak fitt
 					finalindexpos = 0
 					print('Index ' + str(i) + 'pos not found')
 				peaknoise = False
-		#print finalindexpos,finalindexneg
+		#print(finalindexpos,finalindexneg)
+		#print(i)
+		#print('ic and shape', ic, ic.shape)
 		#if sindex[0] > 2:
 		#print 'Index '+ str(i) + ' has more than two peaks' + str(indexes)
 		#print yaxis
 		if finalindexneg == 0:
+			#print('ditisalshetnulis',ic[0,i])
 			ic[0,i] = 0
 		else:
-			ic[0,i] = (yaxis[finalindexneg+yn/2]) #neg one
+			#print('doejeidt',(yaxis[finalindexneg+int(yn/2)]))
+			ic[0,i] = (yaxis[finalindexneg+int(yn/2)]) #neg one
 		if finalindexpos == 0:
 			ic[1,i] = 0
 		else:
-			ic[1,i] = (yaxis[finalindexpos+yn/2]) #pos one
-		#print ic[1,i]
+			ic[1,i] = (yaxis[finalindexpos+int(yn/2)]) #pos one
 	#print ic[2,:]
 	#w['buffer']={'labels': [xlabel,ylabel], 'data':[dataarray], 'xaxis':[xaxis]}
 	fig = plt.figure()
@@ -1092,8 +1111,8 @@ STYLE_SPECS = {
 	'histogram':{'bins': 25, 'rangemin': -1, 'rangemax': 1, 'param_order': ['bins','rangemin','rangemax']},
 	'int': {'param_order': []},
 	'fixlabels': {'param_order': []},
-	'hardgap': {'gaprange': 0.1, 'outsidegapmin': 0.5, 'outsidegapmax': 0.6, 'param_order': ['gaprange','outsidegapmin','outsidegapmax']},
-	'changeaxis': {'xfactor': 1, 'yfactor': 1, 'datafactor': 1, 'dataunit': None, 'xunit': None, 'yunit': None, 'param_order': ['xfactor','yfactor','xunit','yunit', 'datafactor', 'dataunit']},
+	'hardgap': {'gaprange': 0.1, 'outsidegapmin': 0.5, 'outsidegapmax': 0.6, 'alphafactor': 1, 'param_order': ['gaprange','outsidegapmin','outsidegapmax','alphafactor']},
+	'changeaxis': {'xfactor': 1, 'yfactor': 1, 'xoffset': 0, 'yoffset': 0,'datafactor': 1, 'dataunit': None, 'xunit': None, 'yunit': None, 'param_order': ['xfactor','yfactor','xoffset','yoffset','xunit','yunit', 'datafactor', 'dataunit']},
 	'linecut': {'linecutvalue': 1,'axis': None,'param_order': ['linecutvalue','axis']},
 	'dbmtovolt': {'rfamp': False, 'attenuation': 0, 'gridresolutionfactor': 2, 'param_order': ['rfamp','attenuation','gridresolutionfactor']},
 	'deleteouterdatapoints': {'n':0,'param_order': ['n']},
