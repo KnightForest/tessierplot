@@ -80,11 +80,11 @@ rcP_thumb = {  'figure.figsize': (_plot_width_thumb, _plot_height_thumb), #(widt
 		'backend':qtaggregator
 		}
 		
-def parseUnitAndNameFromColumnName(input):
+def parseUnitAndNameFromColumnName(inp):
 	reg = re.compile(r'\{(.*?)\}')
-	z = reg.findall(input)
+	z = reg.findall(inp)
 	if not z: # if names don't follow the convention, just use what you get
-		z = input
+		z = inp
 	return z
 
 
@@ -110,6 +110,8 @@ class plotR(object):
 		self.exportData = []
 		self.exportDataMeta = []
 		self.bControls = True #boolean controlling state of plot manipulation buttons
+		#print(self.data._header)
+		#print(self.data.coordkeys)
 		
 	def is2d(self,**kwargs):
 		nDim = self.data.ndim_sparse
@@ -139,7 +141,7 @@ class plotR(object):
 				fig = self.plot2d(uniques_col_str=uniques_col_str,**kwargs)
 			else:
 				fig = self.plot3d(uniques_col_str=uniques_col_str,**kwargs)
-				self.exportToMtx()
+				#self.exportToMtx()
 			if self.isthumbnail:
 				fig.savefig(self.thumbfile,bbox_inches='tight' )
 				fig.savefig(self.thumbfile_datadir,bbox_inches='tight' )
@@ -166,7 +168,7 @@ class plotR(object):
 				fig = self.plot2d(uniques_col_str=uniques_col_str,**kwargs)
 			else:
 				fig = self.plot3d(uniques_col_str=uniques_col_str,**kwargs)
-				self.exportToMtx()
+				#self.exportToMtx()
 			if self.isthumbnail:
 				fig.savefig(self.thumbfile,bbox_inches='tight' )
 				fig.savefig(self.thumbfile_datadir,bbox_inches='tight' )
@@ -199,7 +201,7 @@ class plotR(object):
 						subplots_args={'top':0.96, 'bottom':0.17, 'left':0.14, 'right':0.85,'hspace':0.4},
 						ax_destination=None,
 						n_index=None,
-						style=['fixlabels'],
+						style=None,
 						xlims_manual=None,
 						ylims_manual=None,
 						clim=None,
@@ -223,7 +225,11 @@ class plotR(object):
 		n_subplots = 1
 
 		#make a list of uniques per column associated with column name
-		uniques_by_column = dict(zip(self.data.coordkeys + self.data.valuekeys, self.data.dims))
+		coord_keys,coord_units = self.data.coordkeys_n
+		value_keys,value_units = self.data.valuekeys_n
+
+		#make a list of uniques per column associated with column name
+		uniques_by_column = dict(zip(coord_keys + value_keys, self.data.dims))
 
 		#by this array
 		for i in uniques_col_str:
@@ -237,7 +243,7 @@ class plotR(object):
 			width = 1
 		else:
 			width = 1
-		n_valueaxes = len(self.data.valuekeys)	
+		n_valueaxes = len(value_keys)	
 		
 		if value_axis == -1:
 			value_axes = range(n_valueaxes)
@@ -264,14 +270,10 @@ class plotR(object):
 				data_slice = data_byuniques
 
 				#get the columns /not/ corresponding to uniques_cols
-				#find the coord_keys in the header
-				coord_keys = self.data.coordkeys
-
 				#filter out the keys corresponding to unique value columns
 				us=uniques_col_str
 				coord_keys = [key for key in coord_keys if key not in uniques_col_str ]
 				#now find out if there are multiple value axes
-				value_keys = self.data.valuekeys
 
 				x=data_slice.loc[:,coord_keys[-2]]
 				y=data_slice.loc[:,coord_keys[-1]]
@@ -334,7 +336,7 @@ class plotR(object):
 				#determine stepsize for di/dv, inprincipe only y step is used (ie. the diff is also taken in this direction and the measurement swept..)
 				xstep = float(xlims[1] - xlims[0])/(xu-1)
 				ystep = float(ylims[1] - ylims[0])/(yu-1)
-				print(xstep,ystep)
+				#print(xstep,ystep)
 				
 				ext = xlims+ylims
 				self.extent = ext
@@ -365,21 +367,12 @@ class plotR(object):
 				if type(style) != list:
 					style = list([style])
 
-				measAxisDesignation = parseUnitAndNameFromColumnName(value_keys[value_axis])
+				cbar_quantity,cbar_unit = value_keys[value_axis], value_units[value_axis]
 				#wrap all needed arguments in a datastructure
-				#We should add valueaxes and extract them properly here using parseUnitAndNameFromColumnName()
-				if measAxisDesignation:
-					if measAxisDesignation[1] and not isinstance(measAxisDesignation,str):
-						cbar_quantity = measAxisDesignation[0]
-						cbar_unit = measAxisDesignation[1]
-					else:
-						cbar_quantity = measAxisDesignation
-						cbar_unit = ''
-				#print(cbar_quantity,cbar_unit)
 				sbuffer = ''
 				cbar_trans = [] #trascendental tracer :P For keeping track of logs and stuff
 				w = styles.getPopulatedWrap(style)
-				w2 = {'ext':ext, 'ystep':ystep,'XX': XX, 'cbar_quantity': cbar_quantity, 'cbar_unit': cbar_unit, 'cbar_trans':cbar_trans, 'buffer':sbuffer, 'xlabel':coord_keys[-2], 'ylabel':coord_keys[-1]}
+				w2 = {'ext':ext, 'ystep':ystep,'XX': XX, 'cbar_quantity': cbar_quantity, 'cbar_unit': cbar_unit, 'cbar_trans':cbar_trans, 'buffer':sbuffer, 'xlabel':coord_keys[-2], 'xunit':coord_units[-2], 'ylabel':coord_keys[-1], 'yunit':coord_units[-1]}
 				for k in w2:
 					w[k] = w2[k]
 				w['massage_func']=massage_func
@@ -393,9 +386,10 @@ class plotR(object):
 					cbar_title = cbar_title + ')'
 
 				self.stylebuffer = w['buffer'] 
-				self.xlabel= w['xlabel']
-				#print(self.xlabel)
+				self.xlabel = w['xlabel']
+				self.xunit = w['xunit']
 				self.ylabel= w['ylabel']
+				self.yunit = w['yunit']
 				self.XX_processed = XX
 
 				if w['imshow_norm'] == None: # Support for plotting NaN values in a different color
@@ -404,7 +398,6 @@ class plotR(object):
 					self.imshow_norm = w['imshow_norm']
 				if norm == 'nan':
 					self.imshow_norm = None
-				print(self.imshow_norm)
 
 				if 'deinterlace' in style:
 					self.fig = plt.figure()
@@ -433,19 +426,19 @@ class plotR(object):
 
 						colormap = (plt.get_cmap(self.ccmap)) # Support for plotting NaN values
 						colormap.set_bad('none',1.0)
-						
-						self.im = ax.pcolormesh(xv,yv,np.rot90(np.fliplr(XX)),cmap=plt.get_cmap(self.ccmap))
+						self.im = ax.pcolormesh(xv,yv,np.rot90(np.fliplr(XX)),cmap=plt.get_cmap(self.ccmap), vmin=clim[0], vmax=clim[1])
 					if not clim:
 						self.im.set_clim(self.autoColorScale(XX.flatten()))
 				#ax.locator_params(nbins=5, axis='y') #Added to hardcode number of x ticks.
 				#ax.locator_params(nbins=7, axis='x')
 				if 'flipaxes' in style:
-					ax.set_xlabel(self.ylabel)
-					ax.set_ylabel(self.xlabel)
+					xaxislabelwithunit = self.ylabel +  ' (' + self.yunit + ')'
+					yaxislabelwithunit = self.xlabel +  ' (' + self.xunit + ')'
 				else:
-					ax.set_xlabel(self.xlabel)
-					ax.set_ylabel(self.ylabel)
-
+					xaxislabelwithunit = self.xlabel +  ' (' + self.xunit + ')'
+					yaxislabelwithunit = self.ylabel +  ' (' + self.yunit + ')'
+				ax.set_xlabel(xaxislabelwithunit)
+				ax.set_ylabel(yaxislabelwithunit)
 				title = ''
 				for i in uniques_col_str:
 					title = '\n'.join([title, '{:s}: {:g} (mV)'.format(i,getattr(data_byuniques,i).iloc[0])])
@@ -507,7 +500,7 @@ class plotR(object):
 	def plot2d(self,fiddle=False,
 					n_index=None,
 					value_axis = -1,
-					style=['fixlabels'],
+					style=None,
 					uniques_col_str=[],
 					legend=False,
 					ax_destination=None,
@@ -521,19 +514,15 @@ class plotR(object):
 
 			#determine how many subplots we need
 		n_subplots = 1
-		coord_keys = self.data.coordkeys
-		value_keys = self.data.valuekeys
+		coord_keys,coord_units = self.data.coordkeys_n
+		value_keys,value_units = self.data.valuekeys_n
+
 		#make a list of uniques per column associated with column name
-		uniques_by_column = dict(zip(self.data.coordkeys + self.data.valuekeys, self.data.dims))
+		uniques_by_column = dict(zip(coord_keys + value_keys, self.data.dims))
 
 		#assume 2d plots with data in the two last columns
 		if len(uniques_col_str) == 0:
 			uniques_col_str = coord_keys[:-1]
-
-		#by this array
-# 		for i in uniques_col_str:
-# 			n_subplots *= uniques_by_column[i]
-
 
 		if n_index is not None:
 			n_index = np.array(n_index)
@@ -543,7 +532,7 @@ class plotR(object):
 			width = 2
 		else:
 			width = 1
-		n_valueaxes = len(self.data.valuekeys)
+		n_valueaxes = len(value_keys)
 		if value_axis == -1:
 			value_axes = range(n_valueaxes)
 		else:
@@ -556,10 +545,6 @@ class plotR(object):
 		n_subplots = n_subplots * width
 		gs = gridspec.GridSpec(width,int(n_subplots/width)+n_subplots%width)
 
-		uniques_axis_designations = []
-		#do some filtering of the colstr to get separate name and unit of said name
-		for a in uniques_col_str:
-			uniques_axis_designations.append(parseUnitAndNameFromColumnName(a))
 		if n_index is not None:
 			n_index = np.array(n_index)
 			n_subplots = len(n_index)
@@ -571,22 +556,24 @@ class plotR(object):
 						if i not in n_index:
 							continue
 				data = self.data.sorted_data[j]
-				#get the columns /not/ corresponding to uniques_cols
-				#find the coord_keys in the header
-				coord_keys = self.data.coordkeys
 
 				#filter out the keys corresponding to unique value columns
 				us=uniques_col_str
 				coord_keys = [key for key in coord_keys if key not in uniques_col_str]
 				#now find out if there are multiple value axes
-				value_keys = self.data.valuekeys
+				#value_keys, value_units = self.data.valuekeys
 
 				x=data.loc[:,coord_keys[-1]]
 				y=data.loc[:,value_keys[value_axis]]
+				parser = self.data.determine_parser
 
-				xaxislabel = parseUnitAndNameFromColumnName(coord_keys[-1])
-				yaxislabel = parseUnitAndNameFromColumnName(value_keys[value_axis])
-	
+				xaxislabel = coord_keys[-1] 
+				xaxisunit = coord_units[-1]
+				xaxislabelwithunit = xaxislabel + ' (' + xaxisunit + ')'
+				yaxislabel = value_keys[value_axis]
+				yaxisunit = value_units[value_axis]
+				yaxislabelwithunit = yaxislabel + ' (' + yaxisunit + ')'
+
 				title =''
 
 				for i,z in enumerate(uniques_col_str):
@@ -594,14 +581,13 @@ class plotR(object):
 					# this crashes sometimes. did not investiagte yet what the problem is. switched off in the meantime
 					#title = '\n'.join([title, '{:s}: {:g}'.format(uniques_axis_designations[i],data[z].iloc[0])])
 				
-				#if type(style) != list:
-				#	style = list([style])
-
 				wrap = styles.getPopulatedWrap(style)
 				wrap['XX'] = y
 				wrap['X']  = x
 				wrap['xlabel'] = xaxislabel
+				wrap['xunit'] = xaxisunit
 				wrap['ylabel'] = yaxislabel
+				wrap['yunit'] = yaxisunit
 				wrap['massage_func'] = massage_func
 				styles.processStyle(style,wrap)
 				if ax_destination:
@@ -613,38 +599,9 @@ class plotR(object):
 				if legend:
 					plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
 						   ncol=2, mode="expand", borderaxespad=0.)
-				#ax = self.fig.axes[0]
-				#print(self.xlabel)
-				self.ylabel= wrap['ylabel']
-				self.xlabel= wrap['xlabel']
-				xaxislabel = self.xlabel
-				yaxislabel = self.ylabel
-
-				if xaxislabel:
-					if not isinstance(xaxislabel, np.ndarray):
-						xaxisquantity = xaxislabel
-						xaxisunit = ''
-					else:
-						xaxisquantity = xaxislabel[0]
-						xaxisunit = xaxislabel[1]
-
-				if yaxislabel:
-					if not isinstance(yaxislabel, np.ndarray):
-						yaxisquantity = yaxislabel
-						yaxisunit = ''
-					else:
-						yaxisquantity = yaxislabel[0]
-						yaxisunit = yaxislabel[1]
-						
 				if ax:
-					if isinstance(xaxislabel, np.ndarray):
-						ax.set_xlabel(xaxisquantity+'(' + xaxisunit +')')
-					else:
-						ax.set_xlabel(xaxislabel) # in case the label format does not fit our regex
-					if isinstance(yaxislabel, np.ndarray):
-						ax.set_ylabel(yaxisquantity+'(' +yaxisunit +')')
-					else:
-						ax.set_ylabel(yaxislabel)
+					ax.set_xlabel(xaxislabelwithunit)
+					ax.set_ylabel(yaxislabelwithunit)
 		
 		return self.fig
 
@@ -684,12 +641,11 @@ class plotR(object):
 
 		#autodidv function
 		y=self.data.sorted_data.iloc[:,-2]
-		if (max(y) == -1*min(y) and max(y) <= 150):
-			style.extend(['mov_avg(m=1,n=10)','didv','mov_avg(m=1,n=5)','abs'])
+		if (max(y) <= 15000):
+			style.extend(['mov_avg(m=1,n=3)','didv','mov_avg(m=1,n=3)'])
 
 		#default style is 'log'
-		style.append('fixlabels')
-
+		#style.append('fixlabels')
 		return style
 
 	def toggleLinedraw(self):

@@ -69,8 +69,6 @@ def helper_fixlabels(w):
 
 	cbar_q = (w['cbar_quantity'])
 	cbar_u = (w['cbar_unit'])
-	#print(cbar_q, cbar_u)
-	#print(ylabel, xlabel)
 	if cbar_q.find('Current') != -1:
 		print('found current')
 		cbar_q = '$I_\mathrm{D}$'
@@ -149,7 +147,6 @@ def helper_fixlabels(w):
 	w['xlabel'] = xlabel
 	w['cbar_quantity'] = cbar_q
 	w['cbar_unit'] = cbar_u
-	#print(w)
 
 
 def helper_changeaxis(w):
@@ -165,11 +162,9 @@ def helper_changeaxis(w):
 	if w['changeaxis_dataunit'] != None:
 		w['cbar_unit'] = w['changeaxis_dataunit']
 	if w['changeaxis_xunit'] != None:
-		xsplit = w['xlabel'].rsplit('(')
-		w['xlabel'] = xsplit[0] + '(' + w['changeaxis_xunit'] + ')'
+		w['xunit'] = '(' + w['changeaxis_xunit'] + ')'
 	if w['changeaxis_yunit'] != None:
-		ysplit = w['ylabel'].rsplit('(')
-		w['ylabel'] = ysplit[0] + '(' + w['changeaxis_yunit'] + ')'
+		w['ylabel'] = '(' + w['changeaxis_yunit'] + ')'
 
 def helper_savgol(w):
 	'''Perform Savitzky-Golay smoothing'''
@@ -178,8 +173,6 @@ def helper_savgol(w):
 
 def helper_didv(w):
 	a=(w['XX'])
-	ylabel = w['ylabel']
-	xlabel = w['xlabel']
 	cbar_q = w['cbar_quantity']
 	cbar_u = w['cbar_unit']
 	condquant = w['didv_condquant']
@@ -190,7 +183,7 @@ def helper_didv(w):
 	else:
 		w['XX'] = np.diff(w['XX'],axis=1)
 	
-	w['cbar_quantity'] = '$\partial$' + cbar_q + '/$\partial$' + ylabel.split(' ', 1)[0]
+	w['cbar_quantity'] = '$\partial$' + cbar_q + '/$\partial$' + w['ylabel']
 	
 	if cbar_u == 'nA':
 		#1 nA / 1 mV = 0.0129064037 conductance quanta
@@ -250,7 +243,7 @@ def helper_hardgap(w):
 	fig = plt.figure()
 	plt.plot(xaxis,hardness)
 	plt.yscale('log')
-	xlabel = w['xlabel']
+	xlabel = w['xlabel'] + ' ('+ w['xunit'] + ')'
 	ylabel = '$G_\mathrm{G}/G_\mathrm{O}$'
 	plt.xlabel(xlabel)
 	plt.ylabel(ylabel)
@@ -277,8 +270,6 @@ def helper_int(w):
 
 def helper_sgdidv(w):
 	'''Perform Savitzky-Golay smoothing and get 1st derivative'''
-	ylabel = w['ylabel']
-	xlabel = w['xlabel']
 	cbar_q = w['cbar_quantity']
 	cbar_u = w['cbar_unit']
 	w['XX'] = signal.savgol_filter(w['XX'], int(w['sgdidv_samples']), int(w['sgdidv_order']), deriv=1, delta=w['ystep'])# / 0.02581281)
@@ -461,12 +452,12 @@ def helper_ivreverser(w): #Inverse I and V-bias measurements (works on both) by 
 	#print ylimitpos, ylimitneg, len(gridyaxis)
 	print('new ystep:'+ str(w['ystep']))
 	w['ext'] = (w['ext'][0],w['ext'][1],ylimitneg,ylimitpos)
-	if w['ylabel'].find('nA') != -1:
+	if w['yunit'].find('nA') != -1:
 		print('I sourced detected')
 		w['ylabel'] = '$V_\mathrm{SD}$ (mV)'
 		w['cbar_quantity'] = '$I_\mathrm{S}$'
 		w['cbar_unit'] = 'nA'
-	elif w['ylabel'].find('mV') != -1:
+	elif w['yunit'].find('mV') != -1:
 		print('V sourced detected')
 		w['ylabel'] = '$I_\mathrm{D}$ (nA)'
 		w['cbar_quantity'] = '$V_\mathrm{SD}$'
@@ -492,8 +483,8 @@ def helper_excesscurrent(w): #Designed for I-bias. Calculate excess current by p
 		dataarray[i,2] = pospoly[i][0] #Rn
 	dataarray[:,0] = excesscurrpos
 	dataarray[:,1] = excesscurrneg
-	xlabel = w['xlabel']
-	ylabel = w['ylabel']
+	xlabel = w['xlabel'] + ' ('+ w['xunit'] + ')'
+	ylabel = w['ylabel'] + ' ('+ w['yunit'] + ')'
 	plt.plot(xaxis,excesscurrpos,xaxis,excesscurrneg)
 	plt.xlabel(xlabel)
 	plt.ylabel(ylabel)
@@ -521,7 +512,7 @@ def helper_linecut(w): #Make a linecut on specified axis and value.
 			datavals = XX[xindex,:]
 			plt.plot(yaxis,datavals)
 			dataarray[val,:] = datavals
-		xlabel = w['ylabel']
+		xlabel = w['ylabel'] + ' ('+ w['yunit'] + ')'
 		ylabel = w['cbar_quantity'] + ' ('+ w['cbar_unit'] + ')'
 		xaxis = yaxis
 	if axis == 'y':
@@ -531,7 +522,7 @@ def helper_linecut(w): #Make a linecut on specified axis and value.
 			datavals = XX[:,yindex]
 			plt.plot(xaxis,datavals)
 			dataarray[val,:] = datavals
-		xlabel = w['xlabel']
+		xlabel = w['xlabel'] + ' ('+ w['xunit'] + ')'
 		ylabel = w['cbar_quantity'] + ' ('+ w['cbar_unit'] + ')'
 	plt.xlabel(xlabel)
 	plt.ylabel(ylabel)
@@ -631,9 +622,9 @@ def helper_shapiro(w): #Looks for expected voltage of Shapiro step as function o
 			steppos[n][i] = yaxis[sposindex]
 			stepneg[n][i] = yaxis[snegindex]
 		plt.plot(xaxis,steppos[n][:],xaxis,stepneg[n][:])
-	xlabel = w['xlabel']
+	xlabel = w['xlabel'] + ' ('+ w['xunit'] + ')'
 	#ylabel = w['cbar_quantity'] + ' ('+ w['cbar_unit'] + ')'
-	ylabel = w['ylabel']
+	ylabel = w['ylabel'] + ' ('+ w['yunit'] + ')'
 	plt.xlabel(xlabel)
 	plt.ylabel(ylabel)
 	#print steppos.shape
@@ -1007,7 +998,7 @@ def helper_icvsx(w): #Finds switching current or retrapping current by peak fitt
 	#print ic[2,:]
 	#w['buffer']={'labels': [xlabel,ylabel], 'data':[dataarray], 'xaxis':[xaxis]}
 	fig = plt.figure()
-	xlabel = w['xlabel']
+	xlabel = w['xlabel'] + ' ('+ w['xunit'] + ')'
 	ylabel = '$I_\mathrm{C}$ (nA)'
 	plt.xlabel(xlabel)
 	plt.ylabel(ylabel)
@@ -1142,6 +1133,8 @@ def getEmptyWrap():
 		'cbar_trans': [],
 		'xlabel': [],
 		'ylabel': [],
+		'xunit': [],
+		'yunit': [],
 		'buffer': [],
 		'imshow_norm': None}
 	return w

@@ -39,8 +39,6 @@ class dat_parser(parser):
                                  skiprows=self._headerlength,
                                  header=None,
                                  names=[i['name'] for i in self._header])
-        #print(self._header)
-        #print(self._data)
         return super(dat_parser,self).parse()
 
     def parse_header(self):
@@ -61,57 +59,104 @@ class qcodes_parser(dat_parser):
 
     def parseheader(self):
         #read in the .json file
-        json_file = ''.join((os.path.dirname(self._file),'/snapshot.json'))
+        json_f = [f for f in os.listdir(os.path.dirname(self._file)) if f.endswith('.json')]
+        if len(json_f) > 1:
+            raise ValueError('Too many snapshots in folder.')
+        if len(json_f) < 1:
+            raise ValueError('Cannot locate snapshot.')
+        json_file = ''.join((os.path.dirname(self._file),'\\',json_f[0]))
         json_filebuffer = open(json_file)
         json_s=json_filebuffer.read()
 
-        #read the column names from the .dat file
-        filebuffer = self._filebuffer
-        firstline = (filebuffer.readline().decode('utf-8')).rstrip()
-        secondline = filebuffer.readline().decode('utf-8')     
-        raw2 = r'\".*?\"'
-        reggy2 = re.compile(raw2)
-        columnname2 = reggy2.findall(secondline)
-        columnname2 = [i.replace('\"','') for i in columnname2]
-        columnname = re.split(r'\t+', firstline)
-        columnname[0] = columnname[0][2::]
-                
-        #print(columnname,columnname2)
-        
-        #look for the part where the data file meta info is stored
         json_data = json.loads(json_s)
-        headerdict = json_data['arrays']
-        headervalues=[]
-        units = []
-        headerlength=0
-        VNAflag = False # Different parsing routine for header if VNA was used.
+        
+        #For the old loop methon of measuring: 
+        if 'arrays' in json_data:
 
-        for i,val in enumerate(headerdict):
-            if headerdict[val]['is_setpoint']:                
-                headerdictval = [i,headerdict[val]['array_id']][1]
-                line=[i,headerdictval,'coordinate']
-                line_x = zip(['column','name','type'],line)
-                headervalues.append(line_x)
-                units.append(headerdict[val]['unit'])
-            else:
-                headerdictval = [i,headerdict[val]['array_id']][1]
-                line=[i,headerdictval,'value']
-                line_x = zip(['column','name','type'],line)
-                headervalues.append(line_x)
+            #read the column names from the .dat file
+            filebuffer = self._filebuffer
+            firstline = (filebuffer.readline().decode('utf-8')).rstrip()
+            secondline = filebuffer.readline().decode('utf-8')     
+            raw2 = r'\".*?\"'
+            reggy2 = re.compile(raw2)
+            columnname2 = reggy2.findall(secondline)
+            columnname2 = [i.replace('\"','') for i in columnname2]
+            columnname = re.split(r'\t+', firstline)
+            columnname[0] = columnname[0][2::]
+                    
+            #print(columnname,columnname2)
+            
+            #look for the part where the data file meta info is stored
+            json_data = json.loads(json_s)
+            headerdict = json_data['arrays']
+            headervalues=[]
+            units = []
+            headerlength=0
 
-        headervalues = [dict(x) for x in headervalues]
-        #print(headervalues)
-        #print(columnname)
-        # sort according to the column order in the dat file
-        header=[]
-        for i, col in enumerate(columnname):
-            for j, h in enumerate(headervalues):
-                    #print(col,h['name'])
-                    if col == h['name']:
-                        h['name'] = columnname2[i] #Names in columns are more correct than in JSON.
-                        header.append(h)
-                        break
-        #print(header)
+            for i,val in enumerate(headerdict):
+                if headerdict[val]['is_setpoint']:                
+                    headerdictval = [i,headerdict[val]['array_id']][1]
+                    headerdictunit = [i,headerdict[val]['unit']][1]
+                    line=[i,headerdictval,'coordinate', headerdictunit]
+                    line_x = zip(['column','name','type', 'unit'],line)
+                    headervalues.append(line_x)
+
+                else:
+                    headerdictval = [i,headerdict[val]['array_id']][1]
+                    headerdictunit = [i,headerdict[val]['unit']][1]
+                    line=[i,headerdictval,'value', headerdictunit]
+                    line_x = zip(['column','name','type', 'unit'],line)
+                    headervalues.append(line_x)
+
+            headervalues = [dict(x) for x in headervalues]
+            # sort according to the column order in the dat file
+            header=[]
+            for i, col in enumerate(columnname):
+                for j, h in enumerate(headervalues):
+                        if col == h['name']:
+                            h['name'] = columnname2[i] #Names in columns are more correct than in JSON.
+                            header.append(h)
+                            break
+        
+        #With json file from qcodes database format:
+        if 'interdependencies' in json_data:
+            #read the column names from the .dat file
+            filebuffer = self._filebuffer
+            firstline = (filebuffer.readline().decode('utf-8')).rstrip()
+            secondline = (filebuffer.readline().decode('utf-8')).rstrip()
+            thirdline = (filebuffer.readline().decode('utf-8')).rstrip()
+            fourthline = (filebuffer.readline().decode('utf-8')).rstrip()
+
+            names = thirdline[2:].split('\t')
+            
+            headervalues=[]
+            units = []
+            headerlength=0
+
+            headerdict = json_data['interdependencies']['paramspecs']
+            for i,val in enumerate(headerdict):             
+                if not headerdict[i]['depends_on']:                
+                    headerdictval = [i,headerdict[i]['name']][1]
+                    headerdictunit = [i,headerdict[i]['unit']][1]
+                    line=[i,headerdictval,'coordinate',headerdictunit]
+                    line_x = zip(['column','name','type','unit'],line)
+                    headervalues.append(line_x)
+                else:
+                    headerdictval = [i,headerdict[i]['name']][1]
+                    headerdictunit = headerdict[i]['unit']
+                    line=[i,headerdictval,'value',headerdictunit]
+                    line_x = zip(['column','name','type','unit'],line)
+                    headervalues.append(line_x)
+
+            headervalues = [dict(x) for x in headervalues]
+            # sort according to the column order in the dat file
+            header=[]
+            for i, col in enumerate(names):
+                for j, h in enumerate(headervalues):
+                        if col == h['name']:
+                            h['name'] = [i,headerdict[i]['label']][1] #Uncomment if you want labels instead of names als axis labels
+                            header.append(h)
+                            break
         return header,headerlength
 
 class qtlab_parser(dat_parser):
@@ -183,20 +228,43 @@ class qtlab_parser(dat_parser):
                                                                 \#\s*type\:\s(.*?)[\r\n]{0,2}$
                                                                 """
                                             ,re.VERBOSE |re.MULTILINE)
-        coord=  coord_expression.findall(headertext)
-        val  = val_expression.findall(headertext)
+        coord =  coord_expression.findall(headertext)
+        val = val_expression.findall(headertext)
+        reg_nu = re.compile(r'\{(.*?)\}')
+        
         coord = [ zip(('column','end','name','size','start','type'),x) for x in coord]
         coord = [dict(x) for x in coord]
+        for i in range(0,len(coord)):
+            name_and_unit = reg_nu.findall(coord[i]['name'])
+            if not name_and_unit:
+                coord[i]['unit'] = ''
+            else:
+                coord[i]['name'] = name_and_unit[0]
+                coord[i]['unit'] = name_and_unit[1]
+        
         val = [ zip(('column','name','type'),x) for x in val]
         val = [dict(x) for x in val]
-
+        for i in range(0,len(val)):
+            name_and_unit = reg_nu.findall(val[i]['name'])
+            if not name_and_unit:
+                val[i]['unit'] = ''
+            else:
+                val[i]['name'] = name_and_unit[0]
+                val[i]['unit'] = name_and_unit[1]
         header=coord+val
 
         if not coord: # for data files without the 'start' and 'end' line in the header 
             coord_short = coord_expression_short.findall(headertext)
-            coord_short = [ zip(('column','name','size','type'),x) for x in coord_short]
+            coord_short = [ zip(('column','name','size','type','unit'),x) for x in coord_short]
             coord_short = [dict(x) for x in coord_short]
-            header=coord_short+val
+            for i in range(0,len(coord)):
+                name_and_unit = reg_nu.findall(coord[i]['name'])
+                if not name_and_unit:
+                    coord[i]['unit'] = ''
+                else:
+                    coord[i]['name'] = name_and_unit[0]
+                    coord[i]['unit'] = name_and_unit[1]
+                header=coord_short+val
         
         return header,headerlength
 
@@ -228,9 +296,8 @@ class filetype():
 
         #is there a snapshot.json file in the directory?
         #if yes, we can assume it's a qcodes measurement file
-        json_file = ''.join((os.path.dirname(filepath),'/snapshot.json'))
+        json_file = self.getjsonfilepath(filepath)
         set_file = self.getsetfilepath(filepath)
-        
         if os.path.exists(json_file):
             self._datparser = qcodes_parser
         elif os.path.exists(set_file):
@@ -263,9 +330,25 @@ class filetype():
         setfilepath = file_Path + '.set'
         
         if not os.path.exists(setfilepath):
-            setfilepath = None
+            setfilepath = ''
         
         return setfilepath
+
+    def getjsonfilepath(cls,filepath=''):
+        file_Path, file_Extension = os.path.splitext(filepath)
+        if file_Extension ==  '.gz':
+            file_Path = os.path.splitext(file_Path)[0]
+        elif file_Extension != '.dat':
+            print('Wrong file extension')
+        
+        json_f = [f for f in os.listdir(os.path.dirname(filepath)) if f.endswith('.json')]
+        if json_f:
+            json_file = ''.join((os.path.dirname(filepath),'\\',json_f[0]))
+            if not os.path.exists(json_file):
+                json_file = ''
+        else:
+            json_file = ''
+        return json_file    
     
     def get_filetype(self):
         for ext in self._FILETYPES.keys():
@@ -338,18 +421,31 @@ class Data(pandas.DataFrame):
         newdataframe._header = header
 
         return newdataframe
-
+    
     @property
     def coordkeys(self):
         coord_keys = [i['name'] for i in self._header if i['type']=='coordinate' ]
-        
+        units = [i['unit'] for i in self._header if i['type']=='coordinate' ]
         return coord_keys
     
     @property
     def valuekeys(self):
         value_keys = [i['name'] for i in self._header if i['type']=='value' ]
-        
+        units = [i['unit'] for i in self._header if i['type']=='value' ]
         return value_keys
+
+
+    @property
+    def coordkeys_n(self):
+        coord_keys = [i['name'] for i in self._header if i['type']=='coordinate' ]
+        units = [i['unit'] for i in self._header if i['type']=='coordinate' ]
+        return coord_keys, units
+    
+    @property
+    def valuekeys_n(self):
+        value_keys = [i['name'] for i in self._header if i['type']=='value' ]
+        units = [i['unit'] for i in self._header if i['type']=='value' ]
+        return value_keys, units
 
     @property
     def sorted_data(self):

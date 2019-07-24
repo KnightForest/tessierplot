@@ -98,15 +98,14 @@ class tessierView(object):
             if ((not os.path.exists(thumbfile)) or override or thumbnailStale):
                 #now make thumbnail because it doesnt exist or if u need to refresh
                 p = ts.plotR(filename,isthumbnail=True,thumbs = [thumbfile,thumbfile_datadir])
-
-                if len(p.data) > 20: ##just make sure really unfinished measurements are thrown out
+                
+                if len(p.data) > 10: ##just make sure really unfinished measurements are thrown out
                     is2d = p.is2d()
-                    
                     if is2d:
-                        guessStyle = ['fixlabels']
+                        guessStyle = ['normal']
                     else :
                         guessStyle = p.guessStyle()
-                    
+
                     p.quickplot(style=guessStyle + style)
 					
                     p.fig.savefig(thumbfile,bbox_inches='tight' )
