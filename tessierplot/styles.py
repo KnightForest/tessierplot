@@ -55,68 +55,87 @@ def helper_mov_avg(w):
 def helper_fixlabels(w):
 	# List of hardcoded label replacements to make plots instantly look nicer. Will be different for every user/measurement though!
 
-	if not isinstance(w['ylabel'], np.ndarray):
-		ylabel = (w['ylabel'])
-	else:
+	# if not isinstance(w['ylabel'], np.ndarray):
+	# 	ylabel = (w['ylabel'])
+	# else:
+	# 	ylabel = w['ylabel'][0]
+	# 	yunit = w['ylabel'][1]
+	# if not isinstance(w['xlabel'], np.ndarray):
+	# 	xlabel = (w['xlabel'])
+	# else:
+	# 	xlabel = w['xlabel'][0]
+	# 	xunit = w['xlabel'][1]
 
-		ylabel = w['ylabel'][0]
-		yunit = w['ylabel'][1]
-	if not isinstance(w['xlabel'], np.ndarray):
-		xlabel = (w['xlabel'])
-	else:
-		xlabel = w['xlabel'][0]
-		xunit = w['xlabel'][1]
-
+	xlabel = w['xlabel']
+	xunit = w['xunit']
+	ylabel = w['ylabel']
+	yunit = w['yunit']
 	cbar_q = (w['cbar_quantity'])
 	cbar_u = (w['cbar_unit'])
 	if cbar_q.find('Current') != -1:
 		print('found current')
 		cbar_q = '$I_\mathrm{D}$'
-		cbar_unit = '(nA)'
+		cbar_unit = 'nA'
 	if cbar_q.find('Voltage') != -1:
 		print('found voltage')
 		cbar_q = '$V_\mathrm{SD}$'
-		cbar_unit = '(mV)'
+		cbar_unit = 'mV'
 
 	if xlabel.find('mK') != -1:
-		xlabel = '$T$ (mK)'
+		xlabel = '$T$'
+		xunit = 'mK'
 	elif xlabel.find('K') != -1:
-		xlabel = '$T$ (K)'
+		xlabel = '$T$'
+		xunit = 'K'
 	
 	if xlabel.find('BG') != -1:
-		xlabel = '$V_\mathrm{BG}$ (mV)'
+		xlabel = '$V_\mathrm{BG}$'
+		xunit = 'mV'
 	if xlabel.find('oop') != -1:
-		xlabel = r'$B_{\bot}$ (mT)'
+		xlabel = r'$B_{\bot}$'
+		xunit = 'mT'
 	
 	if xlabel.find('B_X') != -1 or xlabel.find('Bx') != -1 or xlabel == 'x_field':
-		xlabel = '$B_\mathrm{X}$ (T)'
+		xlabel = '$B_\mathrm{X}$'
+		xunit = 'T'
 	if xlabel.find('B_Y') != -1 or xlabel.find('By') != -1 or xlabel == 'y_field':
-		xlabel = '$B_\mathrm{Y}$ (T)'
+		xlabel = '$B_\mathrm{Y}$'
+		xunit = 'T'
 	if xlabel.find('B_Z') != -1 or xlabel.find('Bz') != -1 or xlabel == 'z_field':
-		xlabel = '$B_\mathrm{Z}$ (T)'
+		xlabel = '$B_\mathrm{Z}$'
+		xunit = 'T'
 	if xlabel.find('Power') != -1:
-		xlabel = 'Applied RF Power (dBm)'
+		xlabel = 'Applied RF Power'
+		xunit = 'dBm'
 	if ylabel.find('{g')!= -1 or ylabel.find('{G')!= -1:
 		gn = re.search(r'\d+', ylabel).group()
-		ylabel = '$V_\mathrm{g'+gn+'}$ (mV)'
-	elif ylabel.find('mV') != -1:
-		ylabel = '$V_\mathrm{SD}$ (mV)'
+		ylabel = '$V_\mathrm{g'+gn+'}$'
+		yunit = 'mV'
+	elif yunit.find('mV') != -1:
+		ylabel = '$V_\mathrm{SD}$'
+		yunit = 'mV'
 	if xlabel.find('{g')!= -1 or xlabel.find('{G')!= -1:
 		gn = re.search(r'\d+', xlabel).group()
-		xlabel = '$V_\mathrm{g'+gn+'}$ (mV)'
+		xlabel = '$V_\mathrm{g'+gn+'}$'
+		xunit = 'mV'
 
-	if ylabel.find('nA') != -1:
-		ylabel = '$I_\mathrm{S}$ (nA)'
+	if yunit.find('nA') != -1:
+		ylabel = '$I_\mathrm{S}$'
+		yunit = 'nA'
 
 	if ylabel == 'S21_frequency_set':
-		ylabel = 'S21 freq. (Hz)'
+		ylabel = 'S21 freq.'
+		yunit = 'Hz'
 	if xlabel == 'VNA_S21_frequency_set':
-		xlabel = 'S21 freq. (Hz)'
+		xlabel = 'S21 freq.'
+		xunit = 'Hz'
 
 	if ylabel == 'VNA_S21_magnitude':
-		ylabel = 'S21 magn. (arb.)'
+		ylabel = 'S21 magn.'
+		yunit = 'arb.'
 	if ylabel == 'VNA_S21_phase':
-		ylabel = 'S21 phase ($\phi$)'
+		ylabel = 'S21 phase'
+		yunit = '$\phi$'
 
 	if cbar_q == 'VNA_S21_magnitude':
 		cbar_q = 'S21 magn.'
@@ -125,14 +144,18 @@ def helper_fixlabels(w):
 		cbar_u = '$\phi$'
 
 	if xlabel == 'S21 frequency':
-		xlabel = 'S21 freq. (Hz)'
+		xlabel = 'S21 freq.'
+		xunit = 'Hz'
 	if ylabel == 'S21 frequency':
-		ylabel = 'S21 freq. (Hz)'
+		ylabel = 'S21 freq.'
+		yunit = 'Hz'
 
 	if ylabel == 'S21 magnitude':
-		ylabel = 'S21 magn. (arb.)'
+		ylabel = 'S21 magn.'
+		yunit = 'arb.'
 	if ylabel == 'S21 phase':
-		ylabel = 'S21 phase ($\phi$)'
+		ylabel = 'S21 phase'
+		yunit = '$\phi$'
 
 	if cbar_q == 'S21 magnitude':
 		cbar_q = 'S21 magn.'
@@ -143,8 +166,10 @@ def helper_fixlabels(w):
 	#Right now units for x and y are discarded and are hardcoded in fixlabels in the label itself. This may not be the best approach
 	#but it's also inconsistent in plot.py between 2d and 3d plots. Running this style now always destroys x and y units as determined by
 	# the default method.
-	w['ylabel'] = ylabel 
+	w['ylabel'] = ylabel
+	w['yunit'] = yunit
 	w['xlabel'] = xlabel
+	w['xunit'] = xunit
 	w['cbar_quantity'] = cbar_q
 	w['cbar_unit'] = cbar_u
 
@@ -162,9 +187,9 @@ def helper_changeaxis(w):
 	if w['changeaxis_dataunit'] != None:
 		w['cbar_unit'] = w['changeaxis_dataunit']
 	if w['changeaxis_xunit'] != None:
-		w['xunit'] = '(' + w['changeaxis_xunit'] + ')'
+		w['xunit'] = w['changeaxis_xunit']
 	if w['changeaxis_yunit'] != None:
-		w['ylabel'] = '(' + w['changeaxis_yunit'] + ')'
+		w['yunit'] = w['changeaxis_yunit']
 
 def helper_savgol(w):
 	'''Perform Savitzky-Golay smoothing'''
@@ -454,12 +479,14 @@ def helper_ivreverser(w): #Inverse I and V-bias measurements (works on both) by 
 	w['ext'] = (w['ext'][0],w['ext'][1],ylimitneg,ylimitpos)
 	if w['yunit'].find('nA') != -1:
 		print('I sourced detected')
-		w['ylabel'] = '$V_\mathrm{SD}$ (mV)'
+		w['ylabel'] = '$V_\mathrm{SD}$'
+		w['yunit'] = 'mV'
 		w['cbar_quantity'] = '$I_\mathrm{S}$'
 		w['cbar_unit'] = 'nA'
 	elif w['yunit'].find('mV') != -1:
 		print('V sourced detected')
-		w['ylabel'] = '$I_\mathrm{D}$ (nA)'
+		w['ylabel'] = '$I_\mathrm{D}$'
+		w['yunit'] = 'nA'
 		w['cbar_quantity'] = '$V_\mathrm{SD}$'
 		w['cbar_unit'] = 'mV' 
 
