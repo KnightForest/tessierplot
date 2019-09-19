@@ -110,6 +110,7 @@ class plotR(object):
 		self.exportData = []
 		self.exportDataMeta = []
 		self.bControls = True #boolean controlling state of plot manipulation buttons
+		self.valueaxes_n = 0
 		#print(self.data._header)
 		#print(self.data.coordkeys)
 		
@@ -170,6 +171,8 @@ class plotR(object):
 				fig = self.plot3d(uniques_col_str=uniques_col_str,**kwargs)
 				#self.exportToMtx()
 			if self.isthumbnail:
+				#print(self.valueaxes_n)
+				fig.set_size_inches(_plot_width_thumb, (self.valueaxes_n-1)*2+_plot_height_thumb)
 				fig.savefig(self.thumbfile,bbox_inches='tight' )
 				fig.savefig(self.thumbfile_datadir,bbox_inches='tight' )
 				plt.close(fig)
@@ -212,6 +215,7 @@ class plotR(object):
 						imshow=True,
 						cbar_orientation='vertical',
 						cbar_location ='normal',
+						filter_raw = True,
 						#supress_plot = False, #Added suppression of plot option
 						norm = 'None', #Added for NaN value support
 						**kwargs):
@@ -228,6 +232,16 @@ class plotR(object):
 		coord_keys,coord_units = self.data.coordkeys_n
 		value_keys,value_units = self.data.valuekeys_n
 
+		#Filtering raw value axes
+		if filter_raw== True:
+			value_keys_filtered = []
+			value_units_filtered = []
+			for n,value_key in enumerate(value_keys):
+				if value_key.find('raw')==-1 and value_key.find('Raw')== -1:
+					value_keys_filtered.append(value_key)
+					value_units_filtered.append(value_units[n])
+			value_keys = value_keys_filtered
+			value_units = value_units_filtered
 		#make a list of uniques per column associated with column name
 		uniques_by_column = dict(zip(coord_keys + value_keys, self.data.dims))
 
@@ -249,7 +263,7 @@ class plotR(object):
 			value_axes = range(n_valueaxes)
 		else:
 			value_axes = list([value_axis])
-		
+		self.valueaxes_n = len(value_axes) 
 		width = 1#len(value_axes)
 		height = len(value_axes)
 		n_subplots = n_subplots *width#int(n_subplots/width)+n_subplots%width
@@ -506,6 +520,7 @@ class plotR(object):
 					ax_destination=None,
 					subplots_args={'top':0.96, 'bottom':0.17, 'left':0.14, 'right':0.85,'hspace':0.3},
 					massage_func=None,
+					filter_raw=True,
 					**kwargs):
 					
 		if not self.fig and not ax_destination:
@@ -517,6 +532,16 @@ class plotR(object):
 		coord_keys,coord_units = self.data.coordkeys_n
 		value_keys,value_units = self.data.valuekeys_n
 
+		#Filtering raw value axes
+		if filter_raw== True:
+			value_keys_filtered = []
+			value_units_filtered = []
+			for n,value_key in enumerate(value_keys):
+				if value_key.find('raw')==-1 and value_key.find('Raw')== -1:
+					value_keys_filtered.append(value_key)
+					value_units_filtered.append(value_units[n])
+			value_keys = value_keys_filtered
+			value_units = value_units_filtered
 		#make a list of uniques per column associated with column name
 		uniques_by_column = dict(zip(coord_keys + value_keys, self.data.dims))
 
@@ -540,7 +565,8 @@ class plotR(object):
 				value_axes = list([value_axis])
 			else:
 				value_axes = value_axis
-		
+		self.valueaxes_n = len(value_axes) 
+
 		width = len(value_axes)
 		n_subplots = n_subplots * width
 		gs = gridspec.GridSpec(width,int(n_subplots/width)+n_subplots%width)

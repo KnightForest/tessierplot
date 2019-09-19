@@ -69,7 +69,6 @@ class tessierView(object):
         self._style = style
         self._override = override
         self._showfilenames = showfilenames
-        
         #check for and create thumbnail dir
         thumbnaildir = os.path.dirname(getthumbcachepath('./'))
         if not os.path.exists(thumbnaildir):
@@ -101,13 +100,16 @@ class tessierView(object):
                 
                 if len(p.data) > 10: ##just make sure really unfinished measurements are thrown out
                     is2d = p.is2d()
-                    if is2d:
-                        guessStyle = ['normal']
-                    else :
-                        guessStyle = p.guessStyle()
+                    if not style:
+                        if is2d:
+                            guessStyle = ['normal']
+                        else :
+                            guessStyle = ['normal']
+                            #guessStyle = p.guessStyle()
+                    else:
+                        guessStyle = []
 
                     p.quickplot(style=guessStyle + style)
-					
                     p.fig.savefig(thumbfile,bbox_inches='tight' )
                     p.fig.savefig(thumbfile_datadir,bbox_inches='tight' )
                     plt.close(p.fig)
@@ -172,7 +174,8 @@ class tessierView(object):
 
                 #extract the directory which is the date of measurement
                 datedir = os.path.basename(os.path.normpath(dir+'/../'))
-                
+                measfiledir = os.path.basename(os.path.normpath(dir))
+                #print(measfiledir)
                 if os.name == 'nt': # avoid problems with very long path names in windows
                    dir = win32api.GetShortPathName(dir)
                    fullpath = dir + '/' + basename
@@ -181,7 +184,10 @@ class tessierView(object):
                 #dirty, if filename ends e.g. in gz, also chops off the second extension
                 measname,ext2 = os.path.splitext(measname)
                 ext = ext2+ext1
-
+                #fulldir = os.path.dirname(fullpath)
+                #lastdir = os.path.basename(fulldir)
+                if len(measname) < len(measfiledir):
+                    measname = measfiledir
                 #check if filterstring can be found in the set file (e.g. 'dac4: 1337.0')
                 if not isinfilterstring:
                     setfilepath = data.filetype.getsetfilepath(fullpath)
