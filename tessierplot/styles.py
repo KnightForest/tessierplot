@@ -284,9 +284,11 @@ def helper_int(w):
 	#if XX.ndim == 1: #if 1D 
 	#	XX = np.cumsum(XX)
 	#	XX = np.cumsum(XX,XX[-1])
+	print(xn)
 	for i in range(0,xn):
 		intarr = np.cumsum(XX[i,:])
-		XX[i,:] = intarr - intarr[yn/2] #correct for integration constant
+		XX[i,:] = intarr - intarr[int(yn/2)] #correct for integration constant
+		
 	#1 nA / 1 mV = 0.0129064037 conductance quanta
 	w['XX'] = XX * w['ystep']# * 0.0129064037
 	#w['cbar_quantity'] = 'intI'
@@ -626,7 +628,11 @@ def helper_shapiro(w): #Looks for expected voltage of Shapiro step as function o
 	electron = 1#1.60e-19
 	rffreq = w['shapiro_rffreq'] #Freq in GHz
 	nsteps = int(w['shapiro_nsteps']) #Up to which order
-	w['XX'] = w['XX']*2*electron/(planck*rffreq*1000) #Convert XX to energy
+	millivolts = w['shapiro_millivolts']
+	if millivolts:
+		w['XX'] = w['XX']*2*electron/(planck*rffreq*1000) #Convert XX to energy
+	else:
+		w['XX'] = w['XX']*2*electron/(planck*rffreq) #Convert XX to energy
 	w['cbar_quantity'] = '$V_\mathrm{SD}$'
 	w['cbar_unit'] = '$hf/2e$'
 	#print rffreq
@@ -1115,7 +1121,7 @@ STYLE_SPECS = {
 	'crosscorr': {'peakmin':None,'peakmax':None,'toFirstColumn':True,'param_order': ['peakmin','peakmax','toFirstColumn']},
 	'massage': {'param_order': []},
 	'deint_cross': {'param_order': []},
-	'shapiro': {'rffreq': 2.15e9, 'nsteps': 1, 'param_order': ['rffreq','nsteps']},
+	'shapiro': {'rffreq': 2.15e9, 'nsteps': 1, 'millivolts': 1, 'param_order': ['rffreq','nsteps','millivolts']},
 	'meansubtract': {'param_order': []},
 	'movingmeansubtract': {'window': 2,'param_order': ['window']},
 	'offsetslopesubtract': {'slope': 0, 'offset': 0, 'param_order': ['slope', 'offset']},

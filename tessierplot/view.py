@@ -449,7 +449,7 @@ class tessierView(object):
                    padding-top: 2em;}
         #outer {}
         img{
-            width:100%;
+            width:85%;
             height:auto;
             }
         </style>
