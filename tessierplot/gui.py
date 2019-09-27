@@ -318,7 +318,8 @@ class Linecut:
 			self.cutFig, self.cutAx = plt.subplots()
 			self.cutFig.canvas.mpl_connect('close_event', self.cutFigClosed)
 		self.cutAx.cla()
-		self.cutAx.plot(xx,z)
+		self.cutAx.plot(xx,z,'o-',fillstyle='none',markersize=2)
+		#self.cutAx.plot(xx,z,markerstyle='o',fillstyle='none',markersize=5)
 		self.cutFig.canvas.draw()
 
 		#erase previous line

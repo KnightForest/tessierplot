@@ -293,9 +293,10 @@ class plotR(object):
 				y=data_slice.loc[:,coord_keys[-1]]
 				z=data_slice.loc[:,value_keys[value_axis]]
 
+				#print(len(y),y)
 				xu = np.size(x.unique())
 				yu = np.size(y.unique())
-				
+				print(yu)				
 				## if the measurement is not complete this will probably fail so trim off the final sweep?
 				print('xu: {:d}, yu: {:d}, lenz: {:d}'.format(xu,yu,len(z)))
 				if xu*yu != len(z):
@@ -325,6 +326,9 @@ class plotR(object):
 				self.x = x
 				self.y = y
 				self.z = z
+				print(x)
+				print(y)
+				print(z)
 				#now set the lims
 				xlims = (x.min(),x.max())
 				ylims = (y.min(),y.max())
@@ -386,7 +390,20 @@ class plotR(object):
 				sbuffer = ''
 				cbar_trans = [] #trascendental tracer :P For keeping track of logs and stuff
 				w = styles.getPopulatedWrap(style)
-				w2 = {'ext':ext, 'ystep':ystep,'XX': XX, 'cbar_quantity': cbar_quantity, 'cbar_unit': cbar_unit, 'cbar_trans':cbar_trans, 'buffer':sbuffer, 'xlabel':coord_keys[-2], 'xunit':coord_units[-2], 'ylabel':coord_keys[-1], 'yunit':coord_units[-1]}
+				w2 = {
+						'ext':ext, 
+						'ystep':ystep,
+						'XX': XX,
+						'X': x,
+						'Y': y, 
+						'cbar_quantity': cbar_quantity, 
+						'cbar_unit': cbar_unit, 
+						'cbar_trans':cbar_trans, 
+						'buffer':sbuffer, 
+						'xlabel':coord_keys[-2], 
+						'xunit':coord_units[-2], 
+						'ylabel':coord_keys[-1], 
+						'yunit':coord_units[-1]}
 				for k in w2:
 					w[k] = w2[k]
 				w['massage_func']=massage_func

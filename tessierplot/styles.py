@@ -276,24 +276,19 @@ def helper_hardgap(w):
 	w['buffer']={'labels': [xlabel,ylabel], 'data':[[gapconductance],[outsidegapconductance],[hardness],[outsidegapconductancecorr],[hardnesscorr]], 'xaxis':[xaxis]}
 
 def helper_int(w):
-	XX = w['XX']#+1e3/20
-	xn, yn = XX.shape
-	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
-	yaxis = np.linspace(w['ext'][2],w['ext'][3],w['XX'].shape[1])
-
-	#if XX.ndim == 1: #if 1D 
-	#	XX = np.cumsum(XX)
-	#	XX = np.cumsum(XX,XX[-1])
-	print(xn)
-	for i in range(0,xn):
-		intarr = np.cumsum(XX[i,:])
-		XX[i,:] = intarr - intarr[int(yn/2)] #correct for integration constant
-		
-	#1 nA / 1 mV = 0.0129064037 conductance quanta
-	w['XX'] = XX * w['ystep']# * 0.0129064037
-	#w['cbar_quantity'] = 'intI'
-	#w['cbar_unit'] = '?'
-	#w['cbar_unit'] = r'2$\mathrm{e}^2/\mathrm{h}$'	
+	a=(w['XX'])
+	if a.ndim == 1: #if 1D ['XX'] = np.diff(w['XX'])
+		 xaxis = w['X']
+		 xaxisdiff = np.diff(xaxis,prepend=xaxis[0]-(xaxis[1]-xaxis[0]))
+		 intarr = np.cumsum(w['XX']*xaxisdiff)
+		 w['XX'] = intarr - intarr[int(len(intarr)/2)]
+	else:
+		print(w['X'])
+		xn, yn = a.shape
+		for i in range(0,xn):
+			intarr = np.cumsum(a[i,:])
+			a[i,:] = intarr - intarr[int(yn/2)]
+		w['XX']=a
 
 def helper_sgdidv(w):
 	'''Perform Savitzky-Golay smoothing and get 1st derivative'''
@@ -1160,6 +1155,7 @@ def getEmptyWrap():
 	w = {'ext':(0,0,0,0), 
 		'ystep':1,
 		'X': [],
+		'Y': [],
 		'XX': [], 
 		'cbar_quantity': '',
 		'cbar_unit': 'a.u.',
