@@ -37,6 +37,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from scipy.signal import argrelmax
+from scipy.interpolate import griddata
 
 import numpy as np
 import math
@@ -296,7 +297,7 @@ class plotR(object):
 				#print(len(y),y)
 				xu = np.size(x.unique())
 				yu = np.size(y.unique())
-				print(yu)				
+				#print(yu)				
 				## if the measurement is not complete this will probably fail so trim off the final sweep?
 				print('xu: {:d}, yu: {:d}, lenz: {:d}'.format(xu,yu,len(z)))
 				if xu*yu != len(z):
@@ -320,15 +321,21 @@ class plotR(object):
 					x = x[:xu*yu]
 					y = y[:xu*yu]
 				XX = z.values.reshape(xu,yu)
+				X = x.values.reshape(xu,yu)
+				Y = y.values.reshape(xu,yu)
+
 				#if hasattr(self, 'XX_processed'):
 				#	XX = self.XX_processed
 
 				self.x = x
 				self.y = y
 				self.z = z
-				print(x)
-				print(y)
-				print(z)
+				#print(x.shape,x)
+				#print(y.shape,y)
+				#print(z.shape,z)
+				#print(X.shape,X)
+				#print(Y.shape,Y)
+				#print(XX.shape,XX)
 				#now set the lims
 				xlims = (x.min(),x.max())
 				ylims = (y.min(),y.max())
@@ -352,12 +359,39 @@ class plotR(object):
 						ynew[1] = ylims_manual[1]
 
 				#determine stepsize for di/dv, inprincipe only y step is used (ie. the diff is also taken in this direction and the measurement swept..)
-				xstep = float(xlims[1] - xlims[0])/(xu-1)
-				ystep = float(ylims[1] - ylims[0])/(yu-1)
+				#xstep = float(xlims[1] - xlims[0])/(xu-1)
+				#ystep = float(ylims[1] - ylims[0])/(yu-1)
 				#print(xstep,ystep)
 				
 				ext = xlims+ylims
 				self.extent = ext
+
+				#Gridding and interpolating unevenly spaced data
+				extx = abs(ext[1]-ext[0])
+				xdx = np.diff(X, axis=0)
+				xdxshape = xdx.shape
+				for i in range(0,int(xdxshape[0])):
+					for j in range(0,int(xdxshape[1])):
+						xdx[i,j]=np.format_float_scientific(xdx[i,j], unique=False, precision=10)
+				minxstep = abs(xdx[np.nonzero(xdx)]).min()
+				minxsteps = int(extx/minxstep)+1
+				exty = abs(ext[3]-ext[2])
+				print(ext, extx,exty)
+				ydy = np.diff(Y, axis=1)
+				ydyshape = ydy.shape
+				for i in range(0,ydyshape[0]):
+					for j in range(0,ydyshape[1]):
+						ydy[i,j]=np.format_float_scientific(ydy[i,j], unique=False, precision=10)
+				minystep = abs(ydy[np.nonzero(ydy)]).min()
+				minysteps = int(exty/minystep)+1
+				if minxsteps > xu or minysteps > yu:
+					print('Unevenly spaced data detected, cubic interpolation will be performed. \n New dimension:', minxsteps,minysteps)
+					grid_x, grid_y = np.mgrid[ext[0]:ext[1]:minxsteps*1j, ext[2]:ext[3]:minysteps*1j]
+					points = np.transpose(np.array([x,y]))
+					try:
+						XX = griddata(points, np.array(z), (grid_x, grid_y), method='cubic')
+					except:
+						XX = griddata(points, np.array(z), (grid_x, grid_y), method='nearest')
 				self.XX = XX
 
 				self.exportData.append(XX)
@@ -392,10 +426,9 @@ class plotR(object):
 				w = styles.getPopulatedWrap(style)
 				w2 = {
 						'ext':ext, 
-						'ystep':ystep,
 						'XX': XX,
-						'X': x,
-						'Y': y, 
+						'X': X,
+						'Y': Y, 
 						'cbar_quantity': cbar_quantity, 
 						'cbar_unit': cbar_unit, 
 						'cbar_trans':cbar_trans, 
@@ -430,6 +463,7 @@ class plotR(object):
 				if norm == 'nan':
 					self.imshow_norm = None
 
+				# This deinterlace needs to be reworked. There are no colorbars for instance..
 				if 'deinterlace' in style:
 					self.fig = plt.figure()
 					ax_deinter_odd  = plt.subplot(2, 1, 1)

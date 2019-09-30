@@ -354,7 +354,7 @@ def helper_fancylog(w):
 	w['imshow_norm'] = mplc.LogNorm(vmin=cmin, vmax=cmax)
 
 def helper_normal(w):
-	w['XX'] = w['XX']
+	pass
 	
 def helper_movingmeansubtract(w):
 	XX = w['XX']
