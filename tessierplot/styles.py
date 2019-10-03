@@ -283,11 +283,12 @@ def helper_int(w):
 		 intarr = np.cumsum(w['XX']*xaxisdiff)
 		 w['XX'] = intarr - intarr[int(len(intarr)/2)]
 	else:
-		print(w['X'])
-		xn, yn = a.shape
-		for i in range(0,xn):
-			intarr = np.cumsum(a[i,:])
-			a[i,:] = intarr - intarr[int(yn/2)]
+		xaxis = np.linspace(w['ext'][0],w['ext'][1],a.shape[0])
+		yaxis = np.linspace(w['ext'][2],w['ext'][3],a.shape[1])
+		for i in range(0,a.shape[0]):
+			yaxisdiff = np.diff(yaxis,prepend=yaxis[0]-(yaxis[1]-yaxis[0]))
+			intarr = np.cumsum(a[i,:])*yaxisdiff
+			a[i,:] = intarr# - intarr[int(a.shape[1]/2)]
 		w['XX']=a
 
 def helper_sgdidv(w):
@@ -412,9 +413,77 @@ def helper_offsetslopesubtract(w):
 	ymatrix = np.repeat([yaxis],w['XX'].shape[0], axis = 0)
 	w['XX'] = w['XX']-(ymatrix*slope)-offset
 
+def nan_helper(y):
+    """Helper to handle indices and logical indices of NaNs.
+
+    Input:
+        - y, 1d numpy array with possible NaNs
+    Output:
+        - nans, logical indices of NaNs
+        - index, a function, with signature indices= index(logical_indices),
+          to convert logical indices of NaNs to 'equivalent' indices
+    Example:
+        >>> # linear interpolation of NaNs
+        >>> nans, x= nan_helper(y)
+        >>> y[nans]= np.interp(x(nans), x(~nans), y[~nans])
+    """
+
+    return np.isnan(y), lambda z: z.nonzero()[0]
+
+def helper_rshunt(w):
+	import math
+	import numpy.ma as ma
+	XX = w['XX']#+1e3/float(w['vbiascorrector_seriesr'])
+	xn, yn = XX.shape
+	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
+	yaxis = np.linspace(w['ext'][2],w['ext'][3],w['XX'].shape[1])
+	#voffset = w['vbiascorrector_voffset'] # Voltage offset
+	shuntr = w['rshunt_r'] # Series resistance
+	ycorrected = np.zeros(shape=(xn,yn))
+	gridresolutionfactor = w['rshunt_gridresolutionfactor'] # Example: Factor of 2 doubles the number of y datapoints for non-linear interpolation
+	for i in range(0,xn):
+		#print((XX[i,:]/yaxis))
+		rtot = (XX[i,:]/yaxis)
+		#print(rtot)
+		#print(XX[i,:])
+		try:
+			rj = (1/((1/rtot)-(1/shuntr)))
+		except:
+			rj = 0 
+		ij = XX[i,:]/rj
+		#print(rj)
+		#print(ij)
+		ycorrected[i,:] = ij
+	print(np.nanmin(ycorrected))
+	ylimitneg,ylimitpos = (np.nanmin(ycorrected)), (np.nanmax(ycorrected))
+	print(ylimitneg,ylimitpos)
+	gridyaxis = np.linspace(ylimitneg,ylimitpos,int(yn*gridresolutionfactor))
+	gridxaxis = xaxis
+	XX_new = np.zeros(shape=(xn,len(gridyaxis)))
+	if w['rshunt_didv'] == True: # Calls didv within helper_vbiascorrector before interpolation to prevent artefacts.
+		print('doejddit')
+		w['didv_condquant']=False
+		helper_didv(w)
+		XX = w['XX']
+		for i in range(0,xn):
+			testarr = ycorrected[i,:]
+			nans, x= nan_helper(testarr)
+			testarr[nans]= np.interp(x(nans), x(~nans), testarr[~nans])
+			XX_new[i,:] = np.interp(gridyaxis,testarr[:-1],XX[i,:], left=np.nan, right=np.nan)
+	else:
+		for i in range(0,xn):
+			testarr = ycorrected[i,:]
+			nans, x= nan_helper(testarr)
+			testarr[nans]= np.interp(x(nans), x(~nans), testarr[~nans])
+			XX_new[i,:] = np.interp(gridyaxis,testarr,XX[i,:], left=np.nan, right=np.nan)
+			
+	w['XX'] = XX_new
+	w['ystep'] = (ylimitpos-ylimitneg)/len(gridyaxis) #wrap ystep for analysis
+	#print w['ystep']
+	w['ext'] = [w['ext'][0],w['ext'][1],ylimitneg,ylimitpos]	
+
 def helper_vbiascorrector(w):
 	import math
-	from matplotlib.mlab import griddata
 	import numpy.ma as ma
 	XX = w['XX']#+1e3/float(w['vbiascorrector_seriesr'])
 	xn, yn = XX.shape
@@ -1083,7 +1152,8 @@ STYLE_FUNCS = {
 	'linecut': helper_linecut,
 	'dbmtovolt': helper_dbmtovolt,
 	'deleteouterdatapoints': helper_deleteouterdatapoints,
-	'factor': helper_factor
+	'factor': helper_factor,
+	'rshunt': helper_rshunt
 }
 
 '''
@@ -1135,8 +1205,8 @@ STYLE_SPECS = {
 	'linecut': {'linecutvalue': 1,'axis': None,'param_order': ['linecutvalue','axis']},
 	'dbmtovolt': {'rfamp': False, 'attenuation': 0, 'gridresolutionfactor': 2, 'param_order': ['rfamp','attenuation','gridresolutionfactor']},
 	'deleteouterdatapoints': {'n':0,'param_order': ['n']},
-	'factor': {'factor':1,'param_order': ['factor']}
-
+	'factor': {'factor':1,'param_order': ['factor']},
+	'rshunt': {'r':1e-10,'gridresolutionfactor': 2, 'didv': False,'param_order': ['r','gridresolutionfactor','didv']}
 }
 
 	#linecutvalue = w['linecut_value']

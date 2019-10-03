@@ -392,7 +392,11 @@ class plotR(object):
 						XX = griddata(points, np.array(z), (grid_x, grid_y), method='cubic')
 					except:
 						XX = griddata(points, np.array(z), (grid_x, grid_y), method='nearest')
+					X = grid_x
+					Y = grid_y
 				self.XX = XX
+				self.X = X
+				self.Y = Y
 
 				self.exportData.append(XX)
 				try:

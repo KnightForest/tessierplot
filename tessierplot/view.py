@@ -269,7 +269,7 @@ class tessierView(object):
                     <form name='{{ item.datapath }}'>
                     <select name="selector">
                         <option value="{{"\\'fixlabels\\',\\'\\'"|e}}">normal</option>
-                        <option value="{{"\\'fixlabels\\',\\'abs\\'"|e}}">abs</option>
+                        <option value="{{"\\'fixlabels\\',\\'int\\'"|e}}">int</option>
                         <option value="{{"\\'fixlabels\\',\\'log\\'"|e}}">log</option>
                         <option value="{{"\\'fixlabels\\',\\'savgol\\',\\'log\\'"|e}}">savgol,log</option>
                         <option value="{{"\\'fixlabels\\',\\'sgdidv\\'"|e}}">sgdidv</option>
