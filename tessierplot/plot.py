@@ -368,16 +368,15 @@ class plotR(object):
 
 				#Gridding and interpolating unevenly spaced data
 				extx = abs(ext[1]-ext[0])
-				xdx = np.diff(X, axis=0)
+				xdx = np.diff(X, axis=0).astype(float)
 				xdxshape = xdx.shape
 				for i in range(0,int(xdxshape[0])):
 					for j in range(0,int(xdxshape[1])):
-						xdx[i,j]=np.format_float_scientific(xdx[i,j], unique=False, precision=10)
+						xdx[i,j]=np.format_float_scientific(xdx[i,j], unique=False, precision=3)
 				minxstep = abs(xdx[np.nonzero(xdx)]).min()
 				minxsteps = int(extx/minxstep)+1
 				exty = abs(ext[3]-ext[2])
-				print(ext, extx,exty)
-				ydy = np.diff(Y, axis=1)
+				ydy = np.diff(Y, axis=1).astype(float)
 				ydyshape = ydy.shape
 				for i in range(0,ydyshape[0]):
 					for j in range(0,ydyshape[1]):
