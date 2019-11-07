@@ -205,7 +205,7 @@ class plotR(object):
 						subplots_args={'top':0.96, 'bottom':0.17, 'left':0.14, 'right':0.85,'hspace':0.4},
 						ax_destination=None,
 						n_index=None,
-						style=None,
+						style='normal',
 						xlims_manual=None,
 						ylims_manual=None,
 						clim=None,
@@ -217,6 +217,7 @@ class plotR(object):
 						cbar_orientation='vertical',
 						cbar_location ='normal',
 						filter_raw = True,
+						ccmap = None,
 						#supress_plot = False, #Added suppression of plot option
 						norm = 'None', #Added for NaN value support
 						**kwargs):
@@ -225,7 +226,10 @@ class plotR(object):
 			self.fig = plt.figure()
 			self.fig.subplots_adjust(**subplots_args)
 			
-		self.ccmap = loadCustomColormap()
+		if not ccmap:
+			self.ccmap = loadCustomColormap()
+		else:
+			self.ccmap = ccmap
 		#determine how many subplots we need
 		n_subplots = 1
 
@@ -362,7 +366,8 @@ class plotR(object):
 				#xstep = float(xlims[1] - xlims[0])/(xu-1)
 				#ystep = float(ylims[1] - ylims[0])/(yu-1)
 				#print(xstep,ystep)
-				
+				#print('x,y')
+				#print(x,y)
 				ext = xlims+ylims
 				self.extent = ext
 
@@ -431,7 +436,10 @@ class plotR(object):
 						'ext':ext, 
 						'XX': XX,
 						'X': X,
-						'Y': Y, 
+						'Y': Y,
+						'x': x,
+						'y': y,
+						'z': z,
 						'cbar_quantity': cbar_quantity, 
 						'cbar_unit': cbar_unit, 
 						'cbar_trans':cbar_trans, 
@@ -715,6 +723,7 @@ class plotR(object):
 		return self.fig
 
 	def guessStyle(self):
+		#Make guesstyle dependent on unit, i.e., A or V should become derivatives.
 		style=[]
 		#autodeinterlace function
 		#	if y[yu-1]==y[yu]: style.append('deinterlace0')

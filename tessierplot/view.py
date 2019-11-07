@@ -272,19 +272,14 @@ class tessierView(object):
                         <option value="{{"\\'fixlabels\\',\\'int\\'"|e}}">int</option>
                         <option value="{{"\\'fixlabels\\',\\'log\\'"|e}}">log</option>
                         <option value="{{"\\'fixlabels\\',\\'savgol\\',\\'log\\'"|e}}">savgol,log</option>
-                        <option value="{{"\\'fixlabels\\',\\'sgdidv\\'"|e}}">sgdidv</option>
-                        <option value="{{"\\'fixlabels\\',\\'sgdidv\\',\\'log\\'"|e}} ">sgdidv,log</option>
-                        <option value="{{"\\'fixlabels\\',\\'sgtwodidv\\'"|e}}">sg2nddidv</option>
-                        <option value="{{"\\'fixlabels\\',\\'mov_avg(m=2,n=5)\\',\\'didv\\',\\'mov_avg(m=2,n=5)\\',\\'abs\\',\\'log\\' "|e}} ">Ultrasmooth didv</option>
-                        <option value="{{"\\'fixlabels\\',\\'mov_avg\\',\\'didv\\',\\'abs\\'"|e}} ">mov_avg,didv,abs</option>
-                        <option value="{{"\\'fixlabels\\',\\'mov_avg(m=1,n=25)\\',\\'didv\\',\\'didv\\',\\'abs\\'"|e}} ">mov_avg,2nddidv,abs</option>
-                        <option value="{{"\\'fixlabels\\',\\'mov_avg\\',\\'didv\\',\\'abs\\',\\'log\\'"|e}} ">mov_avg,didv,abs,log</option>
-                        <option value="{{"\\'fixlabels\\',\\'meansubtract\\',\\'ivreverser\\',\\'mov_avg(n=3)\\',\\'didv\\'"|e}}">ivreverser,didv</option>
+                        <option value="{{"\\'fixlabels\\',\\'sgdidv\\'"|e}}">sgdiff</option>
+                        <option value="{{"\\'fixlabels\\',\\'sgdidv\\',\\'log\\'"|e}} ">sgdiff,log</option>
+                        <option value="{{"\\'fixlabels\\',\\'meansubtract\\',\\'ivreversernew\\',\\'mov_avg(n=3)\\',\\'didv\\'"|e}}">ivreverser,diff</option>
+                        <option value="{{"\\'fixlabels\\',\\'int\\',\\'meansubtract\\',\\'ivreversernew\\',\\'didv\\'"|e}}">int,ivreverser,diff</option>
                         <option value="{{"\\'fixlabels\\',\\'meansubtract\\',\\'deinterlace0\\'"|e}} ">deinterlace0</option>
                         <option value="{{"\\'fixlabels\\',\\'meansubtract\\',\\'deinterlace1\\'"|e}} ">deinterlace1</option>
-                        <option value="{{"\\'fixlabels\\',\\'meansubtract\\',\\'deinterlace0\\',\\'mov_avg\\',\\'didv\\'"|e}} ">deinterlace0,didv</option>
-                        <option value="{{"\\'fixlabels\\',\\'meansubtract\\',\\'deinterlace1\\',\\'mov_avg\\',\\'didv\\'"|e}} ">deinterlace1,didv</option>
-                        <option value="{{"\\'fixlabels\\',\\'crosscorr\\'"|e}} ">Crosscorr</option>
+                        <option value="{{"\\'fixlabels\\',\\'meansubtract\\',\\'deinterlace0\\',\\'mov_avg\\',\\'diff\\'"|e}} ">deinterlace0,diff</option>
+                        <option value="{{"\\'fixlabels\\',\\'meansubtract\\',\\'deinterlace1\\',\\'mov_avg\\',\\'diff\\'"|e}} ">deinterlace1,diff</option>
                     </select>
                     <input type="checkbox" name="stylechecker" value="{{"\\'flipaxes\\',"|e}} ">Flip axes
                     </form>            

@@ -288,7 +288,7 @@ def helper_int(w):
 		for i in range(0,a.shape[0]):
 			yaxisdiff = np.diff(yaxis,prepend=yaxis[0]-(yaxis[1]-yaxis[0]))
 			intarr = np.cumsum(a[i,:])*yaxisdiff
-			a[i,:] = intarr# - intarr[int(a.shape[1]/2)]
+			a[i,:] = intarr - np.mean(intarr)
 		w['XX']=a
 
 def helper_sgdidv(w):
@@ -515,7 +515,7 @@ def helper_vbiascorrector(w):
 
 def helper_ivreverser(w): #Inverse I and V-bias measurements (works on both) by interpolating y-data on new homogeneous x-axis.
 	import math
-	from matplotlib.mlab import griddata
+	#from matplotlib.mlab import griddata
 	import numpy.ma as ma
 	import numpy as np
 	XX = w['XX']#+1e3/float(w['vbiascorrector_seriesr'])
@@ -541,6 +541,51 @@ def helper_ivreverser(w): #Inverse I and V-bias measurements (works on both) by 
 	w['ext'] = (w['ext'][0],w['ext'][1],ylimitneg,ylimitpos)
 	w['ystep'] = (ylimitpos-ylimitneg)/(len(gridyaxis)-1)
 	#print ylimitpos, ylimitneg, len(gridyaxis)
+	print('new ystep:'+ str(w['ystep']))
+	w['ext'] = (w['ext'][0],w['ext'][1],ylimitneg,ylimitpos)
+	if w['yunit'].find('nA') != -1:
+		print('I sourced detected')
+		w['ylabel'] = '$V_\mathrm{SD}$'
+		w['yunit'] = 'mV'
+		w['cbar_quantity'] = '$I_\mathrm{S}$'
+		w['cbar_unit'] = 'nA'
+	elif w['yunit'].find('mV') != -1:
+		print('V sourced detected')
+		w['ylabel'] = '$I_\mathrm{D}$'
+		w['yunit'] = 'nA'
+		w['cbar_quantity'] = '$V_\mathrm{SD}$'
+		w['cbar_unit'] = 'mV' 
+
+def helper_ivreversernew(w): #Inverse I and V-bias measurements (works on both) by interpolating y-data on new homogeneous x-axis.
+	# new versiong since matplotlibs griddata was deprecated :/
+	from scipy.interpolate import griddata
+	import math
+	import numpy.ma as ma
+	import numpy as np
+	XX = w['XX']#+1e3/float(w['vbiascorrector_seriesr'])
+	xn, yn = XX.shape
+	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
+	yaxis = np.linspace(w['ext'][2],w['ext'][3],w['XX'].shape[1])
+	ycorrected = np.zeros(shape=(xn,yn))
+	gridresolutionfactor = int(w['ivreversernew_gridresolutionfactor']) # Example: Factor of 2 doubles the number of y datapoints for non-linear interpolation
+	
+	for i in range(0,xn):
+		ycorrected[i,:] = XX[i,:] #y-axis becomes data axis
+		XX[i,:] = yaxis #data axis becomes y-axis
+	ylimitneg,ylimitpos = (np.amin(ycorrected*10))/10, (np.amax(ycorrected*10))/10
+	grid_x, grid_y = np.mgrid[w['ext'][0]:w['ext'][1]:xn*1j, ylimitneg:ylimitpos:(yn*gridresolutionfactor)*1j]
+	print(grid_y.shape)
+	points = np.transpose(np.vstack([np.array(w['x']),np.ravel(ycorrected)]))
+	zf = np.ravel(XX)
+	try:
+		XX_new = griddata(points, np.array(zf), (grid_x, grid_y), method='cubic')
+	except:
+		XX_new = griddata(points, np.array(zf), (grid_x, grid_y), method='nearest')
+	w['X'] = grid_x
+	w['Y'] = grid_y
+	w['XX'] = XX_new
+	w['ext'] = (w['ext'][0],w['ext'][1],ylimitneg,ylimitpos)
+	w['ystep'] = (ylimitpos-ylimitneg)/(len(grid_y)-1)
 	print('new ystep:'+ str(w['ystep']))
 	w['ext'] = (w['ext'][0],w['ext'][1],ylimitneg,ylimitpos)
 	if w['yunit'].find('nA') != -1:
@@ -1144,6 +1189,7 @@ STYLE_FUNCS = {
 	'resistance': helper_resistance,
 	'vbiascorrector': helper_vbiascorrector,
 	'ivreverser': helper_ivreverser,
+	'ivreversernew': helper_ivreversernew,
 	'histogram': helper_histogram,
 	'int': helper_int,
 	'fixlabels': helper_fixlabels,
@@ -1196,7 +1242,8 @@ STYLE_SPECS = {
 	'excesscurrent': {'datacutoff': 3, 'rangefactor': 0.15, 'plot': 0, 'plotval': 0,'param_order': ['datacutoff','rangefactor','plot','plotval']},
 	'resistance': {'linecutvalue': 0, 'dolinearfit': False, 'fitregion': 1, 'param_order': ['linecutvalue','dolinearfit','fitregion']},
 	'vbiascorrector':{'voffset': 0,'seriesr': 0, 'gridresolutionfactor': 1, 'didv':False, 'param_order': ['voffset','seriesr','gridresolutionfactor','didv']},
-	'ivreverser':{'gridresolutionfactor': 1, 'param_order': ['gridresolutionfactor']},
+	'ivreverser':{'gridresolutionfactor': 2, 'param_order': ['gridresolutionfactor']},
+	'ivreversernew':{'gridresolutionfactor': 2, 'param_order': ['gridresolutionfactor']},
 	'histogram':{'bins': 25, 'rangemin': -1, 'rangemax': 1, 'param_order': ['bins','rangemin','rangemax']},
 	'int': {'param_order': []},
 	'fixlabels': {'param_order': []},
