@@ -452,8 +452,7 @@ class Data(pandas.DataFrame):
         if self._sorted_data is None:
             #sort the data from the last coordinate column backwards
             self._sorted_data = self.sort_values(by=self.coordkeys)
-            self._sorted_data = self._sorted_data.dropna(how='any')
-
+            #self._sorted_data = self._sorted_data.dropna(how='any')
         return self._sorted_data
 
     @property

@@ -248,12 +248,12 @@ def helper_hardgap(w):
 	print(gaplimneg, gaplimpos, outsidegaplimneg,outsidegaplimpos)
 	alllens, gapconductance,outsidegapconductance,hardness = np.array([None]*xn),np.array([None]*xn),np.array([None]*xn),np.array([None]*xn)
 	for i in range(0,xn):
-		gapconductance[i] = np.mean([XX[i,gaplimneg:gaplimpos]])
-		outsidegapconductance[i] = np.mean([XX[i,outsidegaplimneg:outsidegaplimpos]])
+		gapconductance[i] = np.nanmean([XX[i,gaplimneg:gaplimpos]])
+		outsidegapconductance[i] = np.nanmean([XX[i,outsidegaplimneg:outsidegaplimpos]])
 	hardness = abs(gapconductance)/abs(outsidegapconductance)
 	win = np.ones((2,))
 	hardness = moving_average_1d(hardness[:], win)
-	gateshift = np.mean(outsidegaprange)*1e-3/alphafactor
+	gateshift = np.nanmean(outsidegaprange)*1e-3/alphafactor
 	gateshiftsteps = abs(int(round(gateshift/abs(xaxis[0]-xaxis[1]))))
 	outsidegapconductancecorr = outsidegapconductance[gateshiftsteps::]
 	outsidegapconductancecorr = np.append(outsidegapconductancecorr,[np.nan] * gateshiftsteps)
@@ -280,15 +280,15 @@ def helper_int(w):
 	if a.ndim == 1: #if 1D ['XX'] = np.diff(w['XX'])
 		 xaxis = w['X']
 		 xaxisdiff = np.diff(xaxis,prepend=xaxis[0]-(xaxis[1]-xaxis[0]))
-		 intarr = np.cumsum(w['XX']*xaxisdiff)
+		 intarr = np.nancumsum(w['XX']*xaxisdiff)
 		 w['XX'] = intarr - intarr[int(len(intarr)/2)]
 	else:
 		xaxis = np.linspace(w['ext'][0],w['ext'][1],a.shape[0])
 		yaxis = np.linspace(w['ext'][2],w['ext'][3],a.shape[1])
 		for i in range(0,a.shape[0]):
 			yaxisdiff = np.diff(yaxis,prepend=yaxis[0]-(yaxis[1]-yaxis[0]))
-			intarr = np.cumsum(a[i,:])*yaxisdiff
-			a[i,:] = intarr - np.mean(intarr)
+			intarr = np.nancumsum(a[i,:])*yaxisdiff
+			a[i,:] = intarr - np.nanmean(intarr)
 		w['XX']=a
 
 def helper_sgdidv(w):
@@ -362,7 +362,7 @@ def helper_movingmeansubtract(w):
 	xn, yn = XX.shape
 	meanarray = np.zeros(xn)
 	for i in range(0,xn):
-		meanarray[i] = np.mean(XX[i][:])
+		meanarray[i] = np.nanmean(XX[i][:])
 	#print meanarray.shape
 	win=int(w['movingmeansubtract_window'])
 	print(win)
@@ -386,7 +386,7 @@ def helper_movingmeansubtract(w):
 	w['XX'] = XX
 	
 def helper_meansubtract(w):
-	offset = np.mean(w['XX'])
+	offset = np.nanmean(w['XX'])
 	print('Subtracted mean:' + str(offset))
 	w['XX'] = w['XX']-offset
 
@@ -495,7 +495,7 @@ def helper_vbiascorrector(w):
 	gridresolutionfactor = w['vbiascorrector_gridresolutionfactor'] # Example: Factor of 2 doubles the number of y datapoints for non-linear interpolation
 	for i in range(0,xn):
 		ycorrected[i,:] = yaxis-voffset-XX[i,:]*seriesr*1e-3
-	ylimitneg,ylimitpos = math.floor(np.amin(ycorrected*10))/10, math.ceil(np.amax(ycorrected*10))/10
+	ylimitneg,ylimitpos = math.floor(np.nanmin(ycorrected*10))/10, math.ceil(np.nanmax(ycorrected*10))/10
 	gridyaxis = np.linspace(ylimitneg,ylimitpos,int(yn*gridresolutionfactor))
 	gridxaxis = xaxis
 	XX_new = np.zeros(shape=(xn,len(gridyaxis)))
@@ -529,7 +529,7 @@ def helper_ivreverser(w): #Inverse I and V-bias measurements (works on both) by 
 		ycorrected[i,:] = XX[i,:] #y-axis becomes data axis
 		XX[i,:] = yaxis #data axis becomes y-axis
 		#datacorrected[i,:] = yaxis #data axis becomes y-axis
-	ylimitneg,ylimitpos = math.floor(np.amin(ycorrected*10))/10, math.ceil(np.amax(ycorrected*10))/10
+	ylimitneg,ylimitpos = math.floor(np.nanmin(ycorrected*10))/10, math.ceil(np.nanmax(ycorrected*10))/10
 	gridyaxis = np.linspace(ylimitneg,ylimitpos,int(yn*gridresolutionfactor))
 	gridxaxis = xaxis
 	XX_new = np.zeros(shape=(xn,len(gridyaxis)))
@@ -571,15 +571,24 @@ def helper_ivreversernew(w): #Inverse I and V-bias measurements (works on both) 
 	
 	for i in range(0,xn):
 		ycorrected[i,:] = XX[i,:] #y-axis becomes data axis
-		XX[i,:] = yaxis #data axis becomes y-axis
-	ylimitneg,ylimitpos = (np.amin(ycorrected*10))/10, (np.amax(ycorrected*10))/10
+		XX[i,:] = yaxis #data axis becomes y-axis (replace with repmat)
+	ylimitneg,ylimitpos = (np.nanmin(ycorrected*10))/10, (np.nanmax(ycorrected*10))/10
+	#print(ylimitneg,ylimitpos)
 	grid_x, grid_y = np.mgrid[w['ext'][0]:w['ext'][1]:xn*1j, ylimitneg:ylimitpos:(yn*gridresolutionfactor)*1j]
-	print(grid_y.shape)
-	points = np.transpose(np.vstack([np.array(w['x']),np.ravel(ycorrected)]))
+	gridxstep = np.abs(grid_x[1,0]-grid_x[0,0])
+	gridystep = np.abs(grid_y[0,1]-grid_y[0,0])
+	#print(gridxstep,gridystep)
+	grid_x /= gridxstep
+	grid_y /= gridystep 
+	points = np.transpose(np.vstack([np.array(w['x'])/gridxstep,np.ravel(ycorrected)/gridystep]))
 	zf = np.ravel(XX)
+	indexnonans=np.invert(np.isnan(points[:,0]))*np.invert(np.isnan(points[:,1]))*np.invert(np.isnan(zf))
+	print(indexnonans)
 	try:
-		XX_new = griddata(points, np.array(zf), (grid_x, grid_y), method='cubic')
+		#XX_new = griddata(points, np.array(zf), (grid_x, grid_y), method='cubic')
+		XX_new = griddata(np.stack((points[:,0][indexnonans],points[:,1][indexnonans]),axis=1), np.array(zf)[indexnonans], (grid_x, grid_y), method='cubic')
 	except:
+		print('IVreverser cubic interpolation failed, falling back to \'nearest\'.')
 		XX_new = griddata(points, np.array(zf), (grid_x, grid_y), method='nearest')
 	w['X'] = grid_x
 	w['Y'] = grid_y
@@ -728,7 +737,7 @@ def helper_dbmtovolt(w): #Convert dmb to 'volt', rf-amplifier (type?) conversion
 		ycorrected = np.zeros(shape=(xn,yn))
 	
 	gridresolutionfactor = int(w['dbmtovolt_gridresolutionfactor']) #Factor multiplying original resolution for interpolation of new power axis.
-	xlimitneg,xlimitpos = np.amin(xaxislin), np.amax(xaxislin)
+	xlimitneg,xlimitpos = np.nanmin(xaxislin), np.nanmax(xaxislin)
 	gridxaxis = np.linspace(xlimitneg,xlimitpos,int(yn*gridresolutionfactor))
 	gridyaxis = yaxis
 	XX_new = np.zeros(shape=(len(gridxaxis),len(gridyaxis)))
@@ -1024,9 +1033,9 @@ def helper_icvsx(w): #Finds switching current or retrapping current by peak fitt
 		
 		fullarray = XX[i,:]
 		#print negarray
-		posmax,negmax = np.amax(posarray),np.amax(negarray) #getting min and max values for both positive and negative bias
-		posmin,negmin = np.amin(posarray),np.amin(negarray)
-		poshigh,neghigh = np.mean(posarray[-20:-5]),np.mean(negarray[-20:-5])
+		posmax,negmax = np.nanmax(posarray),np.nanmax(negarray) #getting min and max values for both positive and negative bias
+		posmin,negmin = np.nanmin(posarray),np.nanmin(negarray)
+		poshigh,neghigh = np.nanmean(posarray[-20:-5]),np.nanmean(negarray[-20:-5])
 		if poshigh>limhigh:
 			poshigh=limhigh
 		if neghigh>limhigh:
@@ -1034,7 +1043,7 @@ def helper_icvsx(w): #Finds switching current or retrapping current by peak fitt
 		if strictzero == True:
 			poslow,neglow = 0,0
 		else:
-			poslow,neglow = np.mean((posarray[0:3]+negarray[0:3])/2),np.mean((posarray[0:3]+negarray[0:3])/2)
+			poslow,neglow = np.nanmean((posarray[0:3]+negarray[0:3])/2),np.nanmean((posarray[0:3]+negarray[0:3])/2)
 			if poslow>limmin:
 				print('minlimfix')
 				poslow=limmin
@@ -1090,7 +1099,7 @@ def helper_icvsx(w): #Finds switching current or retrapping current by peak fitt
 		while peaknoise == True and counter < 1000:
 			counter = counter + 1
 			try:
-				if True in (negarray[firstpeakneg:firstpeakneg+pixelnoiserange] < (-np.mean(negarray)/5)):
+				if True in (negarray[firstpeakneg:firstpeakneg+pixelnoiserange] < (-np.nanmean(negarray)/5)):
 					indexneg = np.delete(indexneg,0)
 					firstpeakneg = indexneg[0]
 					finalindexneg = indexneg[0]
@@ -1114,7 +1123,7 @@ def helper_icvsx(w): #Finds switching current or retrapping current by peak fitt
 		while peaknoise == True and counter < 1000:
 			counter = counter + 1
 			try:
-				#if True in (posarray[firstpeakpos:firstpeakpos+pixelnoiserange] < (-np.mean(posarray)/5)):
+				#if True in (posarray[firstpeakpos:firstpeakpos+pixelnoiserange] < (-np.nanmean(posarray)/5)):
 				if True in (posarray[firstpeakpos:firstpeakpos+pixelnoiserange] < ( -posarray[firstpeakpos]/10)):
 					indexpos = np.delete(indexpos,0)
 					firstpeakpos = indexpos[0]

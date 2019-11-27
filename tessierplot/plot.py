@@ -43,6 +43,7 @@ import numpy as np
 import math
 import re
 import matplotlib.ticker as ticker
+import pandas as pd
 
 #all tessier related imports
 from .gui import *
@@ -219,7 +220,7 @@ class plotR(object):
 						filter_raw = True,
 						ccmap = None,
 						#supress_plot = False, #Added suppression of plot option
-						norm = 'None', #Added for NaN value support
+						norm = 'nan', #Added for NaN value support
 						**kwargs):
 		#some housekeeping
 		if not self.fig and not ax_destination:
@@ -298,14 +299,18 @@ class plotR(object):
 				y=data_slice.loc[:,coord_keys[-1]]
 				z=data_slice.loc[:,value_keys[value_axis]]
 
-				#print(len(y),y)
 				xu = np.size(x.unique())
 				yu = np.size(y.unique())
-				#print(yu)				
 				## if the measurement is not complete this will probably fail so trim off the final sweep?
 				print('xu: {:d}, yu: {:d}, lenz: {:d}'.format(xu,yu,len(z)))
-				if xu*yu != len(z):
-					xu = int(np.floor(len(z) / yu)) #dividing integers so should automatically floor the value
+				if xu*yu > len(z): #This condition most likely corresponds to an unfinished measurement sweep.
+					appseries = pd.Series(np.zeros(int(xu*yu-len(z))) + np.nan)
+					z = z.append(appseries)
+					x = x.append(appseries)
+					y = y.append(appseries)
+					#xu = int(np.floor(len(z) / yu))
+					print('xu: {:d}, yu: {:d}, lenz: {:d} after adding nan for incomplete sweep'.format(xu,yu,len(z)))
+					#trimflag = True#dividing integers so should automatically floor the value
 				#trim the first part of the sweep, for different min max, better to trim last part?
 				#or the first since there has been sorting
 				#this doesnt work for e.g. a hilbert measurement
@@ -313,7 +318,7 @@ class plotR(object):
 				if x.index[0] > x.index[-1]:
 					sweepoverride = True
 
-				print('xu: {:d}, yu: {:d}, lenz: {:d} after trimming'.format(xu,yu,len(z)))
+				
 				#sorting sorts negative to positive, so beware:
 				#sweep direction determines which part of array should be cut off
 				if sweepoverride: ##if sweep True, override the detect value
@@ -334,12 +339,6 @@ class plotR(object):
 				self.x = x
 				self.y = y
 				self.z = z
-				#print(x.shape,x)
-				#print(y.shape,y)
-				#print(z.shape,z)
-				#print(X.shape,X)
-				#print(Y.shape,Y)
-				#print(XX.shape,XX)
 				#now set the lims
 				xlims = (x.min(),x.max())
 				ylims = (y.min(),y.max())
@@ -365,36 +364,47 @@ class plotR(object):
 				#determine stepsize for di/dv, inprincipe only y step is used (ie. the diff is also taken in this direction and the measurement swept..)
 				#xstep = float(xlims[1] - xlims[0])/(xu-1)
 				#ystep = float(ylims[1] - ylims[0])/(yu-1)
-				#print(xstep,ystep)
-				#print('x,y')
-				#print(x,y)
 				ext = xlims+ylims
 				self.extent = ext
 
 				#Gridding and interpolating unevenly spaced data
 				extx = abs(ext[1]-ext[0])
-				xdx = np.diff(X, axis=0).astype(float)
+				xdx = np.diff(X, axis=0)#.astype(float)
+				#xdx = xdx[~np.isnan(xdx)]
 				xdxshape = xdx.shape
-				for i in range(0,int(xdxshape[0])):
+				for i in range(0,int(xdxshape[0])): # Rounding to finite precision to find stepsize
 					for j in range(0,int(xdxshape[1])):
 						xdx[i,j]=np.format_float_scientific(xdx[i,j], unique=False, precision=3)
-				minxstep = abs(xdx[np.nonzero(xdx)]).min()
-				minxsteps = int(extx/minxstep)+1
+				minxstep = np.nanmin(abs(xdx[np.nonzero(xdx)]))
+				minxsteps = int(round(extx/minxstep,0))+1
 				exty = abs(ext[3]-ext[2])
-				ydy = np.diff(Y, axis=1).astype(float)
+				ydy = np.diff(Y, axis=1)#.astype(float)
+				#ydy = ydy[~np.isnan(ydy)]
 				ydyshape = ydy.shape
 				for i in range(0,ydyshape[0]):
 					for j in range(0,ydyshape[1]):
 						ydy[i,j]=np.format_float_scientific(ydy[i,j], unique=False, precision=10)
-				minystep = abs(ydy[np.nonzero(ydy)]).min()
-				minysteps = int(exty/minystep)+1
+				minystep = np.nanmin(abs(ydy[np.nonzero(ydy)]))
+				minysteps = int(round(exty/minystep,0))+1
 				if minxsteps > xu or minysteps > yu:
-					print('Unevenly spaced data detected, cubic interpolation will be performed. \n New dimension:', minxsteps,minysteps)
+					print('Unevenly spaced data detected, cubic interpolation will be performed. \n New dimension:', 1*minxsteps,1*minysteps)
+					# grid_x, grid_y and points are divided by their respective stepsize in x and y to get a properly weighted interpolation
 					grid_x, grid_y = np.mgrid[ext[0]:ext[1]:minxsteps*1j, ext[2]:ext[3]:minysteps*1j]
-					points = np.transpose(np.array([x,y]))
+					gridxstep = np.abs(grid_x[1,0]-grid_x[0,0])
+					gridystep = np.abs(grid_y[0,1]-grid_y[0,0])
+					#print(gridxstep,gridystep)
+					grid_x /= gridxstep
+					grid_y /= gridystep
+					points = np.transpose(np.array([x/gridxstep,y/gridystep]))
+					z1=np.array(z)
+					# Getting index for nans in points and values, they need to be removed for cubic interpolation to work.
+					indexnonans=np.invert(np.isnan(points[:,0]))*np.invert(np.isnan(points[:,1]))*np.invert(np.isnan(z1))
 					try:
-						XX = griddata(points, np.array(z), (grid_x, grid_y), method='cubic')
+						XX = griddata(np.stack((points[:,0][indexnonans],points[:,1][indexnonans]),axis=1), np.array(z)[indexnonans], (grid_x, grid_y), method='cubic')
+					
+					#	print(XX)
 					except:
+						print('Cubic interpolation failed, falling back to \'nearest\'')
 						XX = griddata(points, np.array(z), (grid_x, grid_y), method='nearest')
 					X = grid_x
 					Y = grid_y
@@ -489,7 +499,7 @@ class plotR(object):
 				else:
 					if imshow:
 						#masked_array_nans = np.ma.array(np.rot90(XX), mask=np.isnan(np.rot90(XX)))
-						masked_array_nans = np.rot90(XX)
+						#masked_array_nans = np.rot90(XX)
 						colormap = (plt.get_cmap(self.ccmap))
 						colormap.set_bad('grey',1.0)
 						#self.im = ax.imshow(masked_array_nans,extent=ext, cmap=colormap,aspect=aspect,interpolation=interpolation, clim=clim)
