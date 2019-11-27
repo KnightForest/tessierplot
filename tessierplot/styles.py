@@ -599,7 +599,19 @@ def helper_ivreversernew(w): #Inverse I and V-bias measurements (works on both) 
 		w['ylabel'] = '$I_\mathrm{D}$'
 		w['yunit'] = 'nA'
 		w['cbar_quantity'] = '$V_\mathrm{SD}$'
-		w['cbar_unit'] = 'mV' 
+		w['cbar_unit'] = 'mV'
+	elif w['yunit'].find('A') != -1:
+		print('I sourced detected')
+		w['ylabel'] = '$V_\mathrm{SD}$'
+		w['yunit'] = 'V'
+		w['cbar_quantity'] = '$I_\mathrm{S}$'
+		w['cbar_unit'] = 'A'
+	elif w['yunit'].find('V') != -1:
+		print('V sourced detected')
+		w['ylabel'] = '$I_\mathrm{D}$'
+		w['yunit'] = 'A'
+		w['cbar_quantity'] = '$V_\mathrm{SD}$'
+		w['cbar_unit'] = 'V'
 
 def helper_excesscurrent(w): #Designed for I-bias. Calculate excess current by performing linear fit at high bias and calculate the zero-crossing of the x-axis
 	XX = w['XX']
