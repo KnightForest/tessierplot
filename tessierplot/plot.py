@@ -614,7 +614,6 @@ class plotR(object):
 					value_units_filtered.append(value_units[n])
 			value_keys = value_keys_filtered
 			value_units = value_units_filtered
-		print(value_units)
 		#make a list of uniques per column associated with column name
 		uniques_by_column = dict(zip(coord_keys + value_keys, self.data.dims))
 
