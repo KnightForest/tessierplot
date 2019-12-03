@@ -146,7 +146,6 @@ class qcodes_parser(dat_parser):
                     headerdictval = [i,headerdict[i]['name']][1]
                     headerdictlabel = [i,headerdict[i]['label']][1]
                     headerdictunit = headerdict[i]['unit']
-                    print(headerdictval,headerdictunit)
                     line=[i,headerdictval,headerdictlabel,'value',headerdictunit]
                     line_x = zip(['column','name','label','type','unit'],line)
                     headervalues.append(line_x)
@@ -446,7 +445,6 @@ class Data(pandas.DataFrame):
     
     @property
     def valuekeys_n(self):
-        print(self._header)
         value_keys = [i['name'] for i in self._header if i['type']=='value' ]
         units = [i['unit'] for i in self._header if i['type']=='value' ]
         return value_keys, units
