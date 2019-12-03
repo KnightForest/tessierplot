@@ -278,10 +278,13 @@ def helper_hardgap(w):
 def helper_int(w):
 	a=(w['XX'])
 	if a.ndim == 1: #if 1D ['XX'] = np.diff(w['XX'])
-		 xaxis = w['X']
-		 xaxisdiff = np.diff(xaxis,prepend=xaxis[0]-(xaxis[1]-xaxis[0]))
-		 intarr = np.nancumsum(w['XX']*xaxisdiff)
-		 w['XX'] = intarr - intarr[int(len(intarr)/2)]
+		xaxis = w['X']
+		xaxisdiff = np.diff(xaxis,prepend=xaxis[0]-(xaxis[1]-xaxis[0]))
+		intarr = np.nancumsum(w['XX']*xaxisdiff)
+		w['XX'] = intarr - intarr[int(len(intarr)/2)]
+		w['yunit'] = 'int(' + w['yunit'] + ')/d' + w['xunit']
+		w['ylabel'] = ''
+		print(xaxisdiff)
 	else:
 		xaxis = np.linspace(w['ext'][0],w['ext'][1],a.shape[0])
 		yaxis = np.linspace(w['ext'][2],w['ext'][3],a.shape[1])
@@ -290,6 +293,10 @@ def helper_int(w):
 			intarr = np.nancumsum(a[i,:])*yaxisdiff
 			a[i,:] = intarr - np.nanmean(intarr)
 		w['XX']=a
+		w['cbar_quantity'] = ''
+		w['cbar_unit'] = 'int(' + w['cbar_unit'] + ')/d' + w['yunit']
+
+	
 
 def helper_sgdidv(w):
 	'''Perform Savitzky-Golay smoothing and get 1st derivative'''

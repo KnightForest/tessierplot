@@ -614,6 +614,7 @@ class plotR(object):
 					value_units_filtered.append(value_units[n])
 			value_keys = value_keys_filtered
 			value_units = value_units_filtered
+		print(value_units)
 		#make a list of uniques per column associated with column name
 		uniques_by_column = dict(zip(coord_keys + value_keys, self.data.dims))
 
@@ -667,10 +668,8 @@ class plotR(object):
 
 				xaxislabel = coord_keys[-1] 
 				xaxisunit = coord_units[-1]
-				xaxislabelwithunit = xaxislabel + ' (' + xaxisunit + ')'
 				yaxislabel = value_keys[value_axis]
 				yaxisunit = value_units[value_axis]
-				yaxislabelwithunit = yaxislabel + ' (' + yaxisunit + ')'
 
 				title =''
 
@@ -688,6 +687,9 @@ class plotR(object):
 				wrap['yunit'] = yaxisunit
 				wrap['massage_func'] = massage_func
 				styles.processStyle(style,wrap)
+				xaxislabelwithunit = wrap['xlabel'] + ' (' + wrap['xunit'] + ')'
+				yaxislabelwithunit = wrap['ylabel'] + ' (' + wrap['yunit'] + ')'
+				
 				if ax_destination:
 					ax = ax_destination
 				else:

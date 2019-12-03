@@ -137,24 +137,27 @@ class qcodes_parser(dat_parser):
             for i,val in enumerate(headerdict):             
                 if not headerdict[i]['depends_on']:                
                     headerdictval = [i,headerdict[i]['name']][1]
+                    headerdictlabel = [i,headerdict[i]['label']][1]
                     headerdictunit = [i,headerdict[i]['unit']][1]
-                    line=[i,headerdictval,'coordinate',headerdictunit]
-                    line_x = zip(['column','name','type','unit'],line)
+                    line=[i,headerdictval,headerdictlabel,'coordinate',headerdictunit]
+                    line_x = zip(['column','name','label','type','unit'],line)
                     headervalues.append(line_x)
                 else:
                     headerdictval = [i,headerdict[i]['name']][1]
+                    headerdictlabel = [i,headerdict[i]['label']][1]
                     headerdictunit = headerdict[i]['unit']
-                    line=[i,headerdictval,'value',headerdictunit]
-                    line_x = zip(['column','name','type','unit'],line)
+                    print(headerdictval,headerdictunit)
+                    line=[i,headerdictval,headerdictlabel,'value',headerdictunit]
+                    line_x = zip(['column','name','label','type','unit'],line)
                     headervalues.append(line_x)
-
             headervalues = [dict(x) for x in headervalues]
+            # print('headervalues',headervalues)
             # sort according to the column order in the dat file
             header=[]
             for i, col in enumerate(names):
                 for j, h in enumerate(headervalues):
                         if col == h['name']:
-                            h['name'] = [i,headerdict[i]['label']][1] #Uncomment if you want labels instead of names als axis labels
+                            h['name'] = h['label'] #Uncomment if you want labels instead of names als axis labels
                             header.append(h)
                             break
         return header,headerlength
@@ -443,6 +446,7 @@ class Data(pandas.DataFrame):
     
     @property
     def valuekeys_n(self):
+        print(self._header)
         value_keys = [i['name'] for i in self._header if i['type']=='value' ]
         units = [i['unit'] for i in self._header if i['type']=='value' ]
         return value_keys, units
