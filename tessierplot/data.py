@@ -145,7 +145,7 @@ class qcodes_parser(dat_parser):
                 else:
                     headerdictval = [i,headerdict[i]['name']][1]
                     headerdictlabel = [i,headerdict[i]['label']][1]
-                    headerdictunit = headerdict[i]['unit']
+                    headerdictunit = [i,headerdict[i]['unit']][1]
                     line=[i,headerdictval,headerdictlabel,'value',headerdictunit]
                     line_x = zip(['column','name','label','type','unit'],line)
                     headervalues.append(line_x)

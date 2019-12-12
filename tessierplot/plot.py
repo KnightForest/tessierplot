@@ -128,32 +128,32 @@ class plotR(object):
 
 		return len(coords[filter_neg]) < 2
 
-	def quickplot_processed(self,**kwargs):
-		coords = np.array(self.data.coordkeys)
-		filter = self.data.dims < 5
+	# def quickplot_processed(self,**kwargs):
+		# coords = np.array(self.data.coordkeys)
+		# filter = self.data.dims < 5
 
-		uniques_col_str = coords[filter]
-		try:
-			if self.isthumbnail:
-				for k in rcP:
-					mpl.rcParams[k] = rcP_thumb[k]
+		# uniques_col_str = coords[filter]
+		# try:
+			# if self.isthumbnail:
+				# for k in rcP:
+					# mpl.rcParams[k] = rcP_thumb[k]
 			# else:
 			# 	for k in rcP:
 			# 		mpl.rcParams[k] = rcP[k]
-			if self.is2d():
-				fig = self.plot2d(uniques_col_str=uniques_col_str,**kwargs)
-			else:
-				fig = self.plot3d(uniques_col_str=uniques_col_str,**kwargs)
-				#self.exportToMtx()
-			if self.isthumbnail:
-				fig.savefig(self.thumbfile,bbox_inches='tight' )
-				fig.savefig(self.thumbfile_datadir,bbox_inches='tight' )
-				plt.close(fig)
-		except Exception as e:
-			print('fail in quickplot')
-			print(e)
+			# if self.is2d():
+				# fig = self.plot2d(uniques_col_str=uniques_col_str,**kwargs)
+			# else:
+				# fig = self.plot3d(uniques_col_str=uniques_col_str,**kwargs)
+				# self.exportToMtx()
+			# if self.isthumbnail:
+				# fig.savefig(self.thumbfile,bbox_inches='tight' )
+				# fig.savefig(self.thumbfile_datadir,bbox_inches='tight' )
+				# plt.close(fig)
+		# except Exception as e:
+			# print('fail in quickplot')
+			# print(e)
 		
-		return fig
+		# return fig
 
 	def quickplot(self,**kwargs):
 		coords = np.array(self.data.coordkeys)
@@ -293,6 +293,7 @@ class plotR(object):
 				#filter out the keys corresponding to unique value columns
 				us=uniques_col_str
 				coord_keys = [key for key in coord_keys if key not in uniques_col_str ]
+				coord_units = list(coord_units[i] for i in [i for i, key in enumerate(coord_keys) if key not in uniques_col_str])
 				#now find out if there are multiple value axes
 
 				x=data_slice.loc[:,coord_keys[-2]]
@@ -412,22 +413,22 @@ class plotR(object):
 				self.X = X
 				self.Y = Y
 
-				self.exportData.append(XX)
-				try:
-					m={
-						'xu':xu,
-						'yu':yu,
-						'xlims':xlims,
-						'ylims':ylims,
-						'zlims':(0,0),
-						'xname':coord_keys[-2],
-						'yname':coord_keys[-1],
-						'zname':'unused',
-						'datasetname':self.name}
-					self.exportDataMeta = np.append(self.exportDataMeta,m)
-				except Exception as e:
-					print(e)
-					pass
+				# self.exportData.append(XX)
+				# try:
+					# m={
+						# 'xu':xu,
+						# 'yu':yu,
+						# 'xlims':xlims,
+						# 'ylims':ylims,
+						# 'zlims':(0,0),
+						# 'xname':coord_keys[-2],
+						# 'yname':coord_keys[-1],
+						# 'zname':'unused',
+						# 'datasetname':self.name}
+					# self.exportDataMeta = np.append(self.exportDataMeta,m)
+				# except Exception as e:
+					# print(e)
+					# pass
 				if ax_destination is None:
 					ax = plt.subplot(gs[cnt])
 				else:
