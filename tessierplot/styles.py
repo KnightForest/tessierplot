@@ -200,7 +200,7 @@ def helper_didv(w):
 	a=(w['XX'])
 	cbar_q = w['cbar_quantity']
 	cbar_u = w['cbar_unit']
-	condquant = w['didv_condquant']
+	condquant = strtobool(w['didv_condquant'])
 
 	if a.ndim == 1: #if 1D 
 		w['XX'] = np.diff(w['XX'])
@@ -467,7 +467,7 @@ def helper_rshunt(w):
 	gridyaxis = np.linspace(ylimitneg,ylimitpos,int(yn*gridresolutionfactor))
 	gridxaxis = xaxis
 	XX_new = np.zeros(shape=(xn,len(gridyaxis)))
-	if w['rshunt_didv'] == True: # Calls didv within helper_vbiascorrector before interpolation to prevent artefacts.
+	if strtobool(w['rshunt_didv']) == True: # Calls didv within helper_vbiascorrector before interpolation to prevent artefacts.
 		print('doejddit')
 		w['didv_condquant']=False
 		helper_didv(w)
@@ -506,7 +506,7 @@ def helper_vbiascorrector(w):
 	gridyaxis = np.linspace(ylimitneg,ylimitpos,int(yn*gridresolutionfactor))
 	gridxaxis = xaxis
 	XX_new = np.zeros(shape=(xn,len(gridyaxis)))
-	if w['vbiascorrector_didv'] == True: # Calls didv within helper_vbiascorrector before interpolation to prevent artefacts.
+	if strtobool(w['vbiascorrector_didv']) == True: # Calls didv within helper_vbiascorrector before interpolation to prevent artefacts.
 		helper_didv(w)
 		XX = w['XX']
 		#print XX.shape, w['XX'].shape
@@ -662,11 +662,11 @@ def helper_linecut(w): #Make a linecut on specified axis and value.
 	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
 	yaxis = np.linspace(w['ext'][2],w['ext'][3],w['XX'].shape[1])
 	linecutvalue = w['linecut_value']
-	#print type(linecutvalue)
 	if type(w['linecut_value']) is str: #If multiple linecuts are given separated by '_', unpack.
-		linecutvalue = w['linecut_value'].split('_')
+		linecutvalue = w['linecut_value'].split('!')
 	else: 
 		linecutvalue = [w['linecut_value']]
+	print(linecutvalue)
 	linecutvalue = [float(i) for i in linecutvalue]
 	print(linecutvalue)
 	axis = w['linecut_axis'] #Specified axis either 'x' or 'y'
@@ -701,7 +701,7 @@ def helper_resistance(w): #Calculate resistance of one sweep. Pretty old, not su
 	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
 	yaxis = np.linspace(w['ext'][2],w['ext'][3],w['XX'].shape[1])
 	linecutvalue = w['resistance_linecutvalue']
-	dopolyfit = w['resistance_dolinearfit']
+	dopolyfit = strtobool(w['resistance_dolinearfit'])
 	polyfitregion = w['resistance_fitregion']
 	ylinecut = np.abs(yaxis - linecutvalue).argmin()
 	if dopolyfit:
@@ -737,7 +737,7 @@ def helper_dbmtovolt(w): #Convert dmb to 'volt', rf-amplifier (type?) conversion
 		vxaxis = np.sqrt(np.power(10, ((xaxis-30-attenuation)/10)))
 		return vxaxis
 
-	if w['dbmtovolt_rfamp']==True: # Creates new power axis using attenuation and optional rf-amp
+	if strtobool(w['dbmtovolt_rfamp'])==True: # Creates new power axis using attenuation and optional rf-amp
 		xaxislin = dbmtovolt(linrfamp(xaxis), w['dbmtovolt_attenuation'])
 	else:
 		xaxislin = dbmtovolt(xaxis, w['dbmtovolt_attenuation'])
@@ -979,21 +979,23 @@ def helper_iretrap(w): #For meander + SC measurements: split file at zero bias a
     X0 = w['deinterXXodd']
     X1 = w['deinterXXeven']
     xn,yn = data.shape
+    ynr = int(np.round((yn/2)))
     #pak de onderkant van X0
-    bottom = X0[:,yn/2:]
+    bottom = X0[:,ynr:]
+    print(bottom)
     #pak de bovenkant van X1
 
     # even/odd statements work on even deinterlacing (X1) since this is the largest
     if (yn % 2 == 0):
-        cutt = yn/2-1
+        cutt = ynr-1
     else:
-        cutt = yn/2
+        cutt = ynr
     #take the op of X0 (even) and check for even/uneven
     if(xn % 2 == 0):
         top = X1[:,:cutt]
     else:
         top = X1[1:,:cutt]
-    #top = X1[1:,:yn/2]
+    #top = X1[1:,:ynr]
     w['XX']=np.hstack((top,bottom))
 
 def helper_icvsx(w): #Finds switching current or retrapping current by peak fitting. Preparation of data required by various other styles.
@@ -1003,11 +1005,11 @@ def helper_icvsx(w): #Finds switching current or retrapping current by peak fitt
 	import peakutils
 	useonlythreshold = w['icvsx_useonlythreshold']
 	pixelnoiserange = int(w['icvsx_pixelnoiserange'])
-	peaktoplateauthreshold = w['icvsx_ppt'] # threshold
-	stepoffset = w['icvsx_stepoffset']
-	strictzero = w['icvsx_strictzero']
-	limhigh = float(w['icvsx_plateaulim'])
-	limmin = float(w['icvsx_gapmax'])
+	peaktoplateauthreshold = w['icvsx_ppt'] #threshold ratio between normal state resistance and superconducting state
+	stepoffset = w['icvsx_stepoffset'] #offset value in Is
+	strictzero = strtobool(w['icvsx_strictzero']) #if True, absolute 0 is taken as a reference for the peaktoplateauthreshold
+	limhigh = float(w['icvsx_plateaulim']) #max abs value of normal conductance (of lower, overrides value from data)
+	limmin = float(w['icvsx_gapmax']) #'deadzone' for low bias
 	print(useonlythreshold,pixelnoiserange,peaktoplateauthreshold,stepoffset,strictzero)
 	# def reject_outliers(data, m = 2.):
 		# d = np.abs(data - np.median(data))
@@ -1028,21 +1030,21 @@ def helper_icvsx(w): #Finds switching current or retrapping current by peak fitt
 	
 	for i in range(0,xn):
 		#XX[i,:] = XX[i,:]-peakutils.baseline(XX[i,:],2)/2
-		posarray = XX[i,int((yn/2)-1+stepoffset):0:-1]
+		posarray = XX[i,int((yn/2)-1+stepoffset):0:-1] #get positive bias array
 		#posarrayhighbaseline = peakutils.baseline(posarray,1)/2
 		#posarray = posarray-posarrayhighbaseline
 		
-		negarray = XX[i,int((yn/2)+stepoffset):yn]
+		negarray = XX[i,int((yn/2)+stepoffset):yn] #get negative bias array
 		#negarrayhighbaseline = peakutils.baseline(negarray,1)/2
 		#print negarray
 		#print negarrayhighbaseline 
 		#negarray = negarray-negarrayhighbaseline
 		
-		fullarray = XX[i,:]
+		fullarray = XX[i,:] #fullarray
 		#print negarray
-		posmax,negmax = np.nanmax(posarray),np.nanmax(negarray) #getting min and max values for both positive and negative bias
-		posmin,negmin = np.nanmin(posarray),np.nanmin(negarray)
-		poshigh,neghigh = np.nanmean(posarray[-20:-5]),np.nanmean(negarray[-20:-5])
+		posmax,negmax = np.nanmax(posarray),np.nanmax(negarray) #getting max values for both positive and negative bias
+		posmin,negmin = np.nanmin(posarray),np.nanmin(negarray) #getting min values for both pos and neg halves
+		poshigh,neghigh = np.nanmean(posarray[-20:-5]),np.nanmean(negarray[-20:-5]) #getting averaged 'high' values for both pos and neg halves
 		if poshigh>limhigh:
 			poshigh=limhigh
 		if neghigh>limhigh:
@@ -1055,9 +1057,10 @@ def helper_icvsx(w): #Finds switching current or retrapping current by peak fitt
 				print('minlimfix')
 				poslow=limmin
 			if neglow>limmin:
+				print('minlimfix')
 				neglow=limmin
-		#print neghigh,poshigh
-		#print neglow,poslow
+		print(neghigh,poshigh)
+		print(neglow,poslow)
 		#print posarray[0:3]+negarray[0:3]
 		#print poslow,neglow
 		thresposabs = (poshigh - poslow)*peaktoplateauthreshold + poslow
@@ -1275,7 +1278,7 @@ STYLE_SPECS = {
 	'histogram':{'bins': 25, 'rangemin': -1, 'rangemax': 1, 'param_order': ['bins','rangemin','rangemax']},
 	'int': {'param_order': []},
 	'fixlabels': {'param_order': []},
-	'hardgap': {'gaprange': 0.1, 'outsidegapmin': 0.5, 'outsidegapmax': 0.6, 'alphafactor': 1, 'param_order': ['gaprange','outsidegapmin','outsidegapmax','alphafactor']},
+	'hardgap': {'gaprange': 0.1, 'outsidegapmin': 0.5, 'outsidegapmax': 0.6, 'alphafactor': 1e9, 'param_order': ['gaprange','outsidegapmin','outsidegapmax','alphafactor']},
 	'changeaxis': {'xfactor': 1, 'yfactor': 1, 'xoffset': 0, 'yoffset': 0,'datafactor': 1, 'dataunit': None, 'xunit': None, 'yunit': None, 'param_order': ['xfactor','yfactor','xoffset','yoffset','xunit','yunit', 'datafactor', 'dataunit']},
 	'linecut': {'linecutvalue': 1,'axis': None,'param_order': ['linecutvalue','axis']},
 	'dbmtovolt': {'rfamp': False, 'attenuation': 0, 'gridresolutionfactor': 2, 'param_order': ['rfamp','attenuation','gridresolutionfactor']},
@@ -1417,8 +1420,6 @@ def moving_average_1d(data, window):
 
 
 def get_offset(x,y1,y2):
-#     plt.figure(43)
-#     plt.plot(x,y1,x,y2)
     corr = np.correlate(y1,y2,mode='same')
 
     #do a fit with a standard parabola for subpixel accuracy
@@ -1448,12 +1449,6 @@ def get_offset(x,y1,y2):
 #     print result.fit_report()
     # todo:if result poorly conditioned throw it out and make offset 0
     
-    
-#     plt.figure(44)
-#     plt.plot(corr,'o')
-#     plt.plot(xcorrfit,result.best_fit,'-')
-#     plt.plot(xcorrfit,result.init_fit,'-')
-
     x0=result.best_values['x0']
     span = max(x)-min(x)
     #map back to real x values
@@ -1462,3 +1457,10 @@ def get_offset(x,y1,y2):
 				,len(xcorr)) 
     offset_intp = np.interp(x0,xcorr,xmap)
     return offset_intp
+
+def strtobool(string):
+	if string == 'True':
+		string = 1
+	else:
+		string = 0
+	return string

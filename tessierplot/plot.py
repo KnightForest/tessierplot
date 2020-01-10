@@ -413,22 +413,22 @@ class plotR(object):
 				self.X = X
 				self.Y = Y
 
-				# self.exportData.append(XX)
-				# try:
-					# m={
-						# 'xu':xu,
-						# 'yu':yu,
-						# 'xlims':xlims,
-						# 'ylims':ylims,
-						# 'zlims':(0,0),
-						# 'xname':coord_keys[-2],
-						# 'yname':coord_keys[-1],
-						# 'zname':'unused',
-						# 'datasetname':self.name}
-					# self.exportDataMeta = np.append(self.exportDataMeta,m)
-				# except Exception as e:
-					# print(e)
-					# pass
+				self.exportData.append(XX)
+				try:
+					m={
+						'xu':xu,
+						'yu':yu,
+						'xlims':xlims,
+						'ylims':ylims,
+						'zlims':(0,0),
+						'xname':coord_keys[-2],
+						'yname':coord_keys[-1],
+						'zname':'unused',
+						'datasetname':self.name}
+					self.exportDataMeta = np.append(self.exportDataMeta,m)
+				except Exception as e:
+					print(e)
+					pass
 				if ax_destination is None:
 					ax = plt.subplot(gs[cnt])
 				else:
