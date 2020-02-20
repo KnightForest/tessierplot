@@ -221,18 +221,91 @@ def helper_didv(w):
 	elif cbar_u == 'mV':
 		#1 mV / 1 nA = 77.4809173 conductance resistance
 		if condquant==True:
-			w['XX'] = w['XX'] / w['ystep'] * 77.4809173
+			w['XX'] = 0.0129064037/ (w['XX'] / w['ystep'])
 			w['cbar_unit'] = r'$\mathrm{h}/2\mathrm{e}^2$'
 		else:
 			w['XX'] = w['XX'] / w['ystep']
 			w['cbar_unit'] = '$\mathrm{M}\Omega$'
+	if cbar_u == 'A':
+		#1 A / 1 V = 12906.4037 conductance quanta
+		if condquant==True:
+			w['XX'] = w['XX'] / w['ystep'] * 1.29064037e4
+			w['cbar_unit'] = r'2$\mathrm{e}^2/\mathrm{h}$'
+		else:
+			w['XX'] = w['XX'] / w['ystep']
+			w['cbar_unit'] = 'S'
+	elif cbar_u == 'V':
+		#1 V / 1 A = 7.74809173e-5 conductance resistance
+		if condquant==True:
+			w['XX'] = 1.29064037e4 / (w['XX'] / w['ystep'])
+			w['cbar_unit'] = r'2$\mathrm{e}^2/\mathrm{h}$'
+		else:
+			w['XX'] = w['XX'] / w['ystep']
+			w['cbar_unit'] = '$\Omega$'
 	else:
 		if condquant == True:
-			w['XX'] = w['XX'] / w['ystep'] * 0.0129064037
-		else:
-			w['XX'] = w['XX'] / w['ystep']# * 0.0129064037
+			print('Warning: unable to determine units in conductance quanta')
+		w['XX'] = w['XX'] / w['ystep']# * 0.0129064037
 		w['cbar_unit'] = ''
 
+def helper_sgdidv(w):
+	'''Perform Savitzky-Golay smoothing and get 1st derivative'''
+	cbar_q = w['cbar_quantity']
+	cbar_u = w['cbar_unit']
+	w['XX'] = signal.savgol_filter(w['XX'], int(w['sgdidv_samples']), int(w['sgdidv_order']), deriv=1, delta=w['ystep'])# / 0.02581281)
+	condquant = strtobool(w['sgdidv_condquant'])
+	ylabel = w['ylabel']
+	
+	w['cbar_quantity'] = '$\partial$' + cbar_q + '/$\partial$' + ylabel.split(' ', 1)[0]
+
+	if cbar_u == 'nA':
+		#1 nA / 1 mV = 0.0129064037 conductance quanta
+		if condquant==True:
+			w['XX'] = w['XX'] * 0.0129064037
+			w['cbar_unit'] = r'2$\mathrm{e}^2/\mathrm{h}$'
+		else:
+			w['XX'] = w['XX']
+			w['cbar_unit'] = '$\mu$S'
+	elif cbar_u == 'mV':
+		#1 mV / 1 nA = 77.4809173 conductance resistance
+		if condquant==True:
+			w['XX'] = 0.0129064037/w['XX']
+			w['cbar_unit'] = r'2$\mathrm{e}^2/\mathrm{h}$'
+		else:
+			w['XX'] = w['XX']
+			w['cbar_unit'] = '$\mathrm{M}\Omega$'
+	if cbar_u == 'A':
+		#1 A / 1 V = 12906.4037 conductance quanta
+		if condquant==True:
+			w['XX'] = w['XX'] * 1.29064037e4
+			w['cbar_unit'] = r'2$\mathrm{e}^2/\mathrm{h}$'
+		else:
+			w['XX'] = w['XX']
+			w['cbar_unit'] = 'S'
+	elif cbar_u == 'V':
+		#1 V / 1 A = 7.74809173e-5 conductance resistance
+		if condquant==True:
+			w['XX'] = 1.29064037e4/w['XX']
+			w['cbar_unit'] = r'2$\mathrm{e}^2/\mathrm{h}$'
+		else:
+			w['XX'] = w['XX']
+			w['cbar_unit'] = '$\Omega$'
+	else:
+		if condquant == True:
+			print('Warning: unable to determine units in conductance quanta')
+		w['XX'] = w['XX']# * 0.0129064037
+		w['cbar_unit'] = ''
+
+def helper_sgtwodidv(w):
+	'''Perform Savitzky-Golay smoothing and get 1st derivative'''
+	w['XX'] = signal.savgol_filter(
+			w['XX'], int(w['sgdidv_samples']), int(w['sgdidv_order']), deriv=1, delta=w['ystep'] / 0.0129064037)
+	w['cbar_quantity'] = 'dI/dV'
+	w['cbar_unit'] = '$\mu$Siemens'
+	w['cbar_unit'] = r'$\mathrm{e}^2/\mathrm{h}$'
+	data = w['XX']
+		
+		
 def helper_hardgap(w):
 	XX = w['XX']
 	xn, yn = XX.shape
@@ -297,38 +370,6 @@ def helper_int(w):
 		w['cbar_unit'] = 'int(' + w['cbar_unit'] + ')/d' + w['yunit']
 
 	
-
-def helper_sgdidv(w):
-	'''Perform Savitzky-Golay smoothing and get 1st derivative'''
-	cbar_q = w['cbar_quantity']
-	cbar_u = w['cbar_unit']
-	w['XX'] = signal.savgol_filter(w['XX'], int(w['sgdidv_samples']), int(w['sgdidv_order']), deriv=1, delta=w['ystep'])# / 0.02581281)
-	ylabel = w['ylabel']
-	
-	w['cbar_quantity'] = '$\partial$' + cbar_q + '/$\partial$' + ylabel.split(' ', 1)[0]
-	
-	if cbar_u == 'nA':
-		#1 nA / 1 mV = 0.0129064037 conductance quanta
-		w['XX'] = w['XX']# * 0.0129064037
-		#w['cbar_unit'] = '$\mu$Siemens'
-		w['cbar_unit'] = r'$\mathrm{e}^2/\mathrm{h}$'
-	elif cbar_u == 'mV':
-		#1 mV / 1 nA = 77.4809173 conductance resistance
-		w['XX'] = w['XX']
-		w['cbar_unit'] = r'$\mathrm{h}/\mathrm{e}^2$'
-	else:
-		print(w['xstep'],w['ystep'])
-		w['XX'] = w['XX']# * 0.0129064037
-		w['cbar_unit'] = ''
-
-def helper_sgtwodidv(w):
-	'''Perform Savitzky-Golay smoothing and get 1st derivative'''
-	w['XX'] = signal.savgol_filter(
-			w['XX'], int(w['sgdidv_samples']), int(w['sgdidv_order']), deriv=1, delta=w['ystep'] / 0.0129064037)
-	w['cbar_quantity'] = 'dI/dV'
-	w['cbar_unit'] = '$\mu$Siemens'
-	w['cbar_unit'] = r'$\mathrm{e}^2/\mathrm{h}$'
-	data = w['XX']
 
 def helper_log(w):
 	w['XX'] = np.log10(np.abs(w['XX']))
@@ -1256,8 +1297,8 @@ STYLE_SPECS = {
 # 	'threshold_offset': {'threshold':0.2,'start':0.0,'stop':1.0,'param_order':[]},
 	'mov_avg': {'m': 1, 'n': 3, 'win': None, 'param_order': ['m', 'n', 'win']},
 	'abs': {'param_order': []},
-	'savgol': {'samples': 11, 'order': 3, 'param_order': ['samples', 'order']},
-	'sgdidv': {'samples': 11, 'order': 3, 'param_order': ['samples', 'order']},
+	'savgol': {'samples': 7, 'order': 3, 'param_order': ['samples', 'order']},
+	'sgdidv': {'samples': 7, 'order': 3, 'condquant': False, 'param_order': ['samples', 'order', 'condquant']},
 	'sgtwodidv': {'samples': 21, 'order': 3, 'param_order': ['samples', 'order']},
 	'fancylog': {'cmin': None, 'cmax': None, 'param_order': ['cmin', 'cmax']},
 	'minsubtract': {'param_order': []},

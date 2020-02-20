@@ -411,13 +411,8 @@ class plotR(object):
 				self.Y = Y
 
 				#determine stepsize for di/dv, inprincipe only y step is used (ie. the diff is also taken in this direction and the measurement swept..)
-				print((xlims[1] - xlims[0]))
-				print((ylims[1] - ylims[0]))
-				print(len(self.Y[0,:]-1))
-				print(len(self.X[:,0]-1))
 				xstep = float(xlims[1] - xlims[0])/(len(self.Y[0,:])-1)
 				ystep = float(ylims[1] - ylims[0])/(len(self.X[:,0])-1)
-				print(xstep,ystep)
 				self.exportData.append(XX)
 				try:
 					m={
