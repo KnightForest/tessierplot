@@ -234,7 +234,6 @@ def helper_didv(w):
 			w['XX'] = w['XX'] / w['ystep'] * 1.29064037e4
 			w['cbar_unit'] = r'2$\mathrm{e}^2/\mathrm{h}$'
 		else:
-			print(w['ystep'])
 			w['XX'] = w['XX'] / w['ystep']
 			w['cbar_unit'] = 'S'
 	elif cbar_u == 'V':
@@ -554,7 +553,6 @@ def helper_rshunt(w):
 	gridxaxis = xaxis
 	XX_new = np.zeros(shape=(xn,len(gridyaxis)))
 	if strtobool(w['rshunt_didv']) == True: # Calls didv within helper_vbiascorrector before interpolation to prevent artefacts.
-		print('doejddit')
 		w['didv_condquant']=False
 		helper_didv(w)
 		XX = w['XX']

@@ -674,7 +674,6 @@ class plotR(object):
 				yaxisunit = value_units[value_axis]
 				npx = np.array(x)
 				npy = np.array(y)
-				print(abs(npx[-1] - npx[0]))
 				xstep = float(abs(npx[-1] - npx[0]))/(len(npx)-1)
 				#ystep = float(abs(npy[-1] - npy[0]))/(len(npy)-1)
 				title =''
