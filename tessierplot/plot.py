@@ -362,9 +362,6 @@ class plotR(object):
 					if ylims_manual[1] > ylims[1]:
 						ynew[1] = ylims_manual[1]
 
-				#determine stepsize for di/dv, inprincipe only y step is used (ie. the diff is also taken in this direction and the measurement swept..)
-				#xstep = float(xlims[1] - xlims[0])/(xu-1)
-				#ystep = float(ylims[1] - ylims[0])/(yu-1)
 				ext = xlims+ylims
 				self.extent = ext
 
@@ -413,6 +410,14 @@ class plotR(object):
 				self.X = X
 				self.Y = Y
 
+				#determine stepsize for di/dv, inprincipe only y step is used (ie. the diff is also taken in this direction and the measurement swept..)
+				print((xlims[1] - xlims[0]))
+				print((ylims[1] - ylims[0]))
+				print(len(self.Y[0,:]-1))
+				print(len(self.X[:,0]-1))
+				xstep = float(xlims[1] - xlims[0])/(len(self.Y[0,:])-1)
+				ystep = float(ylims[1] - ylims[0])/(len(self.X[:,0])-1)
+				print(xstep,ystep)
 				self.exportData.append(XX)
 				try:
 					m={
@@ -444,7 +449,9 @@ class plotR(object):
 				cbar_trans = [] #trascendental tracer :P For keeping track of logs and stuff
 				w = styles.getPopulatedWrap(style)
 				w2 = {
-						'ext':ext, 
+						'ext':ext,
+						'xstep': xstep,
+						'ystep': ystep,
 						'XX': XX,
 						'X': X,
 						'Y': Y,

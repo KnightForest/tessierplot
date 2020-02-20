@@ -303,21 +303,22 @@ def helper_sgdidv(w):
 	cbar_q = w['cbar_quantity']
 	cbar_u = w['cbar_unit']
 	w['XX'] = signal.savgol_filter(w['XX'], int(w['sgdidv_samples']), int(w['sgdidv_order']), deriv=1, delta=w['ystep'])# / 0.02581281)
+	ylabel = w['ylabel']
 	
 	w['cbar_quantity'] = '$\partial$' + cbar_q + '/$\partial$' + ylabel.split(' ', 1)[0]
 	
 	if cbar_u == 'nA':
 		#1 nA / 1 mV = 0.0129064037 conductance quanta
-		w['XX'] = w['XX'] / w['ystep']# * 0.0129064037
+		w['XX'] = w['XX']# * 0.0129064037
 		#w['cbar_unit'] = '$\mu$Siemens'
 		w['cbar_unit'] = r'$\mathrm{e}^2/\mathrm{h}$'
 	elif cbar_u == 'mV':
 		#1 mV / 1 nA = 77.4809173 conductance resistance
-		w['XX'] = w['XX'] / w['ystep']# * 77.4809173
-		#w['cbar_unit'] = '$M\Omega'
+		w['XX'] = w['XX']
 		w['cbar_unit'] = r'$\mathrm{h}/\mathrm{e}^2$'
 	else:
-		w['XX'] = w['XX'] / w['ystep']# * 0.0129064037
+		print(w['xstep'],w['ystep'])
+		w['XX'] = w['XX']# * 0.0129064037
 		w['cbar_unit'] = ''
 
 def helper_sgtwodidv(w):
@@ -1301,6 +1302,7 @@ styles = STYLE_FUNCS
 def getEmptyWrap():
 	'''Get empty wrap with default parameter values'''
 	w = {'ext':(0,0,0,0), 
+		'xstep':1,
 		'ystep':1,
 		'X': [],
 		'Y': [],
