@@ -276,7 +276,7 @@ def helper_sgdidv(w):
 	'''Perform Savitzky-Golay smoothing and get 1st derivative'''
 	cbar_q = w['cbar_quantity']
 	cbar_u = w['cbar_unit']
-	if cbar_q == '' and w['yunit'] == 'A': # assume that this is a condition for a 2d plot:
+	if cbar_q == '': # assume that this is a condition for a 2d plot:
 		w['XX'] = signal.savgol_filter(w['XX'], int(w['sgdidv_samples']), int(w['sgdidv_order']), deriv=1, delta=w['xstep'])# / 0.02581281)
 	else:
 		w['XX'] = signal.savgol_filter(w['XX'], int(w['sgdidv_samples']), int(w['sgdidv_order']), deriv=1, delta=w['ystep'])# / 0.02581281)
@@ -309,7 +309,6 @@ def helper_sgdidv(w):
 			w['XX'] = w['XX'] * 1.29064037e4
 			w['cbar_unit'] = r'2$\mathrm{e}^2/\mathrm{h}$'
 		else:
-			print(w['ystep'])
 			w['XX'] = w['XX']
 			w['cbar_unit'] = 'S'
 	elif cbar_u == 'V':
@@ -319,7 +318,7 @@ def helper_sgdidv(w):
 			w['XX'] = 1.29064037e4 / (w['XX'])
 			w['cbar_unit'] = r'2$\mathrm{e}^2/\mathrm{h}$'
 		else:
-			w['XX'] = w['XX'] / w['ystep']
+			w['XX'] = w['XX']
 			w['cbar_unit'] = '$\Omega$'
 
 	elif cbar_q == '' and w['yunit'] == 'A': # assume that this is a condition for a 2d plot:
