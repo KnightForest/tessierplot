@@ -367,9 +367,6 @@ class plotR(object):
 					if ylims_manual[1] > ylims[1]:
 						ynew[1] = ylims_manual[1]
 
-				#determine stepsize for di/dv, inprincipe only y step is used (ie. the diff is also taken in this direction and the measurement swept..)
-				#xstep = float(xlims[1] - xlims[0])/(xu-1)
-				#ystep = float(ylims[1] - ylims[0])/(yu-1)
 				ext = xlims+ylims
 				self.extent = ext
 
@@ -418,6 +415,9 @@ class plotR(object):
 				self.X = X
 				self.Y = Y
 
+				#determine stepsize for di/dv, inprincipe only y step is used (ie. the diff is also taken in this direction and the measurement swept..)
+				xstep = float(xlims[1] - xlims[0])/(len(self.X[:,0])-1)
+				ystep = float(ylims[1] - ylims[0])/(len(self.Y[0,:])-1)
 				self.exportData.append(XX)
 				try:
 					m={
@@ -449,7 +449,9 @@ class plotR(object):
 				cbar_trans = [] #trascendental tracer :P For keeping track of logs and stuff
 				w = styles.getPopulatedWrap(style)
 				w2 = {
-						'ext':ext, 
+						'ext':ext,
+						'xstep': xstep,
+						'ystep': ystep,
 						'XX': XX,
 						'X': X,
 						'Y': Y,
@@ -675,7 +677,10 @@ class plotR(object):
 				xaxisunit = coord_units[-1]
 				yaxislabel = value_keys[value_axis]
 				yaxisunit = value_units[value_axis]
-
+				npx = np.array(x)
+				npy = np.array(y)
+				xstep = float(abs(npx[-1] - npx[0]))/(len(npx)-1)
+				#ystep = float(abs(npy[-1] - npy[0]))/(len(npy)-1)
 				title =''
 
 				for i,z in enumerate(uniques_col_str):
@@ -691,6 +696,7 @@ class plotR(object):
 				wrap['ylabel'] = yaxislabel
 				wrap['yunit'] = yaxisunit
 				wrap['massage_func'] = massage_func
+				wrap['xstep'] = xstep
 				styles.processStyle(style,wrap)
 				xaxislabelwithunit = wrap['xlabel'] + ' (' + wrap['xunit'] + ')'
 				yaxislabelwithunit = wrap['ylabel'] + ' (' + wrap['yunit'] + ')'
