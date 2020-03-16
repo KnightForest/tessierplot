@@ -35,10 +35,11 @@ def helper_deinterlace(w):
 
 def helper_deinterlace0(w):
 	w['XX'] = w['XX'][::2,:] #take even column in a sweepback measurement
+	#w['x']  = w['x'][::2]
 
 def helper_deinterlace1(w):
 	w['XX'] = w['XX'][1::2,1:] #take odd column in a sweepback measurement
-	
+	#w['x']  = w['x'][1::2]	
 
 def helper_mov_avg(w):
 	(m, n) = (int(w['mov_avg_m']), int(w['mov_avg_n']))     # The shape of the window array
@@ -177,9 +178,9 @@ def helper_fixlabels(w):
 def helper_changeaxis(w):
 	print(w['ext'])
 	newext = (float(w['changeaxis_xfactor'])*w['ext'][0]+w['changeaxis_xoffset'],
-		float(w['changeaxis_xfactor'])*w['ext'][1]+w['changeaxis_xoffset'],
-		float(w['changeaxis_yfactor'])*w['ext'][2]+w['changeaxis_yoffset'],
-		float(w['changeaxis_yfactor'])*w['ext'][3]+w['changeaxis_yoffset'])
+			float(w['changeaxis_xfactor'])*w['ext'][1]+w['changeaxis_xoffset'],
+			float(w['changeaxis_yfactor'])*w['ext'][2]+w['changeaxis_yoffset'],
+			float(w['changeaxis_yfactor'])*w['ext'][3]+w['changeaxis_yoffset'])
 	w['ext'] = newext
 	print(w['ext'])
 	#print float(w['changeaxis_datafactor'])
@@ -201,7 +202,7 @@ def helper_didv(w):
 	cbar_q = w['cbar_quantity']
 	cbar_u = w['cbar_unit']
 	condquant = strtobool(w['didv_condquant'])
-
+	print(cbar_q,cbar_u)
 	if a.ndim == 1: #if 1D 
 		w['XX'] = np.diff(w['XX'])
 		w['XX'] = np.append(w['XX'],w['XX'][-1])
@@ -216,6 +217,7 @@ def helper_didv(w):
 			w['XX'] = w['XX'] / w['ystep'] * 0.0129064037
 			w['cbar_unit'] = r'2$\mathrm{e}^2/\mathrm{h}$'
 		else:
+			print('doejedit',condquant, w['ystep'])
 			w['XX'] = w['XX'] / w['ystep']
 			w['cbar_unit'] = '$\mu$S'
 	elif cbar_u == 'mV':
@@ -227,8 +229,7 @@ def helper_didv(w):
 		else:
 			w['XX'] = w['XX'] / w['ystep']
 			w['cbar_unit'] = '$\mathrm{M}\Omega$'
-
-	if cbar_u == 'A':
+	elif cbar_u == 'A':
 		#1 A / 1 V = 12906.4037 conductance quanta
 		if condquant==True:
 			w['XX'] = w['XX'] / w['ystep'] * 1.29064037e4
@@ -302,7 +303,7 @@ def helper_sgdidv(w):
 			w['XX'] = w['XX']
 			w['cbar_unit'] = '$\mathrm{M}\Omega$'
 
-	if cbar_u == 'A':
+	elif cbar_u == 'A':
 		#1 A / 1 V = 12906.4037 conductance quanta
 		if condquant==True:
 			w['XX'] = w['XX'] * 1.29064037e4
@@ -338,6 +339,11 @@ def helper_sgdidv(w):
 			w['XX'] = (w['XX'])
 			w['yunit'] = '$\Omega$'
 			w['ylabel'] = '$\partial$' + w['ylabel'] + '/$\partial$' + w['xlabel']
+	else:
+		if condquant == True:
+			print('Warning: unable to determine units in conductance quanta')
+		w['XX'] = w['XX']# * 0.0129064037
+		w['cbar_unit'] = ''
 
 def helper_sgtwodidv(w):
 	'''Perform Savitzky-Golay smoothing and get 1st derivative'''
@@ -650,9 +656,13 @@ def helper_ivreverser(w): #Inverse I and V-bias measurements (works on both) by 
 def helper_ivreversernew(w): #Inverse I and V-bias measurements (works on both) by interpolating y-data on new homogeneous x-axis.
 	# new versiong since matplotlibs griddata was deprecated :/
 	from scipy.interpolate import griddata
+	from scipy.interpolate import interp1d
 	import math
 	import numpy.ma as ma
 	import numpy as np
+	import numpy.matlib
+	twodim = strtobool(w['ivreversernew_twodim'])
+	method = w['ivreversernew_interpmethod']
 	XX = w['XX']#+1e3/float(w['vbiascorrector_seriesr'])
 	xn, yn = XX.shape
 	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
@@ -666,26 +676,46 @@ def helper_ivreversernew(w): #Inverse I and V-bias measurements (works on both) 
 	ylimitneg,ylimitpos = (np.nanmin(ycorrected*10))/10, (np.nanmax(ycorrected*10))/10
 	#print(ylimitneg,ylimitpos)
 	grid_x, grid_y = np.mgrid[w['ext'][0]:w['ext'][1]:xn*1j, ylimitneg:ylimitpos:(yn*gridresolutionfactor)*1j]
+	grid_y_1d = np.linspace(ylimitneg,ylimitpos,(yn*gridresolutionfactor))
 	gridxstep = np.abs(grid_x[1,0]-grid_x[0,0])
 	gridystep = np.abs(grid_y[0,1]-grid_y[0,0])
+	#gridxstep,gridystep=1,1
 	#print(gridxstep,gridystep)
 	grid_x /= gridxstep
 	grid_y /= gridystep 
-	points = np.transpose(np.vstack([np.array(w['x'])/gridxstep,np.ravel(ycorrected)/gridystep]))
+	xrep = np.ravel(np.matlib.repmat(xaxis,yn,1),'F')
+	points = np.transpose(np.vstack([xrep/gridxstep,np.ravel(ycorrected)/gridystep]))
 	zf = np.ravel(XX)
 	indexnonans=np.invert(np.isnan(points[:,0]))*np.invert(np.isnan(points[:,1]))*np.invert(np.isnan(zf))
-	print(indexnonans)
-	try:
-		#XX_new = griddata(points, np.array(zf), (grid_x, grid_y), method='cubic')
-		XX_new = griddata(np.stack((points[:,0][indexnonans],points[:,1][indexnonans]),axis=1), np.array(zf)[indexnonans], (grid_x, grid_y), method='cubic')
-	except:
-		print('IVreverser cubic interpolation failed, falling back to \'nearest\'.')
-		XX_new = griddata(points, np.array(zf), (grid_x, grid_y), method='nearest')
+	XX_new = np.zeros(shape=(xn,len(grid_y_1d)))
+	print(twodim,method)
+	if twodim == True:
+		print('2d')
+		try:
+			#XX_new = griddata(points, np.array(zf), (grid_x, grid_y), method='cubic')
+			XX_new = griddata(np.stack((points[:,0][indexnonans],points[:,1][indexnonans]),axis=1), np.array(zf)[indexnonans], (grid_x, grid_y), method=method)
+		except:
+			XX_new = griddata(points, np.array(zf), (grid_x, grid_y), method=method)
+			print('IVreverser {} interpolation failed, falling back to \'nearest\'.'.format(method))
+
+	if twodim == False:
+		print('1d')
+		XX_new = np.zeros(shape=(xn,len(grid_y_1d)))
+		try:
+			for i in range(0,xn):
+				f = interp1d(ycorrected[i,:],yaxis, kind=method, bounds_error=False, fill_value=np.nan)
+				XX_new[i,:] = f(grid_y_1d)
+		except:
+			print('IVreverser {} interpolation failed, falling back to \'nearest\'.'.format(method))
+			for i in range(0,xn):
+				f = interp1d(ycorrected[i,:],yaxis, kind='nearest', bounds_error=False, fill_value=np.nan)
+				XX_new[i,:] = f(grid_y_1d)
 	w['X'] = grid_x
 	w['Y'] = grid_y
 	w['XX'] = XX_new
 	w['ext'] = (w['ext'][0],w['ext'][1],ylimitneg,ylimitpos)
-	w['ystep'] = (ylimitpos-ylimitneg)/(len(grid_y)-1)
+	print(ylimitpos-ylimitneg,len(grid_y_1d)-1)
+	w['ystep'] = np.abs(ylimitpos-ylimitneg)/(len(grid_y_1d)-1)
 	print('new ystep:'+ str(w['ystep']))
 	w['ext'] = (w['ext'][0],w['ext'][1],ylimitneg,ylimitpos)
 	if w['yunit'].find('nA') != -1:
@@ -1358,7 +1388,7 @@ STYLE_SPECS = {
 	'resistance': {'linecutvalue': 0, 'dolinearfit': False, 'fitregion': 1, 'param_order': ['linecutvalue','dolinearfit','fitregion']},
 	'vbiascorrector':{'voffset': 0,'seriesr': 0, 'gridresolutionfactor': 1, 'didv':False, 'param_order': ['voffset','seriesr','gridresolutionfactor','didv']},
 	'ivreverser':{'gridresolutionfactor': 2, 'param_order': ['gridresolutionfactor']},
-	'ivreversernew':{'gridresolutionfactor': 2, 'param_order': ['gridresolutionfactor']},
+	'ivreversernew':{'gridresolutionfactor': 2, 'twodim': False, 'interpmethod': 'cubic', 'param_order': ['gridresolutionfactor','twodim','interpmethod']},
 	'histogram':{'bins': 25, 'rangemin': -1, 'rangemax': 1, 'param_order': ['bins','rangemin','rangemax']},
 	'int': {'param_order': []},
 	'fixlabels': {'param_order': []},
