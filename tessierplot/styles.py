@@ -217,7 +217,6 @@ def helper_didv(w):
 			w['XX'] = w['XX'] / w['ystep'] * 0.0129064037
 			w['cbar_unit'] = r'2$\mathrm{e}^2/\mathrm{h}$'
 		else:
-			print('doejedit',condquant, w['ystep'])
 			w['XX'] = w['XX'] / w['ystep']
 			w['cbar_unit'] = '$\mu$S'
 	elif cbar_u == 'mV':
@@ -1096,7 +1095,6 @@ def helper_iretrap(w): #For meander + SC measurements: split file at zero bias a
     ynr = int(np.round((yn/2)))
     #pak de onderkant van X0
     bottom = X0[:,ynr:]
-    print(bottom)
     #pak de bovenkant van X1
 
     # even/odd statements work on even deinterlacing (X1) since this is the largest
