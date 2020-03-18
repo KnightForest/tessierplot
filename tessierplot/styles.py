@@ -1,3 +1,4 @@
+
 import numpy as np
 from scipy import signal
 import re
@@ -1115,14 +1116,15 @@ def helper_icvsx(w): #Finds switching current or retrapping current by peak fitt
 	import sys
 	from IPython.display import display
 	import peakutils
-	useonlythreshold = w['icvsx_useonlythreshold']
-	pixelnoiserange = int(w['icvsx_pixelnoiserange'])
+	useonlythreshold = strtobool(w['icvsx_useonlythreshold']) #
+	pixelnoiserange = int(w['icvsx_pixelnoiserange']) #size of significant noise in the superconducting state (value should be larger than noise period)
 	peaktoplateauthreshold = w['icvsx_ppt'] #threshold ratio between normal state resistance and superconducting state
 	stepoffset = w['icvsx_stepoffset'] #offset value in Is
 	strictzero = strtobool(w['icvsx_strictzero']) #if True, absolute 0 is taken as a reference for the peaktoplateauthreshold
 	limhigh = float(w['icvsx_plateaulim']) #max abs value of normal conductance (of lower, overrides value from data)
 	limmin = float(w['icvsx_gapmax']) #'deadzone' for low bias
 	print(useonlythreshold,pixelnoiserange,peaktoplateauthreshold,stepoffset,strictzero)
+	
 	# def reject_outliers(data, m = 2.):
 		# d = np.abs(data - np.median(data))
 		# mdev = np.median(d)
@@ -1132,156 +1134,168 @@ def helper_icvsx(w): #Finds switching current or retrapping current by peak fitt
 	#from peakutils.plot import plot as pplot
 	from matplotlib import pyplot
 	
+	#Define axes
 	XX = w['XX']
 	xn, yn = XX.shape
-	print(yn,xn)
 	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
 	yaxis = np.linspace(w['ext'][2],w['ext'][3],w['XX'].shape[1])
 	ic = np.zeros((3,xn))
 	indexes = np.zeros(2)
 	
 	for i in range(0,xn):
-		#XX[i,:] = XX[i,:]-peakutils.baseline(XX[i,:],2)/2
 		posarray = XX[i,int((yn/2)-1+stepoffset):0:-1] #get positive bias array
-		#posarrayhighbaseline = peakutils.baseline(posarray,1)/2
-		#posarray = posarray-posarrayhighbaseline
-		
 		negarray = XX[i,int((yn/2)+stepoffset):yn] #get negative bias array
-		#negarrayhighbaseline = peakutils.baseline(negarray,1)/2
-		#print negarray
-		#print negarrayhighbaseline 
-		#negarray = negarray-negarrayhighbaseline
-		
 		fullarray = XX[i,:] #fullarray
-		#print negarray
+
 		posmax,negmax = np.nanmax(posarray),np.nanmax(negarray) #getting max values for both positive and negative bias
 		posmin,negmin = np.nanmin(posarray),np.nanmin(negarray) #getting min values for both pos and neg halves
-		poshigh,neghigh = np.nanmean(posarray[-20:-5]),np.nanmean(negarray[-20:-5]) #getting averaged 'high' values for both pos and neg halves
+		poshigh,neghigh = np.nanmean(posarray[-20:-5]),np.nanmean(negarray[-20:-5]) #getting averaged 'high' values for both pos and neg halves, mor reliable
+		
+		#----
+		# High and low values are used to determine the threshole peak_to_plateau_threshold for peak fitting 
+		# (i.e. conductance in superconducting region vs conductance in normal state)
+		#----
+		
+		# If high is higher than "limhigh = float(w['icvsx_plateaulim'])", value is overridden. This compensates for weird outliers
 		if poshigh>limhigh:
 			poshigh=limhigh
 		if neghigh>limhigh:
 			neghigh=limhigh
+		
+		# Check is reference should if absolute zero
 		if strictzero == True:
 			poslow,neglow = 0,0
+		# If not, determine low values 
 		else:
-			poslow,neglow = np.nanmean((posarray[0:3]+negarray[0:3])/2),np.nanmean((posarray[0:3]+negarray[0:3])/2)
+			poslow,neglow = np.nanmean((posarray[0:3]+negarray[0:3])/2),np.nanmean((posarray[0:3]+negarray[0:3])/2) # Average over a few datapoints around center of bias
+			# Again check if low values should be overwritten with "limmin = float(w['icvsx_gapmax'])"
 			if poslow>limmin:
 				print('minlimfix')
 				poslow=limmin
 			if neglow>limmin:
 				print('minlimfix')
 				neglow=limmin
-		print(neghigh,poshigh)
-		print(neglow,poslow)
-		#print posarray[0:3]+negarray[0:3]
-		#print poslow,neglow
+
+		# Determining the threshold in units of measured quantity 
+		# (if poslow,neglow=0, its simply ppt*poshigh, i.e. the percentag of the high of the measured quantity)
 		thresposabs = (poshigh - poslow)*peaktoplateauthreshold + poslow
 		thresnegabs = (neghigh - neglow)*peaktoplateauthreshold + neglow
-		#print 'poshighlow: ' + str(poshigh) + ' \ '  + str(poslow)
-		#print 'neghighlow: ' + str(neghigh) + ' \ '  + str(neglow)
-		#print 'thresholdposneg: ' + str(thresposabs) + ' \ '  +str(thresnegabs)
+		
+		# Thresholds calculated in fraction of maximum value (this is how peakfitting interprets threshold)
 		threspos = (thresposabs-posmin)/(posmax-posmin)
 		thresneg = (thresnegabs-negmin)/(negmax-negmin)
-		#print 'posmaxmin: ' + str(posmax) + ' \ '  + str(posmin)
-		#print 'negmaxmin: ' + str(negmax) + ' \ '  + str(negmin)
-		#print 'normalised thres: ' + str(threspos) + ' \ ' + str(thresneg)
-		#print posmax-posmin
-		#print thresposabs-posmin
-		indexneg = peakutils.indexes(negarray,thres=thresneg, min_dist=1)
-		# if indexneg.size == 0:
-			# indexneg = np.array([0])
-		indexpos = peakutils.indexes(posarray,thres=threspos, min_dist=1)
-		# if indexpos.size == 0:
-			# indexpos = np.array([0])
-		#print(indexneg,indexpos)
-		try:
-			indexnegnopeak = [x[0] for x in enumerate(negarray) if x[1] > thresnegabs]
-			if len(indexnegnopeak) == 0:
-				indexnegnopeak = np.array([0])
-		except:
-			e = sys.exc_info()[0]
-			print(e)
-			print('exceptneg')#indexnegnopeak = np.array([0]))
-		try:
-			indexposnopeak = [x[0] for x in enumerate(posarray) if x[1] > thresposabs]
-			if len(indexposnopeak) == 0:
-				indexposnopeak = np.array([0])
-		except:
-			e = sys.exc_info()[0]
-			print(e)
-			print('exceptpos')#indexposnopeak = np.array([0])
-			
-		if useonlythreshold == 1:
-			indexneg = indexnegnopeak
-			indexpos = indexposnopeak
+		#print(posmin,negmin,posmax,negmax)
+		#print(poslow,neglow,poshigh,neghigh)
+		#print(threspos,thresneg, thresposabs, thresnegabs)
+	
+		#-----------------------------
+		# useonlythreshold bypasses peakfinding algorythm!
+		#-----------------------------
+		# Finds the first value in both posarray and negarray that is above thresposabs and thresnegabs.
+		# This is the switch from superconducting to normal state.
+		# (the thresholds in units of measured data), if not, there are no peaks to be found
+		
+		if useonlythreshold == True:
+			try:
+				indexnegnopeak = [x[0] for x in enumerate(negarray) if x[1] > thresnegabs]
+				if len(indexnegnopeak) == 0:
+					indexnegnopeak = np.array([0])
+			except:
+				e = sys.exc_info()[0]
+				print(e)
+				print('exceptneg')
+			try:
+				indexposnopeak = [x[0] for x in enumerate(posarray) if x[1] > thresposabs]
+				if len(indexposnopeak) == 0:
+					indexposnopeak = np.array([0])
+			except:
+				e = sys.exc_info()[0]
+				print(e)
+				print('exceptpos')
+			finalindexneg = indexnegnopeak[0]
+			finalindexpos = indexposnopeak[0]
 
-		firstpeakneg = indexneg[0]
-		peaknoise = True
-		counter = 0
-		while peaknoise == True and counter < 1000:
-			counter = counter + 1
-			try:
-				if True in (negarray[firstpeakneg:firstpeakneg+pixelnoiserange] < (-np.nanmean(negarray)/5)):
-					indexneg = np.delete(indexneg,0)
-					firstpeakneg = indexneg[0]
-					finalindexneg = indexneg[0]
-				else:
-					peaknoise = False
-					finalindexneg = indexneg[0]
-			except:
-				e = sys.exc_info()[0]
-				print('negexcept')
-				print(e)
+		#-----------------------------
+		# For more complicated or noisy data, the peakfitting method can be used (useonlythreshold == False)
+		#-----------------------------
+		else: 
+			# Using peak fitting to determine all peaks in negative half of plot
+			indexneg = peakutils.indexes(negarray,thres=thresneg, min_dist=1)
+			
+			# If no peak is found, set index to zero (ic=0)
+			if indexneg.size == 0:
 				indexneg = np.array([0])
-				if indexneg[0] + pixelnoiserange > len(negarray):
-					finalindexneg = indexneg[0]#+int(yn/2)
-				else:
-					finalindexneg = 0
-					print('Index ' + str(i) + 'neg not found')
-				peaknoise = False
-		firstpeakpos = indexpos[0]
-		peaknoise = True
-		counter = 0
-		while peaknoise == True and counter < 1000:
-			counter = counter + 1
-			try:
-				#if True in (posarray[firstpeakpos:firstpeakpos+pixelnoiserange] < (-np.nanmean(posarray)/5)):
-				if True in (posarray[firstpeakpos:firstpeakpos+pixelnoiserange] < ( -posarray[firstpeakpos]/10)):
-					indexpos = np.delete(indexpos,0)
-					firstpeakpos = indexpos[0]
-					finalindexpos = indexpos[0]
-				else:
-					peaknoise = False
-					finalindexpos = indexpos[0]
-			except:
-				e = sys.exc_info()[0]
-				print('posexcept')
-				print(e)
+			indexpos = peakutils.indexes(posarray,thres=threspos, min_dist=1)
+			if indexpos.size == 0:
 				indexpos = np.array([0])
-				if indexpos[0] + pixelnoiserange > len(posarray):
-					finalindexpos = indexpos[0]+int(yn/2)
-				else:
-					finalindexpos = 0
-					print('Index ' + str(i) + 'pos not found')
-				peaknoise = False
-		#print(finalindexpos,finalindexneg)
-		#print(i)
-		#print('ic and shape', ic, ic.shape)
-		#if sindex[0] > 2:
-		#print 'Index '+ str(i) + ' has more than two peaks' + str(indexes)
-		#print yaxis
+			#--------
+			# This code cycles through all found peak (up to 1000) and deletes them from the found peak indexlist 
+			# if it thinks its just noise and does not correspond to a swithing event to the normal state.
+			# This is determined by comparing the value a 'pixelnoiserange' number of datapoints away from the 
+			# actual peak and checking if this value if not lower than five times the average of the whole array,
+			# i.e. there should be a finite conductance after the peak is encountered.
+			#--------
+			firstpeakneg = indexneg[0]
+			peaknoise = True
+			counter = 0
+			while peaknoise == True and counter < 1000:
+				counter = counter + 1
+				try:
+					# Check if pek
+					if True in (negarray[firstpeakneg:firstpeakneg+pixelnoiserange] < (-np.nanmean(negarray)/5)):
+						indexneg = np.delete(indexneg,0)
+						firstpeakneg = indexneg[0]
+						finalindexneg = indexneg[0]
+					else:
+						peaknoise = False
+						finalindexneg = indexneg[0]
+				except:
+					e = sys.exc_info()[0]
+					print('negexcept')
+					print(e)
+					indexneg = np.array([0])
+					if indexneg[0] + pixelnoiserange > len(negarray):
+						finalindexneg = indexneg[0]#+int(yn/2)
+					else:
+						finalindexneg = 0
+						print('Index ' + str(i) + 'neg not found')
+					peaknoise = False
+			firstpeakpos = indexpos[0]
+			peaknoise = True
+			counter = 0
+			while peaknoise == True and counter < 1000:
+				counter = counter + 1
+				try:
+					if True in (posarray[firstpeakpos:firstpeakpos+pixelnoiserange] < (-np.nanmean(posarray)/5)):
+					#if True in (posarray[firstpeakpos:firstpeakpos+pixelnoiserange] < ( -posarray[firstpeakpos]/10)):
+						indexpos = np.delete(indexpos,0)
+						firstpeakpos = indexpos[0]
+						finalindexpos = indexpos[0]
+					else:
+						peaknoise = False
+						finalindexpos = indexpos[0]
+				except:
+					e = sys.exc_info()[0]
+					print('posexcept')
+					print(e)
+					indexpos = np.array([0])
+					if indexpos[0] + pixelnoiserange > len(posarray):
+						finalindexpos = indexpos[0]+int(yn/2)
+					else:
+						finalindexpos = 0
+						print('Index ' + str(i) + 'pos not found')
+					peaknoise = False
+		
+		# After filtering out peaks that might be noise, the first real peak is selected
 		if finalindexneg == 0:
-			#print('ditisalshetnulis',ic[0,i])
 			ic[0,i] = 0
 		else:
-			#print('doejeidt',(yaxis[finalindexneg+int(yn/2)]))
 			ic[0,i] = (yaxis[finalindexneg+int(yn/2)]) #neg one
 		if finalindexpos == 0:
 			ic[1,i] = 0
 		else:
 			ic[1,i] = (yaxis[finalindexpos+int(yn/2)]) #pos one
-	#print ic[2,:]
-	#w['buffer']={'labels': [xlabel,ylabel], 'data':[dataarray], 'xaxis':[xaxis]}
+
 	fig = plt.figure()
 	xlabel = w['xlabel'] + ' ('+ w['xunit'] + ')'
 	ylabel = '$I_\mathrm{C}$ (nA)'
