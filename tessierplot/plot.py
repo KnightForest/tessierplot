@@ -306,9 +306,14 @@ class plotR(object):
 				print('xu: {:d}, yu: {:d}, lenz: {:d}'.format(xu,yu,len(z)))
 				if xu*yu > len(z): #This condition most likely corresponds to an unfinished measurement sweep.
 					appseries = pd.Series(np.zeros(int(xu*yu-len(z))) + np.nan)
+				#if self.data == data_slice:
 					z = z.append(appseries)
 					x = x.append(appseries)
 					y = y.append(appseries)
+				#else:
+				#	z = z.insert(0,appseries)
+				#	x = x.insert(0,appseries)
+				#	y = y.insert(0,appseries)
 					#xu = int(np.floor(len(z) / yu))
 					print('xu: {:d}, yu: {:d}, lenz: {:d} after adding nan for incomplete sweep'.format(xu,yu,len(z)))
 					#trimflag = True#dividing integers so should automatically floor the value
