@@ -419,6 +419,15 @@ def helper_log(w):
 	w['cbar_trans'] = ['log$_{10}$','abs'] + w['cbar_trans']
 	w['cbar_quantity'] = w['cbar_quantity']
 	w['cbar_unit'] = w['cbar_unit']
+	
+def helper_logdb(w):
+	w['XX'] = 20*np.log10(np.abs(w['XX']))
+	if w['cbar_quantity'] == '':
+		w['yunit'] = 'dB'
+	else:
+		w['cbar_trans'] = ['20log$_{10}$','dB'] + w['cbar_trans']
+		w['cbar_quantity'] = w['cbar_quantity']
+		w['cbar_unit'] = w['cbar_unit']
 
 def helper_logy(w):
 	w['XX'] = np.log10(np.abs(w['XX']))
@@ -1277,6 +1286,7 @@ STYLE_FUNCS = {
 	'deinterlace1': helper_deinterlace1,
 	'didv': helper_didv,
 	'log': helper_log,
+	'logdb': helper_logdb,
 	'normal': helper_normal,
 	#'ssidrive': helper_ssidrive,
 	'flipaxes': helper_flipaxes,
@@ -1331,6 +1341,7 @@ STYLE_SPECS = {
 	'deinterlace1': {'param_order': []},
 	'didv': {'condquant': False, 'param_order': ['condquant']},
 	'log': {'param_order': []},
+	'logdb': {'param_order': []},
 	'normal': {'param_order': []},
 	'ssidrive': {'param_order': []},
 	'flipaxes': {'param_order': []},
