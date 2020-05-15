@@ -342,7 +342,6 @@ class filetype():
             file_Path = os.path.splitext(file_Path)[0]
         elif file_Extension != '.dat':
             print('Wrong file extension')
-        
         json_f = [f for f in os.listdir(os.path.dirname(filepath)) if f.endswith('.json')]
         if json_f:
             json_file = ''.join((os.path.dirname(filepath),'\\',json_f[0]))

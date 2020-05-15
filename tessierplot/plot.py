@@ -138,8 +138,8 @@ class plotR(object):
 				# for k in rcP:
 					# mpl.rcParams[k] = rcP_thumb[k]
 			# else:
-			# 	for k in rcP:
-			# 		mpl.rcParams[k] = rcP[k]
+				# for k in rcP:
+					# mpl.rcParams[k] = rcP[k]
 			# if self.is2d():
 				# fig = self.plot2d(uniques_col_str=uniques_col_str,**kwargs)
 			# else:
@@ -206,7 +206,7 @@ class plotR(object):
 						subplots_args={'top':0.96, 'bottom':0.17, 'left':0.14, 'right':0.85,'hspace':0.4},
 						ax_destination=None,
 						n_index=None,
-						style='normal',
+						style=['normal'],
 						xlims_manual=None,
 						ylims_manual=None,
 						clim=None,
@@ -594,7 +594,7 @@ class plotR(object):
 	def plot2d(self,fiddle=False,
 					n_index=None,
 					value_axis = -1,
-					style=None,
+					style=['normal'],
 					uniques_col_str=[],
 					legend=False,
 					ax_destination=None,
@@ -662,7 +662,6 @@ class plotR(object):
 						if i not in n_index:
 							continue
 				data = self.data.sorted_data[j]
-
 				#filter out the keys corresponding to unique value columns
 				us=uniques_col_str
 				coord_keys = [key for key in coord_keys if key not in uniques_col_str]
@@ -687,7 +686,8 @@ class plotR(object):
 					pass
 					# this crashes sometimes. did not investiagte yet what the problem is. switched off in the meantime
 					#title = '\n'.join([title, '{:s}: {:g}'.format(uniques_axis_designations[i],data[z].iloc[0])])
-				
+				self.XX = y
+
 				wrap = styles.getPopulatedWrap(style)
 				wrap['XX'] = y
 				wrap['X']  = x
@@ -700,6 +700,13 @@ class plotR(object):
 				styles.processStyle(style,wrap)
 				xaxislabelwithunit = wrap['xlabel'] + ' (' + wrap['xunit'] + ')'
 				yaxislabelwithunit = wrap['ylabel'] + ' (' + wrap['yunit'] + ')'
+
+				self.stylebuffer = wrap['buffer'] 
+				self.xaxislabel = wrap['xlabel']
+				self.xaxisunit = wrap['xunit']
+				self.yaxislabel= wrap['ylabel']
+				self.yaxisunit = wrap['yunit']
+				self.XX_processed = wrap['XX']
 				
 				if ax_destination:
 					ax = ax_destination

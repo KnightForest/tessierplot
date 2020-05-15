@@ -47,7 +47,7 @@ def helper_mov_avg(w):
 	
 	data = w['XX']
 	if data.ndim == 1:
-		win = np.ones((m,))
+		win = np.ones((n,))
 		w['XX'] = moving_average_1d(w['XX'], win)
 	else:
 		win = np.ones((m, n))
@@ -204,6 +204,7 @@ def helper_didv(w):
 	cbar_u = w['cbar_unit']
 	condquant = strtobool(w['didv_condquant'])
 	print(cbar_q,cbar_u)
+	print('a.ndim',a.ndim)
 	if a.ndim == 1: #if 1D 
 		w['XX'] = np.diff(w['XX'])
 		w['XX'] = np.append(w['XX'],w['XX'][-1])

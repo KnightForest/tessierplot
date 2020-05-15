@@ -272,6 +272,7 @@ class tessierView(object):
                         <option value="{{"\\'fixlabels\\',\\'int\\'"|e}}">int</option>
                         <option value="{{"\\'fixlabels\\',\\'log\\'"|e}}">log</option>
                         <option value="{{"\\'fixlabels\\',\\'mov_avg(n=3)\\',\\'didv\\',\\'mov_avg(n=3)\\'"|e}}">diff</option>
+                        <option value="{{"\\'fixlabels\\',\\'mov_avg(n=12)\\',\\'didv\\',\\'mov_avg(n=12)\\'"|e}}">diff_smooth</option>
                         <option value="{{"\\'fixlabels\\',\\'logdb\\'"|e}}">logdb</option>
                         <option value="{{"\\'fixlabels\\',\\'sgdidv\\'"|e}}">sgdiff</option>
                         <option value="{{"\\'fixlabels\\',\\'sgdidv\\',\\'log\\'"|e}} ">sgdiff,log</option>
