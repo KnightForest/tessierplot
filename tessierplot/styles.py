@@ -1541,7 +1541,7 @@ def moving_average_2d(data, window):
     # The output array has the same dimensions as the input data
     # (mode='same') and symmetrical boundary conditions are assumed
     # (boundary='symm').
-    return signal.convolve2d(data, window, mode='same', boundary='symm')
+    return signal.convolve2d(data, window, mode='same', boundary='fill', fillvalue=np.nan)
 
 def moving_average_1d(data, window):
     """Moving average on two-dimensional data.
@@ -1555,7 +1555,10 @@ def moving_average_1d(data, window):
     # The output array has the same dimensions as the input data
     # (mode='same') and symmetrical boundary conditions are assumed
     # (boundary='symm').
-    return signal.convolve(data, window, mode='same')
+    smoothed = signal.convolve(data, window, mode='same')
+    smoothed[-(np.int(len(window)/2)):] = np.nan
+    smoothed[0:np.int(len(window)/2)] = np.nan   
+    return smoothed
 
 
 def get_offset(x,y1,y2):

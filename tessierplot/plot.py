@@ -707,6 +707,7 @@ class plotR(object):
 				self.yaxislabel= wrap['ylabel']
 				self.yaxisunit = wrap['yunit']
 				self.XX_processed = wrap['XX']
+				self.X = wrap['X']
 				
 				if ax_destination:
 					ax = ax_destination
