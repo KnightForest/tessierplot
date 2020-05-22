@@ -248,7 +248,7 @@ def helper_didv(w):
 			w['XX'] = w['XX'] / w['ystep']
 			w['cbar_unit'] = '$\Omega$'
 
-	elif cbar_q == '' and w['yunit'] == 'A': # assume that this is a condition for a 2d plot:
+	elif a.ndim == 1:
 		if condquant==True:
 			w['XX'] = w['XX'] / w['xstep'] * 1.29064037e4
 			w['yunit'] = r'2$\mathrm{e}^2/\mathrm{h}$'
@@ -636,7 +636,8 @@ def helper_ivreverser(w): #Inverse I and V-bias measurements (works on both) by 
 		ycorrected[i,:] = XX[i,:] #y-axis becomes data axis
 		XX[i,:] = yaxis #data axis becomes y-axis
 		#datacorrected[i,:] = yaxis #data axis becomes y-axis
-	ylimitneg,ylimitpos = math.floor(np.nanmin(ycorrected*10))/10, math.ceil(np.nanmax(ycorrected*10))/10
+	ylimitneg,ylimitpos = (np.nanmin(ycorrected)), (np.nanmax(ycorrected))
+	print(ylimitneg,ylimitpos)
 	gridyaxis = np.linspace(ylimitneg,ylimitpos,int(yn*gridresolutionfactor))
 	gridxaxis = xaxis
 	XX_new = np.zeros(shape=(xn,len(gridyaxis)))
@@ -662,6 +663,18 @@ def helper_ivreverser(w): #Inverse I and V-bias measurements (works on both) by 
 		w['yunit'] = 'nA'
 		w['cbar_quantity'] = '$V_\mathrm{SD}$'
 		w['cbar_unit'] = 'mV' 
+	if w['yunit'].find('A') != -1:
+		print('I sourced detected')
+		w['ylabel'] = '$V_\mathrm{SD}$'
+		w['yunit'] = 'V'
+		w['cbar_quantity'] = '$I_\mathrm{S}$'
+		w['cbar_unit'] = 'A'
+	elif w['yunit'].find('V') != -1:
+		print('V sourced detected')
+		w['ylabel'] = '$I_\mathrm{D}$'
+		w['yunit'] = 'A'
+		w['cbar_quantity'] = '$V_\mathrm{SD}$'
+		w['cbar_unit'] = 'V' 
 
 def helper_ivreversernew(w): #Inverse I and V-bias measurements (works on both) by interpolating y-data on new homogeneous x-axis.
 	# new versiong since matplotlibs griddata was deprecated :/
@@ -698,7 +711,11 @@ def helper_ivreversernew(w): #Inverse I and V-bias measurements (works on both) 
 	zf = np.ravel(XX)
 	indexnonans=np.invert(np.isnan(points[:,0]))*np.invert(np.isnan(points[:,1]))*np.invert(np.isnan(zf))
 	XX_new = np.zeros(shape=(xn,len(grid_y_1d)))
-	print(twodim,method)
+	# Calculate very tiny value relative to smallest value found in dataset to create a 
+	# monotonous increase in the interpolated values. This prevents cubic interpolation 
+	# from crashing since it cannot handle repeating values.
+	minaddnp=np.abs(np.nanmin(XX)*1e-3)
+	print(minaddnp)
 	if twodim == True:
 		print('2d')
 		try:
@@ -713,7 +730,12 @@ def helper_ivreversernew(w): #Inverse I and V-bias measurements (works on both) 
 		XX_new = np.zeros(shape=(xn,len(grid_y_1d)))
 		try:
 			for i in range(0,xn):
-				f = interp1d(ycorrected[i,:],yaxis, kind=method, bounds_error=False, fill_value=np.nan)
+				indexnonans2 = np.nonzero(~np.isnan(ycorrected[i,:])) 
+				ycn = ycorrected[i,(indexnonans2)][0]
+				# Making sure ycn values are all unique by adding a random tiny value to each
+				ycn = np.linspace(0,minaddnp*1e-6,len(ycn))+ycn
+				yn = yaxis[indexnonans2]
+				f = interp1d(ycn,yn, kind=method, bounds_error=False, fill_value=np.nan)
 				XX_new[i,:] = f(grid_y_1d)
 		except:
 			print('IVreverser {} interpolation failed, falling back to \'nearest\'.'.format(method))

@@ -187,6 +187,8 @@ class plotR(object):
 	def autoColorScale(self,data):
 		#filter out NaNs or infinities, should any have crept in
 		data = data[np.isfinite(data)]
+		m=2
+		data= data[abs(data - np.mean(data)) < m * np.std(data)]
 		values, edges = np.histogram(data, 256)
 		maxima = edges[argrelmax(values,order=24)]
 		try:
@@ -302,18 +304,19 @@ class plotR(object):
 
 				xu = np.size(x.unique())
 				yu = np.size(y.unique())
-				## if the measurement is not complete this will probably fail so trim off the final sweep?
+				## if the measurement is not complete this will probably fail so append nans to last sweep
 				print('xu: {:d}, yu: {:d}, lenz: {:d}'.format(xu,yu,len(z)))
 				if xu*yu > len(z): #This condition most likely corresponds to an unfinished measurement sweep.
 					appseries = pd.Series(np.zeros(int(xu*yu-len(z))) + np.nan)
-				#if self.data == data_slice:
-					z = z.append(appseries)
-					x = x.append(appseries)
-					y = y.append(appseries)
-				#else:
-				#	z = z.insert(0,appseries)
-				#	x = x.insert(0,appseries)
-				#	y = y.insert(0,appseries)
+					# Where the nans are added is still hit and miss with this code, it needs to be written more generally:
+					if self.data_byuniques.equals(self.data):
+						z = z.append(appseries)
+						x = x.append(appseries)
+						y = y.append(appseries)
+					else:
+						z = z.insert(0,appseries)
+						x = x.insert(0,appseries)
+						y = y.insert(0,appseries)
 					#xu = int(np.floor(len(z) / yu))
 					print('xu: {:d}, yu: {:d}, lenz: {:d} after adding nan for incomplete sweep'.format(xu,yu,len(z)))
 					#trimflag = True#dividing integers so should automatically floor the value
