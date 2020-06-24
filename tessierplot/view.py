@@ -269,6 +269,7 @@ class tessierView(object):
                     <form name='{{ item.datapath }}'>
                     <select name="selector">
                         <option value="{{"\\'fixlabels\\',\\'\\'"|e}}">normal</option>
+                        <option value="{{"\\'fixlabels\\',\\'mov_avg(n=6)\\',\\'\\'"|e}}">mov_avg</option>
                         <option value="{{"\\'fixlabels\\',\\'int\\'"|e}}">int</option>
                         <option value="{{"\\'fixlabels\\',\\'log\\'"|e}}">log</option>
                         <option value="{{"\\'fixlabels\\',\\'mov_avg(n=3)\\',\\'didv\\',\\'mov_avg(n=3)\\'"|e}}">diff</option>

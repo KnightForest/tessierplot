@@ -309,7 +309,7 @@ class plotR(object):
 				if xu*yu > len(z): #This condition most likely corresponds to an unfinished measurement sweep.
 					appseries = pd.Series(np.zeros(int(xu*yu-len(z))) + np.nan)
 					# Where the nans are added is still hit and miss with this code, it needs to be written more generally:
-					if self.data_byuniques.equals(self.data):
+					if data_byuniques.equals(self.data):
 						z = z.append(appseries)
 						x = x.append(appseries)
 						y = y.append(appseries)
@@ -716,8 +716,8 @@ class plotR(object):
 					ax = ax_destination
 				else:
 					ax = plt.subplot(gs[k])
-				ax.plot(wrap['X'],wrap['XX'],label=title,**kwargs)
-
+				ax.plot(wrap['X'],wrap['XX'],'o-', fillstyle='none', markersize=2,label=title,**kwargs)
+				#self.cutAx.plot(xx,z,'o-',fillstyle='none',markersize=2)
 				if legend:
 					plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
 						   ncol=2, mode="expand", borderaxespad=0.)

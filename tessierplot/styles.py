@@ -602,7 +602,7 @@ def helper_vbiascorrector(w):
 	gridresolutionfactor = w['vbiascorrector_gridresolutionfactor'] # Example: Factor of 2 doubles the number of y datapoints for non-linear interpolation
 	for i in range(0,xn):
 		ycorrected[i,:] = yaxis-voffset-XX[i,:]*seriesr*1e-3
-	ylimitneg,ylimitpos = math.floor(np.nanmin(ycorrected*10))/10, math.ceil(np.nanmax(ycorrected*10))/10
+	ylimitneg,ylimitpos = np.nanmin(ycorrected), np.nanmax(ycorrected)
 	gridyaxis = np.linspace(ylimitneg,ylimitpos,int(yn*gridresolutionfactor))
 	gridxaxis = xaxis
 	XX_new = np.zeros(shape=(xn,len(gridyaxis)))
