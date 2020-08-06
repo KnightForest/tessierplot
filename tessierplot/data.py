@@ -122,10 +122,10 @@ class qcodes_parser(dat_parser):
         if 'interdependencies' in json_data:
             #read the column names from the .dat file
             filebuffer = self._filebuffer
-            firstline = (filebuffer.readline().decode('utf-8')).rstrip()
-            secondline = (filebuffer.readline().decode('utf-8')).rstrip()
-            thirdline = (filebuffer.readline().decode('utf-8')).rstrip()
-            fourthline = (filebuffer.readline().decode('utf-8')).rstrip()
+            firstline = (filebuffer.readline().decode('utf-8', 'ignore')).rstrip()
+            secondline = (filebuffer.readline().decode('utf-8', 'ignore')).rstrip()
+            thirdline = (filebuffer.readline().decode('utf-8', 'ignore')).rstrip()
+            fourthline = (filebuffer.readline().decode('utf-8', 'ignore')).rstrip()
 
             names = thirdline[2:].split('\t')
             
