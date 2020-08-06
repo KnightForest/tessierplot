@@ -268,21 +268,20 @@ class tessierView(object):
                     <button id='{{ item.datapath }}' onClick='plotwithStyle(this.id)' class='plotStyleSelect'>Plot with</button>
                     <form name='{{ item.datapath }}'>
                     <select name="selector">
-                        <option value="{{"\\'fixlabels\\',\\'\\'"|e}}">normal</option>
-                        <option value="{{"\\'fixlabels\\',\\'mov_avg(n=6)\\',\\'\\'"|e}}">mov_avg</option>
-                        <option value="{{"\\'fixlabels\\',\\'int\\'"|e}}">int</option>
-                        <option value="{{"\\'fixlabels\\',\\'log\\'"|e}}">log</option>
-                        <option value="{{"\\'fixlabels\\',\\'mov_avg(n=3)\\',\\'didv\\',\\'mov_avg(n=3)\\'"|e}}">diff</option>
-                        <option value="{{"\\'fixlabels\\',\\'mov_avg(n=12)\\',\\'didv\\',\\'mov_avg(n=12)\\'"|e}}">diff_smooth</option>
-                        <option value="{{"\\'fixlabels\\',\\'logdb\\'"|e}}">logdb</option>
-                        <option value="{{"\\'fixlabels\\',\\'sgdidv\\'"|e}}">sgdiff</option>
-                        <option value="{{"\\'fixlabels\\',\\'sgdidv\\',\\'log\\'"|e}} ">sgdiff,log</option>
-                        <option value="{{"\\'fixlabels\\',\\'meansubtract\\',\\'ivreversernew\\',\\'mov_avg(n=3)\\',\\'didv\\'"|e}}">ivreverser,diff</option>
-                        <option value="{{"\\'fixlabels\\',\\'int\\',\\'meansubtract\\',\\'ivreversernew\\',\\'didv\\'"|e}}">int,ivreverser,diff</option>
-                        <option value="{{"\\'fixlabels\\',\\'meansubtract\\',\\'deinterlace0\\'"|e}} ">deinterlace0</option>
-                        <option value="{{"\\'fixlabels\\',\\'meansubtract\\',\\'deinterlace1\\'"|e}} ">deinterlace1</option>
-                        <option value="{{"\\'fixlabels\\',\\'meansubtract\\',\\'deinterlace0\\',\\'mov_avg\\',\\'diff\\'"|e}} ">deinterlace0,diff</option>
-                        <option value="{{"\\'fixlabels\\',\\'meansubtract\\',\\'deinterlace1\\',\\'mov_avg\\',\\'diff\\'"|e}} ">deinterlace1,diff</option>
+                        <option value="{{"\\'\\'"|e}}">normal</option>
+                        <option value="{{"\\'int\\'"|e}}">int</option>
+                        <option value="{{"\\'log\\'"|e}}">log</option>
+                        <option value="{{"\\'mov_avg(n=3)\\',\\'didv\\',\\'mov_avg(n=3)\\'"|e}}">diff</option>
+                        <option value="{{"\\'mov_avg(n=12)\\',\\'didv\\',\\'mov_avg(n=12)\\'"|e}}">diff_smooth</option>
+                        <option value="{{"\\'logdb\\'"|e}}">logdb</option>
+                        <option value="{{"\\'sgdidv\\'"|e}}">sgdiff</option>
+                        <option value="{{"\\'sgdidv\\',\\'log\\'"|e}} ">sgdiff,log</option>
+                        <option value="{{"\\'meansubtract\\',\\'ivreversernew\\',\\'mov_avg(n=3)\\',\\'didv\\'"|e}}">ivreverser,diff</option>
+                        <option value="{{"\\'int\\',\\'meansubtract\\',\\'ivreversernew\\',\\'didv\\'"|e}}">int,ivreverser,diff</option>
+                        <option value="{{"\\'meansubtract\\',\\'deinterlace0\\'"|e}} ">deinterlace0</option>
+                        <option value="{{"\\'meansubtract\\',\\'deinterlace1\\'"|e}} ">deinterlace1</option>
+                        <option value="{{"\\'meansubtract\\',\\'deinterlace0\\',\\'mov_avg\\',\\'diff\\'"|e}} ">deinterlace0,diff</option>
+                        <option value="{{"\\'meansubtract\\',\\'deinterlace1\\',\\'mov_avg\\',\\'diff\\'"|e}} ">deinterlace1,diff</option>
                     </select>
                     <input type="checkbox" name="stylechecker" value="{{"\\'flipaxes\\',"|e}} ">Flip axes
                     </form>            
