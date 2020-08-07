@@ -206,7 +206,8 @@ class tessierView(object):
                             self._allthumbs.append({'datapath':fullpath,
                                                  'thumbpath':thumbpath_html,
                                                  'datedir':datedir, 
-                                                 'measname':measname})
+                                                 'measname':measname,
+                                                 'comment': 'comment'})
                             images += 1
         return self._allthumbs
 
@@ -217,14 +218,20 @@ class tessierView(object):
     def genhtml(self,refresh=False,**kwargs):
         if self._override:
             refresh = True
-        self.walk(filemask=self._filemask,filterstring=self._filterstring,headercheck=self._headercheck,override=refresh,**kwargs) #Change override to True if you want forced refresh of thumbs
+        self.walk(filemask=self._filemask,
+                  filterstring=self._filterstring,
+                  headercheck=self._headercheck,
+                  override=refresh,
+                  **kwargs) #Change override to True if you want forced refresh of thumbs
+        
         #unobfuscate the file relative to the working directory
         #since files are served from ipyhton notebook from ./files/
         all_relative = [{ 
                             'thumbpath':'./files/'+os.path.relpath(k['thumbpath'],start=os.getcwd()),
                             'datapath':k['datapath'], 
                             'datedir':k['datedir'], 
-                            'measname':k['measname'] } for k in self._allthumbs]
+                            'measname':k['measname'],
+                            'comment': k['comment'] } for k in self._allthumbs]
         out=u"""
 
         
@@ -252,9 +259,9 @@ class tessierView(object):
             <div class='row'>
         {% endif %}
 
-            <div id='{{ item.datapath }}' class='col'>
+            <div id='{{ item.datapath }}' class='col'>  {# mousehover filename! todo: add measurement comment #}
 
-                <div class='name'> {{ item.measname }} </div>
+                <div class='name'> {{ item.measname + '\n' + 'Comment: ' + item.comment }} </div>
 
                 <div class='thumb'>
                         <img src="{{ item.thumbpath }}?{{ nowstring }}"/> 
@@ -425,6 +432,7 @@ class tessierView(object):
                     position:absolute; 
                     top: 2px; 
                     width:80% ;
+                    white-space: pre-line;
                     border: solid black 1px;
                     background-color: white;
                     word-break:break-all; 

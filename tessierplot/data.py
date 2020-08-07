@@ -159,7 +159,17 @@ class qcodes_parser(dat_parser):
                             h['name'] = h['label'] #Uncomment if you want labels instead of names als axis labels
                             header.append(h)
                             break
-        return header,headerlength
+        titleline = firstline.split(',')
+        comment = secondline[2:]
+        headertitledict = {
+        'measname'   : titleline[0],
+        'experiment' : titleline[1],
+        'samplename' : titleline[2],
+        'nvals'      : titleline[3],
+        'comment'    : comment
+        }
+        #header.append(headertitledict)
+        return header,headerlength #,headertitledict
 
 class qtlab_parser(dat_parser):
     def __init__(self,filename=None,filebuffer=None):
