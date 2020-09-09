@@ -283,6 +283,7 @@ class tessierView(object):
                         <option value="{{"\\'logdb\\'"|e}}">logdb</option>
                         <option value="{{"\\'sgdidv\\'"|e}}">sgdiff</option>
                         <option value="{{"\\'sgdidv\\',\\'log\\'"|e}} ">sgdiff,log</option>
+                        <option value="{{"\\'movingmeansubtract(window=1)\\'"|e}} ">movmeansubtract</option>
                         <option value="{{"\\'meansubtract\\',\\'ivreversernew\\',\\'mov_avg(n=3)\\',\\'didv\\'"|e}}">ivreverser,diff</option>
                         <option value="{{"\\'int\\',\\'meansubtract\\',\\'ivreversernew\\',\\'didv\\'"|e}}">int,ivreverser,diff</option>
                         <option value="{{"\\'meansubtract\\',\\'deinterlace0\\'"|e}} ">deinterlace0</option>

@@ -169,7 +169,7 @@ class qcodes_parser(dat_parser):
         'comment'    : comment
         }
         #header.append(headertitledict)
-        return header,headerlength #,headertitledict
+        return header,headerlength #git c,headertitledict
 
 class qtlab_parser(dat_parser):
     def __init__(self,filename=None,filebuffer=None):
