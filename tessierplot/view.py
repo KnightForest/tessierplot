@@ -198,16 +198,24 @@ class tessierView(object):
                     if self._showfilenames:
                         print(fullpath)
                     df = data.Data.load_header_only(fullpath)
+
                     if headercheck is None or df.coordkeys[-2] == headercheck:
                         thumbpath = self.makethumbnail(fullpath,**kwargs)
 
                         if thumbpath:
                             thumbpath_html = thumbpath.replace('#','%23') # html does not like number signs in file paths
-                            self._allthumbs.append({'datapath':fullpath,
+                            if 'comment' in df._header[-1]:
+                                comment = (df._header[-1]['comment'])
+                                self._allthumbs.append({'datapath':fullpath,
                                                  'thumbpath':thumbpath_html,
                                                  'datedir':datedir, 
                                                  'measname':measname,
-                                                 'comment': 'comment'})
+                                                 'comment': comment})
+                            else:
+                                self._allthumbs.append({'datapath':fullpath,
+                                                 'thumbpath':thumbpath_html,
+                                                 'datedir':datedir, 
+                                                 'measname':measname})
                             images += 1
         return self._allthumbs
 

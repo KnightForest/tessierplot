@@ -308,15 +308,22 @@ class plotR(object):
 				print('xu: {:d}, yu: {:d}, lenz: {:d}'.format(xu,yu,len(z)))
 				if xu*yu > len(z): #This condition most likely corresponds to an unfinished measurement sweep.
 					appseries = pd.Series(np.zeros(int(xu*yu-len(z))) + np.nan)
+					print(len(appseries))
 					# Where the nans are added is still hit and miss with this code, it needs to be written more generally:
-					if data_byuniques.equals(self.data):
-						z = z.append(appseries)
-						x = x.append(appseries)
-						y = y.append(appseries)
-					else:
-						z = z.insert(0,appseries)
-						x = x.insert(0,appseries)
-						y = y.insert(0,appseries)
+					# if data_byuniques.equals(self.data):
+					# 	z = z.append(appseries)
+					# 	x = x.append(appseries)
+					# 	y = y.append(appseries)
+					# else:
+					# 	z = z.insert(0,appseries)
+					# 	x = x.insert(0,appseries)
+					# 	y = y.insert(0,appseries)
+					z = z.append(appseries)
+					x = x.append(appseries)
+					y = y.append(appseries)
+					#z = z.insert(0,appseries)
+					#x = x.insert(0,appseries)
+					#y = y.insert(0,appseries)
 					#xu = int(np.floor(len(z) / yu))
 					print('xu: {:d}, yu: {:d}, lenz: {:d} after adding nan for incomplete sweep'.format(xu,yu,len(z)))
 					#trimflag = True#dividing integers so should automatically floor the value
