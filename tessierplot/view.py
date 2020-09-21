@@ -234,12 +234,19 @@ class tessierView(object):
         
         #unobfuscate the file relative to the working directory
         #since files are served from ipyhton notebook from ./files/
-        all_relative = [{ 
+        if 'comment' in self._allthumbs:
+            all_relative = [{ 
                             'thumbpath':'./files/'+os.path.relpath(k['thumbpath'],start=os.getcwd()),
                             'datapath':k['datapath'], 
                             'datedir':k['datedir'], 
                             'measname':k['measname'],
                             'comment': k['comment'] } for k in self._allthumbs]
+        else:
+            all_relative = [{ 
+                            'thumbpath':'./files/'+os.path.relpath(k['thumbpath'],start=os.getcwd()),
+                            'datapath':k['datapath'], 
+                            'datedir':k['datedir'], 
+                            'measname':k['measname']} for k in self._allthumbs]
         out=u"""
 
         
