@@ -215,7 +215,8 @@ class tessierView(object):
                                 self._allthumbs.append({'datapath':fullpath,
                                                  'thumbpath':thumbpath_html,
                                                  'datedir':datedir, 
-                                                 'measname':measname})
+                                                 'measname':measname,
+                                                 'comment': 'n.a.'})
                             images += 1
         return self._allthumbs
 
@@ -234,19 +235,12 @@ class tessierView(object):
         
         #unobfuscate the file relative to the working directory
         #since files are served from ipyhton notebook from ./files/
-        if 'comment' in self._allthumbs:
-            all_relative = [{ 
+        all_relative = [{ 
                             'thumbpath':'./files/'+os.path.relpath(k['thumbpath'],start=os.getcwd()),
                             'datapath':k['datapath'], 
                             'datedir':k['datedir'], 
                             'measname':k['measname'],
                             'comment': k['comment'] } for k in self._allthumbs]
-        else:
-            all_relative = [{ 
-                            'thumbpath':'./files/'+os.path.relpath(k['thumbpath'],start=os.getcwd()),
-                            'datapath':k['datapath'], 
-                            'datedir':k['datedir'], 
-                            'measname':k['measname']} for k in self._allthumbs]
         out=u"""
 
         
