@@ -128,6 +128,9 @@ class plotR(object):
 
 		return len(coords[filter_neg]) < 2
 
+	def measurementorder(self,**kwargs):
+		return len(np.array(self.data.coordkeys))
+
 	# def quickplot_processed(self,**kwargs):
 		# coords = np.array(self.data.coordkeys)
 		# filter = self.data.dims < 5
@@ -200,6 +203,32 @@ class plotR(object):
 			print('autocolorscale crashed')
 		return (cminlim,cmaxlim)
 
+	def plothigherorder(self,    massage_func=None,
+						uniques_col_str=[],
+						drawCbar=True,
+						cax_destination=None,
+						subplots_args={'top':0.96, 'bottom':0.17, 'left':0.14, 'right':0.85,'hspace':0.4},
+						ax_destination=None,
+						n_index=None,
+						style=['normal'],
+						xlims_manual=None,
+						ylims_manual=None,
+						clim=None,
+						aspect='auto',
+						interpolation='nearest',
+						value_axis=-1,
+						sweepoverride=False,
+						imshow=True,
+						cbar_orientation='vertical',
+						cbar_location ='normal',
+						filter_raw = True,
+						ccmap = None,
+						#supress_plot = False, #Added suppression of plot option
+						norm = 'nan', #Added for NaN value support
+						**kwargs):
+		# Placeholder for plotting cube maps and higher order measurement. Should generate a loop for plotting colormaps.
+		print('Cubeplotplaceholder')
+		pass
 
 	def plot3d(self,    massage_func=None,
 						uniques_col_str=[],
@@ -275,7 +304,6 @@ class plotR(object):
 		width = 1#len(value_axes)
 		height = len(value_axes)
 		n_subplots = n_subplots *width#int(n_subplots/width)+n_subplots%width
-		#gs = gridspec.GridSpec(int(n_subplots/width)+n_subplots%width, width)
 		gs = gridspec.GridSpec(height,width)
 		cnt=0 #subplot counter
 
@@ -288,63 +316,50 @@ class plotR(object):
 				if n_index is not None:
 					if j not in n_index:
 						continue
-				data_byuniques = self.data.sorted_data.loc[ind]
-				data_slice = data_byuniques
-
-				#get the columns /not/ corresponding to uniques_cols
-				#filter out the keys corresponding to unique value columns
 				us=uniques_col_str
 				coord_keys = [key for key in coord_keys if key not in uniques_col_str ]
 				coord_units = list(coord_units[i] for i in [i for i, key in enumerate(coord_keys) if key not in uniques_col_str])
+				
+				data_slice = self.data.loc[ind]
+				xu = np.size(data_slice[coord_keys[-2]].unique())
+				yu = np.size(data_slice[coord_keys[-1]].unique())
+				lenz = np.size(data_slice[value_keys[value_axis]])
+				print('xu: {:d}, yu: {:d}, lenz: {:d}'.format(xu,yu,lenz))
+				
+
+				if xu*yu > lenz: #Condition for unfinished measurement sweep
+					missingpoints = xu*yu-lenz		
+					xarr=np.full((missingpoints),data_slice[coord_keys[-2]].iloc[-1])
+					# Determining the y-array can bug when strange steps are used during measurement
+					ystep = data_slice[coord_keys[-1]].iloc[-1]-data_slice[coord_keys[-1]].iloc[-2]
+					#ystep = np.float(np.format_float_scientific(ystep, unique=False, precision=10))
+					ystart = data_slice[coord_keys[-1]].iloc[-1]+ystep
+					yend = missingpoints*ystep+ystart-ystep
+					yarr = np.linspace(ystart,yend,missingpoints)
+					#for i in range(0,len(yarr)):
+					#	yarr[i] = np.float(np.format_float_scientific(yarr[i], unique=False, precision=10))
+					print('yarr',yarr)
+					zarr = np.zeros(int(xu*yu-lenz)) + np.nan
+					concatdf = pd.DataFrame({coord_keys[-2]: xarr,
+									   coord_keys[-1]: yarr,
+									   value_keys[value_axis]: zarr})
+					newdf = [data_slice,concatdf]
+					data_slice = pd.concat(newdf, ignore_index=True)
+					lenz = np.size(data_slice[value_keys[value_axis]])
+					print('xu: {:d}, yu: {:d}, lenz: {:d} after adding nan for incomplete sweep'.format(xu,yu,lenz))
+
+				#get the columns /not/ corresponding to uniques_cols
+				#filter out the keys corresponding to unique value columns
+
 				#now find out if there are multiple value axes
+				#self.data_slice_unsorted = data_slice
+				data_slice = (data_slice.sort_values(by=[coord_keys[-2],coord_keys[-1]]))#.reset_index(drop=True)
+				self.data_slice = data_slice
 
 				x=data_slice.loc[:,coord_keys[-2]]
 				y=data_slice.loc[:,coord_keys[-1]]
 				z=data_slice.loc[:,value_keys[value_axis]]
 
-				xu = np.size(x.unique())
-				yu = np.size(y.unique())
-				## if the measurement is not complete this will probably fail so append nans to last sweep
-				print('xu: {:d}, yu: {:d}, lenz: {:d}'.format(xu,yu,len(z)))
-				if xu*yu > len(z): #This condition most likely corresponds to an unfinished measurement sweep.
-					appseries = pd.Series(np.zeros(int(xu*yu-len(z))) + np.nan)
-					print(len(appseries))
-					# Where the nans are added is still hit and miss with this code, it needs to be written more generally:
-					# if data_byuniques.equals(self.data):
-					# 	z = z.append(appseries)
-					# 	x = x.append(appseries)
-					# 	y = y.append(appseries)
-					# else:
-					# 	z = z.insert(0,appseries)
-					# 	x = x.insert(0,appseries)
-					# 	y = y.insert(0,appseries)
-					z = z.append(appseries)
-					x = x.append(appseries)
-					y = y.append(appseries)
-					#z = z.insert(0,appseries)
-					#x = x.insert(0,appseries)
-					#y = y.insert(0,appseries)
-					#xu = int(np.floor(len(z) / yu))
-					print('xu: {:d}, yu: {:d}, lenz: {:d} after adding nan for incomplete sweep'.format(xu,yu,len(z)))
-					#trimflag = True#dividing integers so should automatically floor the value
-				#trim the first part of the sweep, for different min max, better to trim last part?
-				#or the first since there has been sorting
-				#this doesnt work for e.g. a hilbert measurement
-
-				if x.index[0] > x.index[-1]:
-					sweepoverride = True
-
-				
-				#sorting sorts negative to positive, so beware:
-				#sweep direction determines which part of array should be cut off
-				if sweepoverride: ##if sweep True, override the detect value
-					z = z[-xu*yu:]
-					x = x[-xu*yu:]
-					y = y[-xu*yu:]
-				else:
-					z = z[:xu*yu]
-					x = x[:xu*yu]
-					y = y[:xu*yu]
 				XX = z.values.reshape(xu,yu)
 				X = x.values.reshape(xu,yu)
 				Y = y.values.reshape(xu,yu)
@@ -382,23 +397,23 @@ class plotR(object):
 
 				#Gridding and interpolating unevenly spaced data
 				extx = abs(ext[1]-ext[0])
-				xdx = np.diff(X, axis=0)#.astype(float)
-				#xdx = xdx[~np.isnan(xdx)]
+				xdx = np.diff(X, axis=0)
 				xdxshape = xdx.shape
-				for i in range(0,int(xdxshape[0])): # Rounding to finite precision to find stepsize
-					for j in range(0,int(xdxshape[1])):
-						xdx[i,j]=np.format_float_scientific(xdx[i,j], unique=False, precision=3)
-				minxstep = np.nanmin(abs(xdx[np.nonzero(xdx)]))
+				#for i in range(0,int(xdxshape[0])): # Rounding to finite precision to find stepsize
+				#	for j in range(0,int(xdxshape[1])):
+				#		xdx[i,j]=np.format_float_scientific(xdx[i,j], unique=False, precision=10)
+				minxstep = np.nanmin(abs(xdx[xdx > 1e-19])) # removing rounding errors from diff
 				minxsteps = int(round(extx/minxstep,0))+1
 				exty = abs(ext[3]-ext[2])
 				ydy = np.diff(Y, axis=1)#.astype(float)
-				#ydy = ydy[~np.isnan(ydy)]
 				ydyshape = ydy.shape
-				for i in range(0,ydyshape[0]):
-					for j in range(0,ydyshape[1]):
-						ydy[i,j]=np.format_float_scientific(ydy[i,j], unique=False, precision=10)
-				minystep = np.nanmin(abs(ydy[np.nonzero(ydy)]))
+				#for i in range(0,ydyshape[0]):
+				#		for j in range(0,ydyshape[1]):
+				#				ydy[i,j]=np.format_float_scientific(ydy[i,j], unique=False, precision=10)
+				minystep = np.nanmin(abs(ydy[ydy > 1e-19])) # removing rounding errors from diff
 				minysteps = int(round(exty/minystep,0))+1
+				if minysteps > 100*yu: #limiting the interpolation stepsize
+					minysteps = 100*yu
 				if minxsteps > xu or minysteps > yu:
 					print('Unevenly spaced data detected, cubic interpolation will be performed. \n New dimension:', 1*minxsteps,1*minysteps)
 					# grid_x, grid_y and points are divided by their respective stepsize in x and y to get a properly weighted interpolation
