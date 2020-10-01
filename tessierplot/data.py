@@ -84,7 +84,7 @@ class qcodes_parser(dat_parser):
             columnname = re.split(r'\t+', firstline)
             columnname[0] = columnname[0][2::]
                     
-            #print(columnname,columnname2)
+            print(columnname,columnname2)
             
             #look for the part where the data file meta info is stored
             json_data = json.loads(json_s)
@@ -156,7 +156,6 @@ class qcodes_parser(dat_parser):
             for i, col in enumerate(names):
                 for j, h in enumerate(headervalues):
                         if col == h['name']:
-                            h['name'] = h['label'] #Uncomment if you want labels instead of names als axis labels
                             header.append(h)
                             break
         titleline = firstline.split(',')
@@ -256,32 +255,38 @@ class qtlab_parser(dat_parser):
             name_and_unit = reg_nu.findall(coord[i]['name'])
             if not name_and_unit:
                 coord[i]['unit'] = ''
+                coord[i]['label'] = coord[i]['name']
             else:
                 coord[i]['name'] = name_and_unit[0]
                 coord[i]['unit'] = name_and_unit[1]
-        
+                coord[i]['label'] = name_and_unit[0]
+
         val = [ zip(('column','name','type'),x) for x in val]
         val = [dict(x) for x in val]
         for i in range(0,len(val)):
             name_and_unit = reg_nu.findall(val[i]['name'])
             if not name_and_unit:
                 val[i]['unit'] = ''
+                val[i]['label'] = val[i]['name']
             else:
                 val[i]['name'] = name_and_unit[0]
                 val[i]['unit'] = name_and_unit[1]
+                val[i]['label'] = name_and_unit[0]
         header=coord+val
 
         if not coord: # for data files without the 'start' and 'end' line in the header 
             coord_short = coord_expression_short.findall(headertext)
-            coord_short = [ zip(('column','name','size','type','unit'),x) for x in coord_short]
+            coord_short = [ zip(('column','name','size','type'),x) for x in coord_short]
             coord_short = [dict(x) for x in coord_short]
             for i in range(0,len(coord)):
                 name_and_unit = reg_nu.findall(coord[i]['name'])
                 if not name_and_unit:
                     coord[i]['unit'] = ''
+                    coord[i]['label'] = coord[i]['name']
                 else:
                     coord[i]['name'] = name_and_unit[0]
                     coord[i]['unit'] = name_and_unit[1]
+                    coord[i]['label'] = name_and_unit[0]
                 header=coord_short+val
         
         return header,headerlength
@@ -454,13 +459,23 @@ class Data(pandas.DataFrame):
     def coordkeys_n(self):
         coord_keys = [i['name'] for n,i in enumerate(self._header) if ('column' in self._header[n] and i['type']=='coordinate')]
         units = [i['unit'] for n,i in enumerate(self._header) if ('column' in self._header[n] and i['type']=='coordinate')]
-        return coord_keys, units
+        labels= [i['label'] for n,i in enumerate(self._header) if ('column' in self._header[n] and i['type']=='coordinate')]
+        # for i in range(0,len(self._header)):
+        #     if 'label' in self._header[i]:
+        #         if self._header[i]['type']=='coordinate':
+        #             labels.append(self._header[i]['label'])
+        return coord_keys, units, labels
     
     @property
     def valuekeys_n(self):
         value_keys = [i['name'] for n,i in enumerate(self._header) if ('column' in self._header[n] and i['type']=='value')]
         units = [i['unit'] for n,i in enumerate(self._header) if ('column' in self._header[n] and i['type']=='value')]
-        return value_keys, units
+        labels= [i['label'] for n,i in enumerate(self._header) if ('column' in self._header[n] and i['type']=='value')]
+        # for i in range(0,len(self._header)):
+        #     if 'label' in self._header[i]:
+        #         if self._header[i]['type']=='value':
+        #             labels.append(self._header[i]['label'])
+        return value_keys, units,labels
 
     @property
     def sorted_data(self):

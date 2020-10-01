@@ -191,16 +191,17 @@ class plotR(object):
 		#filter out NaNs or infinities, should any have crept in
 		data = data[np.isfinite(data)]
 		m=2
-		data= data[abs(data - np.mean(data)) < m * np.std(data)]
-		values, edges = np.histogram(data, 256)
+		datastd= data[abs(data - np.mean(data)) < m * np.std(data)]
+		values, edges = np.histogram(datastd, 256)
 		maxima = edges[argrelmax(values,order=24)]
 		try:
 			if maxima.size>0:
-				cminlim , cmaxlim = maxima[0] , np.max(data)
+				cminlim , cmaxlim = maxima[0] , np.max(datastd)
 			else:
-				cminlim , cmaxlim = np.min(data) , np.max(data)
+				cminlim , cmaxlim = np.min(datastd) , np.max(datastd)
 		except Exception as e:
-			print('autocolorscale crashed')
+			print('Colorscale fallback to min-max value')
+			cminlim , cmaxlim = np.min(data) , np.max(data)
 		return (cminlim,cmaxlim)
 
 	def plothigherorder(self,    massage_func=None,
@@ -250,8 +251,9 @@ class plotR(object):
 						cbar_location ='normal',
 						filter_raw = True,
 						ccmap = None,
-						#supress_plot = False, #Added suppression of plot option
+						supress_plot = False, #Added suppression of plot option
 						norm = 'nan', #Added for NaN value support
+						axislabeltype = 'label', #Use 'label' or 'name' on axis labels
 						**kwargs):
 		#some housekeeping
 		if not self.fig and not ax_destination:
@@ -262,23 +264,34 @@ class plotR(object):
 			self.ccmap = loadCustomColormap()
 		else:
 			self.ccmap = ccmap
+		
+		if len(uniques_col_str)==0:
+			coords = np.array(self.data.coordkeys)
+			filter = self.data.dims < 2
+			uniques_col_str = coords[filter]
+
 		#determine how many subplots we need
 		n_subplots = 1
 
 		#make a list of uniques per column associated with column name
-		coord_keys,coord_units = self.data.coordkeys_n
-		value_keys,value_units = self.data.valuekeys_n
+		coord_keys,coord_units,coord_labels = self.data.coordkeys_n
+		value_keys,value_units,value_labels = self.data.valuekeys_n
+		coord_keys_raw,coord_units_raw,value_labels_raw = self.data.coordkeys_n
 
 		#Filtering raw value axes
 		if filter_raw== True:
 			value_keys_filtered = []
+			value_labels_filtered = []
 			value_units_filtered = []
-			for n,value_key in enumerate(value_keys):
-				if value_key.find('raw')==-1 and value_key.find('Raw')== -1:
-					value_keys_filtered.append(value_key)
+			for n,value_label in enumerate(value_labels):
+				if value_label.find('raw')==-1 and value_label.find('Raw')== -1:
+					value_labels_filtered.append(value_label)
+					value_keys_filtered.append(value_keys[n])
 					value_units_filtered.append(value_units[n])
 			value_keys = value_keys_filtered
 			value_units = value_units_filtered
+			value_labels = value_labels_filtered
+
 		#make a list of uniques per column associated with column name
 		uniques_by_column = dict(zip(coord_keys + value_keys, self.data.dims))
 
@@ -319,9 +332,9 @@ class plotR(object):
 				us=uniques_col_str
 				coord_keys = [key for key in coord_keys if key not in uniques_col_str ]
 				coord_units = list(coord_units[i] for i in [i for i, key in enumerate(coord_keys) if key not in uniques_col_str])
-				
-				data_slice = (self.data.loc[ind]).dropna(subset=[coord_keys[-2], coord_keys[-1]]) #Dropping rows with NaNs in coordinates
+				coord_labels = list(coord_labels[i] for i in [i for i, key in enumerate(coord_keys) if key not in uniques_col_str])
 
+				data_slice = (self.data.loc[ind]).dropna(subset=[coord_keys[-2], coord_keys[-1]]) #Dropping rows with NaNs in coordinates
 				xu = np.size(data_slice[coord_keys[-2]].unique())
 				yu = np.size(data_slice[coord_keys[-1]].unique())
 				lenz = np.size(data_slice[value_keys[value_axis]])
@@ -470,7 +483,19 @@ class plotR(object):
 				if type(style) != list:
 					style = list([style])
 
-				cbar_quantity,cbar_unit = value_keys[value_axis], value_units[value_axis]
+				if axislabeltype == 'label':
+					xaxislabel = coord_labels[-2] 
+					yaxislabel = coord_labels[-1]
+					cbar_quantity = value_labels[value_axis] 
+				elif axislabeltype == 'name':
+					xaxislabel = coord_keys[-2] 
+					yaxislabel = coord_keys[-1]
+					cbar_quantity = value_keys[value_axis] 
+				else:
+					raise Exception('Wrong axislabeltype argument, must be \'name\' or \'label\'')
+				xaxisunit = coord_units[-2]
+				yaxisunit = coord_units[-1]
+				cbar_unit = value_units[value_axis]
 				#wrap all needed arguments in a datastructure
 				sbuffer = ''
 				cbar_trans = [] #trascendental tracer :P For keeping track of logs and stuff
@@ -489,10 +514,10 @@ class plotR(object):
 						'cbar_unit': cbar_unit, 
 						'cbar_trans':cbar_trans, 
 						'buffer':sbuffer, 
-						'xlabel':coord_keys[-2], 
-						'xunit':coord_units[-2], 
-						'ylabel':coord_keys[-1], 
-						'yunit':coord_units[-1]}
+						'xlabel':xaxislabel, 
+						'xunit':xaxisunit, 
+						'ylabel':yaxislabel, 
+						'yunit':yaxisunit}
 				for k in w2:
 					w[k] = w2[k]
 				w['massage_func']=massage_func
@@ -560,10 +585,11 @@ class plotR(object):
 					yaxislabelwithunit = self.ylabel +  ' (' + self.yunit + ')'
 				ax.set_xlabel(xaxislabelwithunit)
 				ax.set_ylabel(yaxislabelwithunit)
+				
 				title = ''
 				for i in uniques_col_str:
-					title = '\n'.join([title, '{:s}: {:g} (mV)'.format(i,getattr(data_byuniques,i).iloc[0])])
-				print(title)
+					title = '\n'.join([title, '{:s}: {:g} {:s}'.format(i,getattr(data_slice,i).iloc[0], coord_units_raw[coord_keys_raw.index(i)] )])
+
 				if 'notitle' not in style:
 					ax.set_title(title)
 				# create an axes on the right side of ax. The width of cax will be 5%
@@ -627,33 +653,43 @@ class plotR(object):
 					ax_destination=None,
 					subplots_args={'top':0.96, 'bottom':0.17, 'left':0.14, 'right':0.85,'hspace':0.3},
 					massage_func=None,
-					filter_raw=True,
+					filter_raw=True, #Do not show plots with 'Raw' string in label
+					axislabeltype = 'label', #Use 'label' or 'name' on axis labels
 					**kwargs):
 					
 		if not self.fig and not ax_destination:
 			self.fig = plt.figure()
 			self.fig.subplots_adjust(**subplots_args)
 
-			#determine how many subplots we need
+		# if len(uniques_col_str)==0:
+		# 	coords = np.array(self.data.coordkeys)
+		# 	filter = self.data.dims < 5
+		# 	uniques_col_str = coords[filter]
+
+		#determine how many subplots we need
 		n_subplots = 1
-		coord_keys,coord_units = self.data.coordkeys_n
-		value_keys,value_units = self.data.valuekeys_n
+		coord_keys,coord_units,coord_labels = self.data.coordkeys_n
+		value_keys,value_units,value_labels = self.data.valuekeys_n
+		coord_keys_raw,coord_units_raw,coord_labels_raw = self.data.coordkeys_n
 
 		#Filtering raw value axes
 		if filter_raw== True:
 			value_keys_filtered = []
+			value_labels_filtered = []
 			value_units_filtered = []
-			for n,value_key in enumerate(value_keys):
-				if value_key.find('raw')==-1 and value_key.find('Raw')== -1:
-					value_keys_filtered.append(value_key)
+			for n,value_label in enumerate(value_labels):
+				if value_label.find('raw')==-1 and value_label.find('Raw')== -1:
+					value_labels_filtered.append(value_label)
+					value_keys_filtered.append(value_keys[n])
 					value_units_filtered.append(value_units[n])
 			value_keys = value_keys_filtered
 			value_units = value_units_filtered
+			value_labels = value_labels_filtered
 		#make a list of uniques per column associated with column name
 		uniques_by_column = dict(zip(coord_keys + value_keys, self.data.dims))
 
 		#assume 2d plots with data in the two last columns
-		if len(uniques_col_str) == 0:
+		if len(uniques_col_str)==0:
 			uniques_col_str = coord_keys[:-1]
 
 		if n_index is not None:
@@ -699,10 +735,18 @@ class plotR(object):
 				y=data.loc[:,value_keys[value_axis]]
 				parser = self.data.determine_parser
 
-				xaxislabel = coord_keys[-1] 
+				if axislabeltype == 'label' and len(coord_labels_raw) == len(coord_keys_raw):
+					xaxislabel = coord_labels[-1]
+				else: #else defaulting to column name for axis labels
+					xaxislabel = coord_keys[-1] 
+				if axislabeltype == 'label' and len(value_labels) == len(value_keys):
+					yaxislabel = value_labels[value_axis]
+				else: #else defaulting to column name for axis labels
+					yaxislabel = value_keys[value_axis]
+
 				xaxisunit = coord_units[-1]
-				yaxislabel = value_keys[value_axis]
 				yaxisunit = value_units[value_axis]
+
 				npx = np.array(x)
 				npy = np.array(y)
 				xstep = float(abs(npx[-1] - npx[0]))/(len(npx)-1)
