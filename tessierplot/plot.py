@@ -320,7 +320,8 @@ class plotR(object):
 				coord_keys = [key for key in coord_keys if key not in uniques_col_str ]
 				coord_units = list(coord_units[i] for i in [i for i, key in enumerate(coord_keys) if key not in uniques_col_str])
 				
-				data_slice = self.data.loc[ind]
+				data_slice = (self.data.loc[ind]).dropna(subset=[coord_keys[-2], coord_keys[-1]]) #Dropping rows with NaNs in coordinates
+
 				xu = np.size(data_slice[coord_keys[-2]].unique())
 				yu = np.size(data_slice[coord_keys[-1]].unique())
 				lenz = np.size(data_slice[value_keys[value_axis]])
@@ -328,6 +329,7 @@ class plotR(object):
 				
 
 				if xu*yu > lenz: #Condition for unfinished measurement sweep
+					
 					missingpoints = xu*yu-lenz		
 					xarr=np.full((missingpoints),data_slice[coord_keys[-2]].iloc[-1])
 					# Determining the y-array can bug when strange steps are used during measurement
@@ -338,7 +340,7 @@ class plotR(object):
 					yarr = np.linspace(ystart,yend,missingpoints)
 					#for i in range(0,len(yarr)):
 					#	yarr[i] = np.float(np.format_float_scientific(yarr[i], unique=False, precision=10))
-					print('yarr',yarr)
+					#print('yarr',yarr)
 					zarr = np.zeros(int(xu*yu-lenz)) + np.nan
 					concatdf = pd.DataFrame({coord_keys[-2]: xarr,
 									   coord_keys[-1]: yarr,
