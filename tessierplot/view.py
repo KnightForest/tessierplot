@@ -268,7 +268,7 @@ class tessierView(object):
             <div class='row'>
         {% endif %}
 
-            <div id='{{ item.datapath }}' class='col'>  {# mousehover filename! todo: add measurement comment #}
+            <div id='{{ item.datapath }}' class='col'>  {# mousehover filename and measurement comment #}
 
                 <div class='name'> {{ item.measname + '\n' + 'Comment: ' + item.comment }} </div>
 
@@ -300,6 +300,12 @@ class tessierView(object):
                         <option value="{{"\\'meansubtract\\',\\'deinterlace0\\',\\'mov_avg\\',\\'diff\\'"|e}} ">deinterlace0,diff</option>
                         <option value="{{"\\'meansubtract\\',\\'deinterlace1\\',\\'mov_avg\\',\\'diff\\'"|e}} ">deinterlace1,diff</option>
                     </select>
+                    {# <select name="value_axis">
+                        <option value="{{-1|e}}">-1</option>
+                        <option value="{{0|e}}">0</option>
+                        <option value="{{1|e}}">1</option>
+                        <option value="{{2|e}}">2</option>
+                    </select> #}
                     <input type="checkbox" name="stylechecker" value="{{"\\'flipaxes\\',"|e}} ">Flip axes
                     </form>            
                 </div>
@@ -377,16 +383,26 @@ class tessierView(object):
                 var style = "["{{" + stylevalues + "|e}}"]";
                 return style
             }
+            function getValue_axis(id) {
+                id = id.replace(/\\\\/g,"\\\\\\\\");
+                var x = document.querySelectorAll('form[name=\\"'+id+'\\"]')
+                form = x[1]; //should be only one form (not anymore)
+                selector = form.selector;
+                var value_axis = selector.options[selector.selectedIndex].value
+                var value_axis = {{ value_axis }};
+                return value_axis
+            }
             function plotwithStyle(id) {
                 var style = getStyle(id);
-                plot(id,style);
+                var value_axis = getValue_axis(id);
+                plot(id,style,value_axis);
             }
             
-            function plot(id,x,y){
+            function plot(id,style,value_axis,y){
                 dir = id.split('/');
                 
                 exec = 'filename \= \"' + id + '\"; {{ plotcommand }}';
-                exec = exec.printf(x)
+                exec = exec.printf(style)
 
                 pycommand(exec);
             }
@@ -464,14 +480,14 @@ class tessierView(object):
                    padding-top: 2em;}
         #outer {}
         img{
-            width:85%;
+            width:75%;
             height:auto;
             }
         </style>
         """
         temp = jj.Template(out)
 
-        plotcommand = """\\nimport matplotlib.pyplot as plt\\nimport imp\\nif not plt.get_fignums():\\n from tessierplot import plot as ts\\n imp.reload(ts)\\np = ts.plotR(filename)\\np.quickplot(style= %s)\\n"""
+        plotcommand = """\\nimport matplotlib.pyplot as plt\\nimport imp\\nif not plt.get_fignums():\\n from tessierplot import plot as ts\\n imp.reload(ts)\\np = ts.plotR(filename)\\np.quickplot(style=%s)\\n"""
         
         import datetime
         d=datetime.datetime.utcnow()

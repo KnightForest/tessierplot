@@ -345,12 +345,18 @@ class plotR(object):
 					
 					missingpoints = xu*yu-lenz		
 					xarr=np.full((missingpoints),data_slice[coord_keys[-2]].iloc[-1])
-					# Determining the y-array can bug when strange steps are used during measurement
-					ystep = data_slice[coord_keys[-1]].iloc[-1]-data_slice[coord_keys[-1]].iloc[-2]
+					# Determining the y-array, can bug when strange steps are used during measurement
+					ystep1 = data_slice[coord_keys[-1]].iloc[-1]-data_slice[coord_keys[-1]].iloc[-2]
+					ystep2 = data_slice[coord_keys[-1]].iloc[-2]-data_slice[coord_keys[-1]].iloc[-3]
+					if np.abs(ystep1) < abs(ystep2):
+						ystep=ystep1
+					else:
+						ystep=ystep2
 					#ystep = np.float(np.format_float_scientific(ystep, unique=False, precision=10))
 					ystart = data_slice[coord_keys[-1]].iloc[-1]+ystep
 					yend = missingpoints*ystep+ystart-ystep
 					yarr = np.linspace(ystart,yend,missingpoints)
+					#print(ystep1,ystep2,ystep,ystart,yend,yarr)
 					#for i in range(0,len(yarr)):
 					#	yarr[i] = np.float(np.format_float_scientific(yarr[i], unique=False, precision=10))
 					#print('yarr',yarr)
@@ -749,7 +755,11 @@ class plotR(object):
 
 				npx = np.array(x)
 				npy = np.array(y)
-				xstep = float(abs(npx[-1] - npx[0]))/(len(npx)-1)
+				#print(npx,npy)
+				if len(npx) > 1:
+					xstep = float(abs(npx[-1] - npx[0]))/(len(npx)-1)
+				else:
+					xstep = np.nan
 				#ystep = float(abs(npy[-1] - npy[0]))/(len(npy)-1)
 				title =''
 

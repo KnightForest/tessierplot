@@ -83,9 +83,7 @@ class qcodes_parser(dat_parser):
             columnname2 = [i.replace('\"','') for i in columnname2]
             columnname = re.split(r'\t+', firstline)
             columnname[0] = columnname[0][2::]
-                    
-            print(columnname,columnname2)
-            
+                             
             #look for the part where the data file meta info is stored
             json_data = json.loads(json_s)
             headerdict = json_data['arrays']
@@ -97,15 +95,17 @@ class qcodes_parser(dat_parser):
                 if headerdict[val]['is_setpoint']:                
                     headerdictval = [i,headerdict[val]['array_id']][1]
                     headerdictunit = [i,headerdict[val]['unit']][1]
-                    line=[i,headerdictval,'coordinate', headerdictunit]
-                    line_x = zip(['column','name','type', 'unit'],line)
+                    headerdictlabel = [i,headerdict[val]['label']][1]
+                    line=[i,headerdictval,'coordinate', headerdictunit, headerdictlabel]
+                    line_x = zip(['column','name','type', 'unit', 'label'],line)
                     headervalues.append(line_x)
 
                 else:
                     headerdictval = [i,headerdict[val]['array_id']][1]
                     headerdictunit = [i,headerdict[val]['unit']][1]
-                    line=[i,headerdictval,'value', headerdictunit]
-                    line_x = zip(['column','name','type', 'unit'],line)
+                    headerdictlabel = [i,headerdict[val]['label']][1]
+                    line=[i,headerdictval,'value', headerdictunit, headerdictlabel]
+                    line_x = zip(['column','name','type', 'unit', 'label'],line)
                     headervalues.append(line_x)
 
             headervalues = [dict(x) for x in headervalues]
@@ -158,21 +158,21 @@ class qcodes_parser(dat_parser):
                         if col == h['name']:
                             header.append(h)
                             break
-        titleline = firstline.split(',')
-        comment = secondline[2:]
-        if comment == 'Comment:':
-            comment = 'n.a.'
-        else:
-            comment = comment.replace('Comment: ', '')
-
-        headertitledict = {
-        'measname'   : titleline[0],
-        'experiment' : titleline[1],
-        'samplename' : titleline[2],
-        'nvals'      : titleline[3],
-        'comment'    : comment
-        }
-        header.append(headertitledict)
+            titleline = firstline.split(',')
+            comment = secondline[2:]
+            if comment == 'Comment:':
+                comment = 'n.a.'
+            else:
+                comment = comment.replace('Comment: ', '')
+            #print('titline',titleline)
+            headertitledict = {
+            'measname'   : titleline[0],
+            'experiment' : titleline[1],
+            'samplename' : titleline[2],
+            'nvals'      : titleline[3],
+            'comment'    : comment
+            }
+            header.append(headertitledict)
         #print(json.dumps(header, sort_keys=True, indent=4))
         return header,headerlength #git c,headertitledict
 
