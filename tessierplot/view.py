@@ -272,7 +272,7 @@ class tessierView(object):
 
                 <div class='name'> {{ item.measname + '\n' + 'Comment: ' + item.comment }} </div>
 
-                <div class='thumb'>s
+                <div class='thumb'>
                         <img src="{{ item.thumbpath }}?{{ nowstring }}"/> 
                 </div>
 
