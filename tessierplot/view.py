@@ -400,11 +400,11 @@ class tessierView(object):
                 plot(id,style);
             }
             
-            function plot(id,style,value_axis,y){
+            function plot(id,x,y){
                 dir = id.split('/');
                 
                 exec = 'filename \= \"' + id + '\"; {{ plotcommand }}';
-                exec = exec.printf(style)
+                exec = exec.printf(x)
 
                 pycommand(exec);
             }
@@ -489,7 +489,7 @@ class tessierView(object):
         """
         temp = jj.Template(out)
 
-        plotcommand = """\\nimport matplotlib.pyplot as plt\\nimport imp\\nif not plt.get_fignums():\\n from tessierplot import plot as ts\\n imp.reload(ts)\\np = ts.plotR(filename)\\np.quickplot(style= %s)\\n"""
+        plotcommand = """\\nimport matplotlib.pyplot as plt\\nimport imp\\nif not plt.get_fignums():\\n from tessierplot import plot as ts\\n imp.reload(ts)\\np = ts.plotR(filename)\\np.quickplot(style=%s)\\n"""
         
         import datetime
         d=datetime.datetime.utcnow()
