@@ -300,13 +300,6 @@ class tessierView(object):
                         <option value="{{"\\'meansubtract\\',\\'deinterlace0\\',\\'mov_avg\\',\\'diff\\'"|e}} ">deinterlace0,diff</option>
                         <option value="{{"\\'meansubtract\\',\\'deinterlace1\\',\\'mov_avg\\',\\'diff\\'"|e}} ">deinterlace1,diff</option>
                     </select>
-                    {#
-                    <select name="value_axis">
-                        <option value="{{-1}}">-1</option>
-                        <option value="{{0}}">0</option>
-                        <option value="{{1}}">1</option>
-                        <option value="{{2}}">2</option>
-                    </select> #}
                     <input type="checkbox" name="stylechecker" value="{{"\\'flipaxes\\',"|e}} ">Flip axes
                     </form>            
                 </div>
@@ -385,15 +378,6 @@ class tessierView(object):
                 return style
             }
 
-            function getValue_axis(id) {
-                id = id.replace(/\\\\/g,"\\\\\\\\");
-                var x = document.querySelectorAll('form[name=\\"'+id+'\\"]')
-                form = x[1]; //should be only one form (not anymore)
-                selector = form.selector;
-                var value_axis = selector.options[selector.selectedIndex].value
-                var value_axis = {{value_axis|e}};
-                return axis
-            }
             function plotwithStyle(id) {
                 var style = getStyle(id);
                 var value_axis = form.value_axis
