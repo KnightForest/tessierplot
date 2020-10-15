@@ -283,7 +283,8 @@ class tessierView(object):
                     <br/>
                     <button id='{{ item.datapath }}' onClick='plotwithStyle(this.id)' class='plotStyleSelect'>Plot with</button>
                     <form name='{{ item.datapath }}'>
-                    <select name="selector">
+                    Style:
+                    <select name="selector"> 
                         <option value="{{"\\'\\'"|e}}">normal</option>
                         <option value="{{"\\'int\\'"|e}}">int</option>
                         <option value="{{"\\'log\\'"|e}}">log</option>
@@ -300,7 +301,22 @@ class tessierView(object):
                         <option value="{{"\\'meansubtract\\',\\'deinterlace0\\',\\'mov_avg\\',\\'diff\\'"|e}} ">deinterlace0,diff</option>
                         <option value="{{"\\'meansubtract\\',\\'deinterlace1\\',\\'mov_avg\\',\\'diff\\'"|e}} ">deinterlace1,diff</option>
                     </select>
+                    </br>
+                    Axis:
+                    <select name="value_axis">
+                        <option value="{{'-1'}}">All</option>
+                        <option value="{{'0'}}">0</option>
+                        <option value="{{'1'}}">1</option>
+                        <option value="{{'2'}}">2</option>
+                        <option value="{{'3'}}">3</option>
+                        <option value="{{'4'}}">4</option>
+                        <option value="{{'5'}}">5</option>
+                        <option value="{{'7'}}">7</option>
+                        <option value="{{'8'}}">8</option>
+                        <option value="{{'9'}}">9</option>
+                    </select>
                     <input type="checkbox" name="stylechecker" value="{{"\\'flipaxes\\',"|e}} ">Flip axes
+                    
                     </form>            
                 </div>
             </div>
@@ -355,10 +371,8 @@ class tessierView(object):
             }
             function refresh(id) {
                 id = id.replace(/\\\\/g,"\\\\\\\\");
-
                 exec ='from tessierplot import view;  a=view.tessierView();a.makethumbnail(\"' + id + '\",override=True)';
-                pycommand(exec,refresh_callback,id);
-                
+                pycommand(exec,refresh_callback,id); 
             }
             function refresh_callback(id) {
                 var x = document.querySelectorAll('div[id=\\"'+id+'\\"]')[0];
@@ -366,41 +380,54 @@ class tessierView(object):
                 img.src = img.src.split('?')[0] + '?' + new Date().getTime();
             }
             function getStyle(id) {
-                id = id.replace(/\\\\/g,"\\\\\\\\");
+                id = id.replace(/\\\\/g,"\\\\\\\\"); // changing single backslash to double backslash in filenamepath
                 var x = document.querySelectorAll('form[name=\\"'+id+'\\"]')
                 form = x[0]; //should be only one form
                 selector = form.selector;
                 var stylevalues = selector.options[selector.selectedIndex].value
+                //window.alert(stylevalues);
                 if(form.stylechecker.checked) {
                     stylevalues = form.stylechecker.value + stylevalues
                 }
                 var style = "["{{" + stylevalues + "|e}}"]";
                 return style
             }
-
+            function getValue_axis(id) {
+                id = id.replace(/\\\\/g,"\\\\\\\\");
+                var x = document.querySelectorAll('form[name=\\"'+id+'\\"]')
+                form = x[0]; //should be only one form
+                value_axis = form.value_axis;
+                var v_ax = value_axis.options[value_axis.selectedIndex].value
+                //window.alert(v_ax)
+                return v_ax
+            }
             function plotwithStyle(id) {
                 var style = getStyle(id);
+                var v_ax = getValue_axis(id);
+                //window.alert(v_ax)
                 var value_axis = form.value_axis
-                plot(id,style);
+                plot(id,style,v_ax);
             }
-            
-            function plot(id,x,y){
+            function plot(id,style,v_ax){
+                //window.alert(style)
+                //window.alert(v_ax)
                 dir = id.split('/');
                 
                 exec = 'filename \= \"' + id + '\"; {{ plotcommand }}';
-                exec = exec.printf(x)
-
+                exec = exec.printf(style,v_ax)
+                //window.alert(exec)
                 pycommand(exec);
             }
-            String.prototype.printf = function (obj) {
+            String.prototype.printf = function (style,v_ax) {
                 var useArguments = false;
                 var _arguments = arguments;
                 var i = -1;
                 if (typeof _arguments[0] == "string") {
                 useArguments = true;
                 }
-                if (obj instanceof Array || useArguments) {
-                return this.replace(/\%s/g,
+                if (style instanceof Array || useArguments) {
+                var that = this.replace(/\%a/g,v_ax)
+                return that.replace(/\%s/g,
                 function (a, b) {
                   i++;
                   if (useArguments) {
@@ -411,13 +438,13 @@ class tessierView(object):
                       throw new Error("Arguments element is an invalid type");
                     }
                   }
-                  return obj[i];
+                  return style[i];
                 });
                 }
                 else {
-                return this.replace(/{([^{}]*)}/g,
+                return that.replace(/{([^{}]*)}/g,
                 function (a, b) {
-                  var r = obj[b];
+                  var r = style[b];
                   return typeof r === 'string' || typeof r === 'number' ? r : a;
                 });
                 }
@@ -473,7 +500,7 @@ class tessierView(object):
         """
         temp = jj.Template(out)
 
-        plotcommand = """\\nimport matplotlib.pyplot as plt\\nimport imp\\nif not plt.get_fignums():\\n from tessierplot import plot as ts\\n imp.reload(ts)\\np = ts.plotR(filename)\\np.quickplot(style=%s)\\n"""
+        plotcommand = """\\nimport matplotlib.pyplot as plt\\nimport imp\\nif not plt.get_fignums():\\n from tessierplot import plot as ts\\n imp.reload(ts)\\np = ts.plotR(filename)\\np.quickplot(style=%s,value_axis=%a)\\n"""
         
         import datetime
         d=datetime.datetime.utcnow()
