@@ -66,7 +66,7 @@ _fontsize_plot_title = 10
 _fontsize_axis_labels = 10
 _fontsize_axis_tick_labels = 10
 
-rcP = {  'figure.figsize': (_plot_width, _plot_height), #(width in inch, height in inch)
+rcP = {	 'figure.figsize': (_plot_width, _plot_height), #(width in inch, height in inch)
 		'axes.labelsize':  _fontsize_axis_labels,
 		'xtick.labelsize': _fontsize_axis_tick_labels,
 		'ytick.labelsize': _fontsize_axis_tick_labels,
@@ -168,8 +168,8 @@ class plotR(object):
 				for k in rcP:
 					mpl.rcParams[k] = rcP_thumb[k]
 			# else:
-			# 	for k in rcP:
-			# 		mpl.rcParams[k] = rcP[k]
+			#	for k in rcP:
+			#		mpl.rcParams[k] = rcP[k]
 			if self.is2d():
 				fig = self.plot2d(uniques_col_str=uniques_col_str,**kwargs)
 			else:
@@ -204,7 +204,7 @@ class plotR(object):
 			cminlim , cmaxlim = np.min(data) , np.max(data)
 		return (cminlim,cmaxlim)
 
-	def plothigherorder(self,    massage_func=None,
+	def plothigherorder(self,	 massage_func=None,
 						uniques_col_str=[],
 						drawCbar=True,
 						cax_destination=None,
@@ -231,7 +231,7 @@ class plotR(object):
 		print('Cubeplotplaceholder')
 		pass
 
-	def plot3d(self,    massage_func=None,
+	def plot3d(self,	massage_func=None,
 						uniques_col_str=[],
 						drawCbar=True,
 						cax_destination=None,
@@ -553,7 +553,7 @@ class plotR(object):
 				# This deinterlace needs to be reworked. There are no colorbars for instance..
 				if 'deinterlace' in style:
 					self.fig = plt.figure()
-					ax_deinter_odd  = plt.subplot(2, 1, 1)
+					ax_deinter_odd	= plt.subplot(2, 1, 1)
 					xx_odd = np.rot90(w['deinterXXodd'])
 					ax_deinter_odd.imshow(xx_odd,extent=ext, cmap=plt.get_cmap(self.ccmap),aspect=aspect,interpolation=interpolation)
 					self.deinterXXodd_data = xx_odd
@@ -584,11 +584,11 @@ class plotR(object):
 				#ax.locator_params(nbins=5, axis='y') #Added to hardcode number of x ticks.
 				#ax.locator_params(nbins=7, axis='x')
 				if 'flipaxes' in style:
-					xaxislabelwithunit = self.ylabel +  ' (' + self.yunit + ')'
-					yaxislabelwithunit = self.xlabel +  ' (' + self.xunit + ')'
+					xaxislabelwithunit = self.ylabel +	' (' + self.yunit + ')'
+					yaxislabelwithunit = self.xlabel +	' (' + self.xunit + ')'
 				else:
-					xaxislabelwithunit = self.xlabel +  ' (' + self.xunit + ')'
-					yaxislabelwithunit = self.ylabel +  ' (' + self.yunit + ')'
+					xaxislabelwithunit = self.xlabel +	' (' + self.xunit + ')'
+					yaxislabelwithunit = self.ylabel +	' (' + self.yunit + ')'
 				ax.set_xlabel(xaxislabelwithunit)
 				ax.set_ylabel(yaxislabelwithunit)
 				
@@ -638,7 +638,8 @@ class plotR(object):
 						
 						self.cbar = cbar
 						cbar.update_ticks()
-						plt.show()
+						if supress_plot == False:
+							plt.show()
 				self.ax = ax
 				cnt+=1 #counter for subplots
 		
@@ -661,6 +662,7 @@ class plotR(object):
 					massage_func=None,
 					filter_raw=True, #Do not show plots with 'Raw' string in label
 					axislabeltype = 'label', #Use 'label' or 'name' on axis labels
+                    supress_plot = False,
 					**kwargs):
 					
 		if not self.fig and not ax_destination:
@@ -668,9 +670,9 @@ class plotR(object):
 			self.fig.subplots_adjust(**subplots_args)
 
 		# if len(uniques_col_str)==0:
-		# 	coords = np.array(self.data.coordkeys)
-		# 	filter = self.data.dims < 5
-		# 	uniques_col_str = coords[filter]
+		#	coords = np.array(self.data.coordkeys)
+		#	filter = self.data.dims < 5
+		#	uniques_col_str = coords[filter]
 
 		#determine how many subplots we need
 		n_subplots = 1
@@ -789,19 +791,19 @@ class plotR(object):
 				self.yaxisunit = wrap['yunit']
 				self.XX_processed = wrap['XX']
 				self.X = wrap['X']
-				
-				if ax_destination:
-					ax = ax_destination
-				else:
-					ax = plt.subplot(gs[k])
-				ax.plot(wrap['X'],wrap['XX'],'o-', fillstyle='none', markersize=2,label=title,**kwargs)
-				#self.cutAx.plot(xx,z,'o-',fillstyle='none',markersize=2)
-				if legend:
-					plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
-						   ncol=2, mode="expand", borderaxespad=0.)
-				if ax:
-					ax.set_xlabel(xaxislabelwithunit)
-					ax.set_ylabel(yaxislabelwithunit)
+				if supress_plot == False:
+					if ax_destination:
+						ax = ax_destination
+					else:
+						ax = plt.subplot(gs[k])
+					ax.plot(wrap['X'],wrap['XX'],'o-', fillstyle='none', markersize=2,label=title,**kwargs)
+					#self.cutAx.plot(xx,z,'o-',fillstyle='none',markersize=2)
+					if legend:
+						plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+							   ncol=2, mode="expand", borderaxespad=0.)
+					if ax:
+						ax.set_xlabel(xaxislabelwithunit)
+						ax.set_ylabel(yaxislabelwithunit)
 		
 		return self.fig
 
