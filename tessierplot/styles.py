@@ -731,14 +731,14 @@ def helper_ivreverserlockin(w):  #Needs equally spaced axes
 	import numpy.ma as ma
 	import numpy as np
 	import numpy.matlib
-	twodim = strtobool(w['ivreversernew_twodim'])
-	method = w['ivreversernew_interpmethod']
+	twodim = strtobool(w['ivreverser_twodim'])
+	method = w['ivreverser_interpmethod']
 	XX = w['XX']
 	xn, yn = XX.shape
 	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
 	yaxis = np.linspace(w['ext'][2],w['ext'][3],w['XX'].shape[1])
 	ycorrected = np.zeros(shape=(xn,yn))
-	gridresolutionfactor = int(w['ivreversernew_gridresolutionfactor']) # Example: Factor of 2 doubles the number of y datapoints for non-linear interpolation
+	gridresolutionfactor = int(w['ivreverser_gridresolutionfactor']) # Example: Factor of 2 doubles the number of y datapoints for non-linear interpolation
 	
 	for i in range(0,xn):
 		ycorrected[i,:] = XX[i,:] #y-axis becomes data axis
@@ -831,14 +831,14 @@ def helper_ivreverser(w):  #Needs equally spaced axes
 	import numpy.ma as ma
 	import numpy as np
 	import numpy.matlib
-	twodim = strtobool(w['ivreversernew_twodim'])
-	method = w['ivreversernew_interpmethod']
+	twodim = strtobool(w['ivreverser_twodim'])
+	method = w['ivreverser_interpmethod']
 	XX = w['XX']#+1e3/float(w['vbiascorrector_seriesr'])
 	xn, yn = XX.shape
 	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
 	yaxis = np.linspace(w['ext'][2],w['ext'][3],w['XX'].shape[1])
 	ycorrected = np.zeros(shape=(xn,yn))
-	gridresolutionfactor = int(w['ivreversernew_gridresolutionfactor']) # Example: Factor of 2 doubles the number of y datapoints for non-linear interpolation
+	gridresolutionfactor = int(w['ivreverser_gridresolutionfactor']) # Example: Factor of 2 doubles the number of y datapoints for non-linear interpolation
 	
 	for i in range(0,xn):
 		ycorrected[i,:] = XX[i,:] #y-axis becomes data axis
