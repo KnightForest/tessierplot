@@ -88,7 +88,7 @@ class SuperColorbar(ColorbarBase):
         self.mappable.autoscale()
         self.fig.canvas.draw()
     def on_mappable_changed(self, mappable):
-        self.set_cmap(mappable.get_cmap())
+        self.ScalarMappable.set_cmap(mappable.get_cmap())
         self.set_clim(mappable.get_clim())
         self.draw_all()
 

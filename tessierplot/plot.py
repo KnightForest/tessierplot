@@ -740,23 +740,23 @@ class plotR(object):
 				#value_keys, value_units = self.data.valuekeys
 
 				x=data.loc[:,coord_keys[-1]]
-				y=data.loc[:,value_keys[value_axis]]
+				xx=data.loc[:,value_keys[value_axis]]
 				parser = self.data.determine_parser
 
 				if axislabeltype == 'label' and len(coord_labels_raw) == len(coord_keys_raw):
 					xaxislabel = coord_labels[-1]
 				else: #else defaulting to column name for axis labels
 					xaxislabel = coord_keys[-1] 
-				if axislabeltype == 'label' and len(value_labels) == len(value_keys):
-					yaxislabel = value_labels[value_axis]
+				if axislabeltype == 'label' and len(value_label) == len(value_keys):
+					cbar_quantity = value_labels[value_axis]
 				else: #else defaulting to column name for axis labels
-					yaxislabel = value_keys[value_axis]
+					cbar_quantity = value_keys[value_axis]
 
 				xaxisunit = coord_units[-1]
-				yaxisunit = value_units[value_axis]
+				cbar_unit = value_units[value_axis]
 
 				npx = np.array(x)
-				npy = np.array(y)
+				npxx = np.array(xx)
 				#print(npx,npy)
 				if len(npx) > 1:
 					xstep = float(abs(npx[-1] - npx[0]))/(len(npx)-1)
@@ -769,26 +769,28 @@ class plotR(object):
 					pass
 					# this crashes sometimes. did not investiagte yet what the problem is. switched off in the meantime
 					#title = '\n'.join([title, '{:s}: {:g}'.format(uniques_axis_designations[i],data[z].iloc[0])])
-				self.XX = y
+				self.XX = npxx
 
 				wrap = styles.getPopulatedWrap(style)
-				wrap['XX'] = y
-				wrap['X']  = x
+				wrap['XX'] = npxx
+				wrap['X']  = npx
+				wrap['Y'] = np.nan #not existing
 				wrap['xlabel'] = xaxislabel
 				wrap['xunit'] = xaxisunit
-				wrap['ylabel'] = yaxislabel
-				wrap['yunit'] = yaxisunit
+				wrap['cbar_quantity'] = cbar_quantity
+				wrap['cbar_unit'] = cbar_unit
 				wrap['massage_func'] = massage_func
 				wrap['xstep'] = xstep
+				wrap['ystep'] = np.nan
 				styles.processStyle(style,wrap)
 				xaxislabelwithunit = wrap['xlabel'] + ' (' + wrap['xunit'] + ')'
-				yaxislabelwithunit = wrap['ylabel'] + ' (' + wrap['yunit'] + ')'
+				yaxislabelwithunit = wrap['cbar_quantity'] + ' (' + wrap['cbar_unit'] + ')'
 
 				self.stylebuffer = wrap['buffer'] 
 				self.xaxislabel = wrap['xlabel']
 				self.xaxisunit = wrap['xunit']
-				self.yaxislabel= wrap['ylabel']
-				self.yaxisunit = wrap['yunit']
+				self.yaxislabel= wrap['cbar_quantity']
+				self.yaxisunit = wrap['cbar_unit']
 				self.XX_processed = wrap['XX']
 				self.X = wrap['X']
 				if supress_plot == False:

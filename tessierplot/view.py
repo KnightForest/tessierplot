@@ -290,14 +290,14 @@ class tessierView(object):
                         <option value="{{"\\'log\\'"|e}}">log</option>
                         <option value="{{"\\'logdb\\'"|e}}">logdb</option>
                         <option value="{{"\\'mov_avg(n=12)\\'"|e}}">movavg</option>
-                        <option value="{{"\\'savgol(samples=7,order=3)\\'"|e}}">Savitzky-Golay_filter</option>
-                        <option value="{{"\\'mov_avg(n=3)\\',\\'didv\\',\\'mov_avg(n=3)\\'"|e}}">diff_movavg</option>
-                        <option value="{{"\\'mov_avg(n=12)\\',\\'didv\\',\\'mov_avg(n=12)\\'"|e}}">diff_movavg_smooth</option>
-                        <option value="{{"\\'sgdidv\\'"|e}}">Savitzky-Golay_diff</option>
-                        <option value="{{"\\'sgdidv\\',\\'log\\'"|e}} ">Savitzky-Golay_diff,log</option>
+                        <option value="{{"\\'savgol(samples=7,order=3,difforder=0)\\'"|e}}">Savitzky-Golay_filter</option>
+                        <option value="{{"\\'mov_avg(n=3)\\',\\'diff(condquant=True)\\',\\'mov_avg(n=3)\\'"|e}}">diff_movavg</option>
+                        <option value="{{"\\'mov_avg(n=12)\\',\\'diff(condquant=True)\\',\\'mov_avg(n=12)\\'"|e}}">diff_movavg_smooth</option>
+                        <option value="{{"\\'savgol(condquant=True,samples=7,order=3)\\'"|e}}">Savitzky-Golay_diff</option>
+                        <option value="{{"\\'savgol(condquant=True,samples=7,order=3)\\',\\'log\\'"|e}} ">Savitzky-Golay_diff,log</option>
                         <option value="{{"\\'movingmeansubtract(window=1)\\'"|e}} ">movmeansubtract</option>
-                        <option value="{{"\\'meansubtract\\',\\'ivreversernew\\',\\'mov_avg(n=3)\\',\\'didv\\'"|e}}">ivreverser,diff</option>
-                        <option value="{{"\\'int\\',\\'meansubtract\\',\\'ivreversernew\\',\\'didv\\'"|e}}">int,ivreverser,diff</option>
+                        <option value="{{"\\'meansubtract\\',\\'ivreverser\\',\\'mov_avg(n=3)\\',\\'diff\\'"|e}}">ivreverser,diff</option>
+                        <option value="{{"\\'int\\',\\'meansubtract\\',\\'ivreverser\\',\\'diff\\'"|e}}">int,ivreverser,diff</option>
                         <option value="{{"\\'meansubtract\\',\\'deinterlace0\\'"|e}} ">deinterlace0</option>
                         <option value="{{"\\'meansubtract\\',\\'deinterlace1\\'"|e}} ">deinterlace1</option>
                         <option value="{{"\\'meansubtract\\',\\'deinterlace0\\',\\'mov_avg\\',\\'diff\\'"|e}} ">deinterlace0,diff</option>

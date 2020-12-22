@@ -1,6 +1,7 @@
 
 import numpy as np
 from scipy import signal
+import scipy.constants as sc
 import re
 import collections
 import matplotlib.colors as mplc
@@ -31,16 +32,12 @@ def nonzeromin(x):
 def helper_deinterlace(w):
 	w['deinterXXodd'] = w['XX'][1::2,1:] #take every other column in a sweepback measurement, offset 1
 	w['deinterXXeven'] = w['XX'][::2,:] #offset 0
-	#w.deinterXXodd  = w.deinterXXodd
-	#w.deinterXXeven = w.deinterXXeven
 
 def helper_deinterlace0(w):
 	w['XX'] = w['XX'][::2,:] #take even column in a sweepback measurement
-	#w['x']  = w['x'][::2]
 
 def helper_deinterlace1(w):
 	w['XX'] = w['XX'][1::2,1:] #take odd column in a sweepback measurement
-	#w['x']  = w['x'][1::2]	
 
 def helper_mov_avg(w):
 	(m, n) = (int(w['mov_avg_m']), int(w['mov_avg_n']))     # The shape of the window array
@@ -52,7 +49,6 @@ def helper_mov_avg(w):
 	else:
 		win = np.ones((m, n))
 		w['XX'] = moving_average_2d(w['XX'], win)
-	#win = signal.kaiser(m,8.6,sym=False)
 
 def helper_fixlabels(w):
 	# List of hardcoded label replacements to make plots instantly look nicer. Will be different for every user/measurement though!
@@ -183,8 +179,6 @@ def helper_changeaxis(w):
 			float(w['changeaxis_yfactor'])*w['ext'][2]+w['changeaxis_yoffset'],
 			float(w['changeaxis_yfactor'])*w['ext'][3]+w['changeaxis_yoffset'])
 	w['ext'] = newext
-	print(w['ext'])
-	#print float(w['changeaxis_datafactor'])
 	w['XX'] = w['XX']*float(w['changeaxis_datafactor'])
 	if w['changeaxis_dataunit'] != None:
 		w['cbar_unit'] = w['changeaxis_dataunit']
@@ -193,170 +187,226 @@ def helper_changeaxis(w):
 	if w['changeaxis_yunit'] != None:
 		w['yunit'] = w['changeaxis_yunit']
 
+def helper_diff(w):
+	XX = w['XX']
+	Y = w['Y']
+	X = w['X']
+	cbar_q = w['cbar_quantity']
+	cbar_u = w['cbar_unit']
+	condquant = strtobool(w['diff_condquant'])
+	gradient = strtobool(w['diff_gradient'])
+	axis = int(w['diff_axis'])
+	order = int(w['diff_order'])
+	if order is not 1:
+		condquant = False
+	#Keep axis selection with 0 or 1 compatibility:
+	if axis == 0 or XX.ndim==1:
+		axis = -1
+	if axis == 1:
+		axis = -2
+	#Compute conductance quantum
+	cq = 2*sc.elementary_charge**2/sc.h
+
+	XX_t = XX
+	if axis==-1 or XX.ndim==1: #Diff and smooth on fast axis
+		if XX.ndim ==1:
+			if order == 0:
+				pass 
+			elif order == 1:
+				w['cbar_quantity'] = '$\partial$' + cbar_q + '/$\partial$' + w['xlabel']
+			else: 
+				w['cbar_quantity'] = '$\partial^{}$'.format(order) + cbar_q + '/$\partial$' + w['xlabel'] + '$^{}$'.format(order)
+			for i in range(0,order):
+				if gradient:
+					XX_t = np.gradient(XX_t,X)
+				else:
+					XX_t = np.append(np.diff(XX_t)/np.diff(X),np.nan)
+		else:	
+			if order == 0:
+				pass 
+			elif order == 1:
+				w['cbar_quantity'] = '$\partial$' + cbar_q + '/$\partial$' + w['ylabel']
+			else:
+				w['cbar_quantity'] = '$\partial^{}$'.format(order) + cbar_q + '/$\partial$' + w['ylabel'] + '$^{}$'.format(order)
+			for i in range(0,XX.shape[0]):
+				for j in range(0,order):
+					if gradient:
+						XX_t[i,:] = np.gradient(XX_t[i,:],Y[i,:])	
+					else:
+						XX_t[i,:-1] = np.diff(XX_t[i,:])/np.diff(Y[i,:])			
+		if cbar_u == 'nA': 
+			if condquant == True:
+				XX_t = 1e6 * cq * XX_t
+				w['cbar_unit'] = r'2$e^2$/h'
+			else:
+				w['cbar_unit'] = r'$\mu$S'
+		if cbar_u == 'A':
+			if condquant == True:
+				XX_t = cq * XX_t
+				w['cbar_unit'] = r'2$e^2$/h'
+			else:
+				w['cbar_unit'] = r'S'
+		
+		if cbar_u == 'mV':
+			if condquant == True:
+				XX_t = (1e6/cq) * XX_t
+				w['cbar_unit'] = r'h/2$e^2$'
+			else:
+				w['cbar_unit'] = r'M$\Omega$'
+		if cbar_u == 'V':
+			if condquant == True:
+				XX_t = (1/cq) * XX_t
+				w['cbar_unit'] = r'h/2$e^2$'
+			else:
+				w['cbar_unit'] = r'$\Omega$'
+	
+	elif axis==-2: #Diff and smooth in slow axis
+		if order == 0:
+			pass 
+		elif order == 1:
+			w['cbar_quantity'] = '$\partial$' + cbar_q + '/$\partial$' + w['xlabel']
+		else:
+			w['cbar_quantity'] = '$\partial^{}$'.format(order) + cbar_q + '/$\partial$' + w['xlabel'] + '$^{}$'.format(order)
+		for i in range(0,XX.shape[1]):
+			for j in range(0,order):
+				if gradient:
+					XX_t[:,i] = np.gradient(XX_t[:,i],X[:,i])
+				else:
+					XX_t[:-1,i] = np.diff(XX_t[:,i])/np.diff(X[:,i])	
+		if cbar_u == 'nA': 
+			if condquant == True:
+				XX_t = 1e6 * cq * XX_t
+				w['cbar_unit'] = r'2e$^2$/h'
+			else:
+				w['cbar_unit'] = r'$\mu$S'
+		if cbar_u == 'A':
+			if condquant == True:
+				XX_t = cq * XX_t
+				w['cbar_unit'] = r'2e$^2$/h'
+			else:
+				w['cbar_unit'] = r'S'
+		
+		if cbar_u == 'mV':
+			if condquant == True:
+				XX_t = (1e6/cq) * XX_t
+				w['cbar_unit'] = r'h/2e$^2$'
+			else:
+				w['cbar_unit'] = r'M$\Omega$'
+		if cbar_u == 'V':
+			if condquant == True:
+				XX_t = (1/cq) * XX_t
+				w['cbar_unit'] = r'h/2e$^2$'
+			else:
+				w['cbar_unit'] = r'$\Omega$'
+	w['XX']=XX_t
+
 def helper_savgol(w):
-	'''Perform Savitzky-Golay smoothing'''
-	w['XX'] = signal.savgol_filter(
-			w['XX'], int(w['savgol_samples']), int(w['savgol_order']))
-
-def helper_didv(w):
-	a=(w['XX'])
-	cbar_q = w['cbar_quantity']
+	'''Perform Savitzky-Golay smoothing and get nth order derivative on slow or fast axis'''
+	'''WARNING! differentiation only works for evenly spaced datapoints'''
+	XX = w['XX']
+	Y = w['Y']
+	X = w['X']
+	cbar_q = w['cbar_quantity'] 
 	cbar_u = w['cbar_unit']
-	condquant = strtobool(w['didv_condquant'])
-	print(cbar_q,cbar_u)
-	print('a.ndim',a.ndim)
-	if a.ndim == 1: #if 1D 
-		w['XX'] = np.diff(w['XX'])
-		w['XX'] = np.append(w['XX'],w['XX'][-1])
-	else:
-		w['XX'] = np.diff(w['XX'],axis=1)
-	
-	w['cbar_quantity'] = '$\partial$' + cbar_q + '/$\partial$' + w['ylabel']
-	
-	if cbar_u == 'nA':
-		#1 nA / 1 mV = 0.0129064037 conductance quanta
-		if condquant==True:
-			w['XX'] = w['XX'] / w['ystep'] * 0.0129064037
-			w['cbar_unit'] = r'2$\mathrm{e}^2/\mathrm{h}$'
-		else:
-			w['XX'] = w['XX'] / w['ystep']
-			w['cbar_unit'] = '$\mu$S'
-	elif cbar_u == 'mV':
-		#1 mV / 1 nA = 77.4809173 conductance resistance
-		if condquant==True:
-			w['cbar_quantity'] = '$\partial$' + w['ylabel'] +'/$\partial$' + cbar_q #Invert derivates in label!
-			w['XX'] = 0.0129064037/ (w['XX'] / w['ystep'])
-			w['cbar_unit'] = r'$\mathrm{h}/2\mathrm{e}^2$'
-		else:
-			w['XX'] = w['XX'] / w['ystep']
-			w['cbar_unit'] = '$\mathrm{M}\Omega$'
-	elif cbar_u == 'A':
-		#1 A / 1 V = 12906.4037 conductance quanta
-		if condquant==True:
-			w['XX'] = w['XX'] / w['ystep'] * 1.29064037e4
-			w['cbar_unit'] = r'2$\mathrm{e}^2/\mathrm{h}$'
-		else:
-			w['XX'] = w['XX'] / w['ystep']
-			w['cbar_unit'] = 'S'
-	elif cbar_u == 'V':
-		#1 V / 1 A = 7.74809173e-5 conductance resistance
-		if condquant==True:
-			w['cbar_quantity'] = '$\partial$' + w['ylabel'] +'/$\partial$' + cbar_q #Invert derivates in label!
-			w['XX'] = 1.29064037e4 / (w['XX'] / w['ystep'])
-			w['cbar_unit'] = r'2$\mathrm{e}^2/\mathrm{h}$'
-		else:
-			w['XX'] = w['XX'] / w['ystep']
-			w['cbar_unit'] = '$\Omega$'
+	condquant = strtobool(w['savgol_condquant']) # Use units of e^2/h if possible
+	axis = int(w['savgol_axis']) # -1 means fast axis, -2 slow axis differentiation
+	difforder = int(w['savgol_difforder']) # Order of the derivative
+	samples = int(w['savgol_samples']) # Samples for savgol filter
+	order = int(w['savgol_order']) # Order of savgol filter
+	if order is not 1:
+		condquant = False
+	#Keep axis selection with 0 or 1 compatibility:
+	if axis == 0 or XX.ndim==1:
+		axis = -1
+	if axis == 1:
+		axis = -2
+	#Compute conductance quantum
+	cq = 2*sc.elementary_charge**2/sc.h
 
-	elif a.ndim == 1:
-		if condquant==True:
-			w['XX'] = w['XX'] / w['xstep'] * 1.29064037e4
-			w['yunit'] = r'2$\mathrm{e}^2/\mathrm{h}$'
-			w['ylabel'] = '$\partial$' + w['ylabel'] + '/$\partial$' + w['xlabel']
+	XX_t = XX
+	if axis==-1 or XX.ndim==1: #Diff and smooth on fast axis
+		if XX.ndim ==1:
+			if difforder == 0:
+				pass 
+			elif difforder == 1:
+				w['cbar_quantity'] = '$\partial$' + cbar_q + '/$\partial$' + w['xlabel']
+			else: 
+				w['cbar_quantity'] = '$\partial^{}$'.format(difforder) + cbar_q + '/$\partial$' + w['xlabel'] + '$^{}$'.format(difforder)
+			XX_t = signal.savgol_filter(XX, samples, order, deriv=difforder, delta=np.diff(X)[0], mode='constant',cval=np.nan)
 		else:
-			w['XX'] = (w['XX'] / w['xstep'])
-			w['yunit'] = '$\Omega$'
-			w['ylabel'] = '$\partial$' + w['ylabel'] + '/$\partial$' + w['xlabel']
-	elif cbar_q == '' and w['yunit'] == 'V': # assume that this is a condition for a 2d plot:
-		if condquant==True:
-			w['XX'] = 1.29064037e4 / (w['XX'] / w['xstep'])
-			w['yunit'] = r'2$\mathrm{e}^2/\mathrm{h}$'
-			w['ylabel'] = '$\partial$' + w['xlabel'] + '/$\partial$' + w['ylabel'] #Invert derivates in label!
-		else:
-			w['XX'] = (w['XX'] / w['xstep'])
-			w['yunit'] = '$\Omega$'
-			w['ylabel'] = '$\partial$' + w['ylabel'] + '/$\partial$' + w['xlabel']
+			if difforder == 0:
+				pass 
+			elif difforder == 1:
+				w['cbar_quantity'] = '$\partial$' + cbar_q + '/$\partial$' + w['ylabel']
+			else:
+				w['cbar_quantity'] = '$\partial^{}$'.format(difforder) + cbar_q + '/$\partial$' + w['ylabel'] + '$^{}$'.format(difforder)
+			y = np.diff(Y)
+			yd = y[0]
+			print(samples,order,difforder,yd,np.diff(Y)[0],axis)
+			XX_t = signal.savgol_filter(XX, samples, order, deriv=difforder, delta=np.diff(Y,axis=axis)[0,0], axis=axis, mode='constant',cval=np.nan)
 
-	else:
-		if condquant == True:
-			print('Warning: unable to determine units in conductance quanta')
-		w['XX'] = w['XX'] / w['ystep']# * 0.0129064037
-		w['cbar_unit'] = ''
-
-def helper_sgdidv(w):
-	'''Perform Savitzky-Golay smoothing and get 1st derivative'''
-	cbar_q = w['cbar_quantity']
-	cbar_u = w['cbar_unit']
-	if cbar_q == '': # assume that this is a condition for a 2d plot:
-		w['XX'] = signal.savgol_filter(w['XX'], int(w['sgdidv_samples']), int(w['sgdidv_order']), deriv=1, delta=w['xstep'])# / 0.02581281)
-	else:
-		w['XX'] = signal.savgol_filter(w['XX'], int(w['sgdidv_samples']), int(w['sgdidv_order']), deriv=1, delta=w['ystep'])# / 0.02581281)
-	condquant = strtobool(w['sgdidv_condquant'])
-	ylabel = w['ylabel']
-	
-	w['cbar_quantity'] = '$\partial$' + cbar_q + '/$\partial$' + w['ylabel']
-	
-	if cbar_u == 'nA':
-		#1 nA / 1 mV = 0.0129064037 conductance quanta
-		if condquant==True:
-			w['XX'] = w['XX'] * 0.0129064037
-			w['cbar_unit'] = r'2$\mathrm{e}^2/\mathrm{h}$'
-		else:
-			w['XX'] = w['XX']
-			w['cbar_unit'] = '$\mu$S'
-	elif cbar_u == 'mV':
-		#1 mV / 1 nA = 77.4809173 conductance resistance
-		if condquant==True:
-			w['cbar_quantity'] = '$\partial$' + w['ylabel'] +'/$\partial$' + cbar_q #Invert derivates in label!
-			w['XX'] = 0.0129064037/ (w['XX'])
-			w['cbar_unit'] = r'$\mathrm{h}/2\mathrm{e}^2$'
-		else:
-			w['XX'] = w['XX']
-			w['cbar_unit'] = '$\mathrm{M}\Omega$'
-
-	elif cbar_u == 'A':
-		#1 A / 1 V = 12906.4037 conductance quanta
-		if condquant==True:
-			w['XX'] = w['XX'] * 1.29064037e4
-			w['cbar_unit'] = r'2$\mathrm{e}^2/\mathrm{h}$'
-		else:
-			w['XX'] = w['XX']
-			w['cbar_unit'] = 'S'
-	elif cbar_u == 'V':
-		#1 V / 1 A = 7.74809173e-5 conductance resistance
-		if condquant==True:
-			w['cbar_quantity'] = '$\partial$' + w['ylabel'] +'/$\partial$' + cbar_q #Invert derivates in label!
-			w['XX'] = 1.29064037e4 / (w['XX'])
-			w['cbar_unit'] = r'2$\mathrm{e}^2/\mathrm{h}$'
-		else:
-			w['XX'] = w['XX']
-			w['cbar_unit'] = '$\Omega$'
-
-	elif cbar_q == '' and w['yunit'] == 'A': # assume that this is a condition for a 2d plot:
-		if condquant==True:
-			w['XX'] = w['XX'] * 1.29064037e4
-			w['yunit'] = r'2$\mathrm{e}^2/\mathrm{h}$'
-			w['ylabel'] = '$\partial$' + w['ylabel'] + '/$\partial$' + w['xlabel']
-		else:
-			w['XX'] = (w['XX'])
-			w['yunit'] = '$\Omega$'
-			w['ylabel'] = '$\partial$' + w['ylabel'] + '/$\partial$' + w['xlabel']
-	elif cbar_q == '' and w['yunit'] == 'V': # assume that this is a condition for a 2d plot:
-		if condquant==True:
-			w['XX'] = 1.29064037e4 / (w['XX'])
-			w['yunit'] = r'2$\mathrm{e}^2/\mathrm{h}$'
-			w['ylabel'] = '$\partial$' + w['xlabel'] + '/$\partial$' + w['ylabel'] #Invert derivates in label!
-		else:
-			w['XX'] = (w['XX'])
-			w['yunit'] = '$\Omega$'
-			w['ylabel'] = '$\partial$' + w['ylabel'] + '/$\partial$' + w['xlabel']
-	else:
-		if condquant == True:
-			print('Warning: unable to determine units in conductance quanta')
-		w['XX'] = w['XX']# * 0.0129064037
-		w['cbar_unit'] = ''
-
-def helper_sgtwodidv(w):
-	'''Perform Savitzky-Golay smoothing and get 1st derivative'''
-	w['XX'] = signal.savgol_filter(
-			w['XX'], int(w['sgdidv_samples']), int(w['sgdidv_order']), deriv=1, delta=w['ystep'] / 0.0129064037)
-	w['cbar_quantity'] = 'dI/dV'
-	w['cbar_unit'] = '$\mu$Siemens'
-	w['cbar_unit'] = r'$\mathrm{e}^2/\mathrm{h}$'
-	data = w['XX']
+		if cbar_u == 'nA': 
+			if condquant == True:
+				XX_t = 1e6 * cq * XX_t
+				w['cbar_unit'] = r'2e$^2$/h'
+			else:
+				w['cbar_unit'] = r'$\mu$S'
+		if cbar_u == 'A':
+			if condquant == True:
+				XX_t = cq * XX_t
+				w['cbar_unit'] = r'2e$^2$/h'
+			else:
+				w['cbar_unit'] = r'S'
 		
+		if cbar_u == 'mV':
+			if condquant == True:
+				XX_t = (1e6/cq) * XX_t
+				w['cbar_unit'] = r'h/2e$^2$'
+			else:
+				w['cbar_unit'] = r'M$\Omega$'
+		if cbar_u == 'V':
+			if condquant == True:
+				XX_t = (1/cq) * XX_t
+				w['cbar_unit'] = r'h/2e$^2$'
+			else:
+				w['cbar_unit'] = r'$\Omega$'
+
+	elif axis==-2: #Diff and smooth in slow axis
+		if difforder == 0:
+				pass 
+		elif difforder == 1:
+			w['cbar_quantity'] = '$\partial$' + cbar_q + '/$\partial$' + w['xlabel']
+		else:
+			w['cbar_quantity'] = '$\partial^{}$'.format(difforder) + cbar_q + '/$\partial$' + w['xlabel'] + '$^{}$'.format(difforder)
+		XX_t = signal.savgol_filter(XX, samples, order, deriv=difforder, delta=np.diff(X,axis=axis)[0,0], axis=axis, mode='constant',cval=np.nan)
+		if cbar_u == 'nA': 
+			if condquant == True:
+				XX_t = 1e6 * cq * XX_t
+				w['cbar_unit'] = r'2e$^2$/h'
+			else:
+				w['cbar_unit'] = r'$\mu$S'
+		if cbar_u == 'A':
+			if condquant == True:
+				XX_t = cq * XX_t
+				w['cbar_unit'] = r'2e$^2$/h'
+			else:
+				w['cbar_unit'] = r'S'
 		
-def helper_hardgap(w):
+		if cbar_u == 'mV':
+			if condquant == True:
+				XX_t = (1e6/cq) * XX_t
+				w['cbar_unit'] = r'h/2e$^2$'
+			else:
+				w['cbar_unit'] = r'M$\Omega$'
+		if cbar_u == 'V':
+			if condquant == True:
+				XX_t = (1/cq) * XX_t
+				w['cbar_unit'] = r'h/2e$^2$'
+			else:
+				w['cbar_unit'] = r'$\Omega$'
+	w['XX']=XX_t
+		
+def helper_hardgap(w): #Needs equally spaced axes
 	XX = w['XX']
 	xn, yn = XX.shape
 	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
@@ -384,10 +434,8 @@ def helper_hardgap(w):
 	hardnesscorr = abs(gapconductance)/abs(outsidegapconductancecorr)
 	hardnesscorr = moving_average_1d(hardnesscorr[:], win)
 
-	#print 'gateshift:', gateshift
-
 	fig = plt.figure()
-	plt.plot(xaxis,outsidegapconductance,xaxis,gapconductance)#,xaxis,gapconductance)		
+	plt.plot(xaxis,outsidegapconductance,xaxis,gapconductance)		
 	fig = plt.figure()
 	plt.plot(xaxis,hardness)
 	plt.yscale('log')
@@ -399,27 +447,43 @@ def helper_hardgap(w):
 	w['buffer']={'labels': [xlabel,ylabel], 'data':[[gapconductance],[outsidegapconductance],[hardness],[outsidegapconductancecorr],[hardnesscorr]], 'xaxis':[xaxis]}
 
 def helper_int(w):
-	a=(w['XX'])
-	if a.ndim == 1: #if 1D ['XX'] = np.diff(w['XX'])
-		xaxis = w['X']
-		xaxisdiff = np.diff(xaxis,prepend=xaxis[0]-(xaxis[1]-xaxis[0]))
-		intarr = np.nancumsum(w['XX']*xaxisdiff)
-		w['XX'] = intarr - intarr[int(len(intarr)/2)]
-		w['yunit'] = 'int(' + w['yunit'] + ')/d' + w['xunit']
-		w['ylabel'] = ''
-		print(xaxisdiff)
+	XX = w['XX']
+	X = w['X']
+	Y = w['Y']
+	ccstrtwo = r'2e$^2$/h' 
+	ccstr = r'e$^2$/h' 
+	modifier = 1
+	if ccstrtwo in w['cbar_unit']:
+		modifier = 	 (2*sc.elementary_charge**2/sc.h)
+	elif ccstr in w['cbar_unit']:
+		modifier = (sc.elementary_charge**2/sc.h)
+	if XX.ndim == 1:
+		intarr = np.nancumsum(XX)*np.diff(X,prepend=X[0]-(X[1]-X[0]))
+		w['XX'] = (intarr - intarr[int(len(intarr)/2)])*modifier
+		dxunit = w['xunit']
 	else:
-		xaxis = np.linspace(w['ext'][0],w['ext'][1],a.shape[0])
-		yaxis = np.linspace(w['ext'][2],w['ext'][3],a.shape[1])
-		for i in range(0,a.shape[0]):
-			yaxisdiff = np.diff(yaxis,prepend=yaxis[0]-(yaxis[1]-yaxis[0]))
-			intarr = np.nancumsum(a[i,:])*yaxisdiff
-			a[i,:] = intarr - np.nanmean(intarr)
-		w['XX']=a
-		w['cbar_quantity'] = ''
+		for i in range(0,XX.shape[0]):
+			intarr = np.nancumsum(XX[i,:])*np.diff(Y[i,:],prepend=Y[i,0]-(Y[i,1]-Y[i,0]))
+			XX[i,:] = intarr - np.nanmean(intarr)
+		w['XX']=a*modifier
+		dxunit = w['yunit']
+	if modifier is not 1 and dxunit == 'V':
+		w['cbar_unit'] = 'A'
+	elif modifier is not 1 and dxunit == 'A':
+		w['cbar_unit'] = 'V'
+	elif w['cbar_unit'] == 'S' and dxunit == 'V':
+		w['cbar_unit'] = 'A'
+	elif w['cbar_unit'] == r'$\mu$S' and dxunit == 'mV':
+		w['cbar_unit'] = 'nA'
+	elif w['cbar_unit'] == r'$\Omega$' and dxunit == 'A':
+		w['cbar_unit'] = 'V'
+	elif w['cbar_unit'] == r'k$\Omega$' and dxunit == 'nA':
+		w['cbar_unit'] = 'mV'
+	elif w['cbar_unit'] == r'M$\Omega$' and dxunit == 'nA':
+		w['cbar_unit'] = r'$\mu$V'
+	else:
 		w['cbar_unit'] = 'int(' + w['cbar_unit'] + ')/d' + w['yunit']
-
-	
+	w['cbar_quantity'] = ''
 
 def helper_log(w):
 	w['XX'] = np.log10(np.abs(w['XX']))
@@ -465,7 +529,7 @@ def helper_fancylog(w):
 def helper_normal(w):
 	pass
 	
-def helper_movingmeansubtract(w):
+def helper_movingmeansubtract(w):  #Needs equally spaced axes
 	XX = w['XX']
 	xn, yn = XX.shape
 	meanarray = np.zeros(xn)
@@ -493,12 +557,12 @@ def helper_movingmeansubtract(w):
 	#plt.plot(meanarray)
 	w['XX'] = XX
 	
-def helper_meansubtract(w):
+def helper_meansubtract(w):  #Needs equally spaced axes
 	offset = np.nanmean(w['XX'])
 	print('Subtracted mean:' + str(offset))
 	w['XX'] = w['XX']-offset
 
-def helper_deleteouterdatapoints(w):
+def helper_deleteouterdatapoints(w):  #Needs equally spaced axes
 	n = int((w['deleteouterdatapoints_n']))
 	XX = w['XX']
 	xn, yn = XX.shape
@@ -513,7 +577,7 @@ def helper_deleteouterdatapoints(w):
 	w['ext'] = [w['ext'][0],w['ext'][1],newylim1,newylim2]
 	w['XX'] = XX_new
 
-def helper_offsetslopesubtract(w):
+def helper_offsetslopesubtract(w):  #Needs equally spaced axes
 	offset,slope = (w['offsetslopesubtract_offset']),(w['offsetslopesubtract_slope'])
 	#print offset
 	xaxis = np.linspace(w['ext'][1],w['ext'][2],w['XX'].shape[0])
@@ -538,7 +602,7 @@ def nan_helper(y):
 
     return np.isnan(y), lambda z: z.nonzero()[0]
 
-def helper_rshunt(w):
+def helper_rshunt(w): #Needs equally spaced axes
 	import math
 	import numpy.ma as ma
 	XX = w['XX']#+1e3/float(w['vbiascorrector_seriesr'])
@@ -589,7 +653,7 @@ def helper_rshunt(w):
 	#print w['ystep']
 	w['ext'] = [w['ext'][0],w['ext'][1],ylimitneg,ylimitpos]	
 
-def helper_vbiascorrector(w):
+def helper_vbiascorrector(w): #Needs equally spaced axes
 	import math
 	import numpy.ma as ma
 	XX = w['XX']#+1e3/float(w['vbiascorrector_seriesr'])
@@ -620,35 +684,117 @@ def helper_vbiascorrector(w):
 	#print w['ystep']
 	w['ext'] = [w['ext'][0],w['ext'][1],ylimitneg,ylimitpos]
 
-def helper_ivreverser(w): #Inverse I and V-bias measurements (works on both) by interpolating y-data on new homogeneous x-axis.
+def helper_ivreverserlockin(w):  #Needs equally spaced axes
+	XX = w['XX']
+	X = w['X']
+	Y = w['Y']
+	ccstrtwo = r'2e$^2$/h' 
+	ccstr = r'e$^2$/h' 
+	modifier = 1
+	if ccstrtwo in w['cbar_unit']:
+		modifier = 	 (2*sc.elementary_charge**2/sc.h)
+	elif ccstr in w['cbar_unit']:
+		modifier = (sc.elementary_charge**2/sc.h)
+	if XX.ndim == 1:
+		intarr = np.nancumsum(XX)*np.diff(X,prepend=X[0]-(X[1]-X[0]))
+		XX = (intarr - intarr[int(len(intarr)/2)])*modifier
+		dxunit = w['xunit']
+	else:
+		for i in range(0,XX.shape[0]):
+			intarr = np.nancumsum(XX[i,:])*np.diff(Y[i,:],prepend=Y[i,0]-(Y[i,1]-Y[i,0]))
+			a[i,:] = intarr - np.nanmean(intarr)
+		XX=a*modifier
+		dxunit = w['yunit']
+	if modifier is not 1 and dxunit == 'V':
+		w['cbar_unit'] = 'A'
+	elif modifier is not 1 and dxunit == 'A':
+		w['cbar_unit'] = 'V'
+	elif w['cbar_unit'] == 'S' and dxunit == 'V':
+		w['cbar_unit'] = 'A'
+	elif w['cbar_unit'] == r'$\mu$S' and dxunit == 'mV':
+		w['cbar_unit'] = 'nA'
+	elif w['cbar_unit'] == r'$\Omega$' and dxunit == 'A':
+		w['cbar_unit'] = 'V'
+	elif w['cbar_unit'] == r'k$\Omega$' and dxunit == 'nA':
+		w['cbar_unit'] = 'mV'
+	elif w['cbar_unit'] == r'M$\Omega$' and dxunit == 'nA':
+		w['cbar_unit'] = r'$\mu$V'
+	else:
+		w['cbar_unit'] = 'int(' + w['cbar_unit'] + ')/d' + w['yunit']
+	w['cbar_quantity'] = ''
+
+	#Inverse I and V-bias measurements (works on both) by interpolating y-data on new homogeneous x-axis.
+	# new versiong since matplotlibs griddata was deprecated :/
+	from scipy.interpolate import griddata
+	from scipy.interpolate import interp1d
 	import math
-	#from matplotlib.mlab import griddata
 	import numpy.ma as ma
 	import numpy as np
-	XX = w['XX']#+1e3/float(w['vbiascorrector_seriesr'])
+	import numpy.matlib
+	twodim = strtobool(w['ivreversernew_twodim'])
+	method = w['ivreversernew_interpmethod']
+	XX = w['XX']
 	xn, yn = XX.shape
 	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
 	yaxis = np.linspace(w['ext'][2],w['ext'][3],w['XX'].shape[1])
 	ycorrected = np.zeros(shape=(xn,yn))
-	gridresolutionfactor = int(w['ivreverser_gridresolutionfactor']) # Example: Factor of 2 doubles the number of y datapoints for non-linear interpolation
+	gridresolutionfactor = int(w['ivreversernew_gridresolutionfactor']) # Example: Factor of 2 doubles the number of y datapoints for non-linear interpolation
 	
 	for i in range(0,xn):
 		ycorrected[i,:] = XX[i,:] #y-axis becomes data axis
-		XX[i,:] = yaxis #data axis becomes y-axis
-		#datacorrected[i,:] = yaxis #data axis becomes y-axis
-	ylimitneg,ylimitpos = (np.nanmin(ycorrected)), (np.nanmax(ycorrected))
-	print(ylimitneg,ylimitpos)
-	gridyaxis = np.linspace(ylimitneg,ylimitpos,int(yn*gridresolutionfactor))
-	gridxaxis = xaxis
-	XX_new = np.zeros(shape=(xn,len(gridyaxis)))
-	for i in range(0,xn):
-		XX_new[i,:] = np.interp(gridyaxis,ycorrected[i,:],XX[i,:], left=np.nan, right=np.nan)
+		XX[i,:] = yaxis #data axis becomes y-axis (replace with repmat)
+	ylimitneg,ylimitpos = (np.nanmin(ycorrected*10))/10, (np.nanmax(ycorrected*10))/10
+	#print(ylimitneg,ylimitpos)
+	grid_x, grid_y = np.mgrid[w['ext'][0]:w['ext'][1]:xn*1j, ylimitneg:ylimitpos:(yn*gridresolutionfactor)*1j]
+	grid_y_1d = np.linspace(ylimitneg,ylimitpos,(yn*gridresolutionfactor))
+	gridxstep = np.abs(grid_x[1,0]-grid_x[0,0])
+	gridystep = np.abs(grid_y[0,1]-grid_y[0,0])
+	#gridxstep,gridystep=1,1
+	#print(gridxstep,gridystep)
+	grid_x /= gridxstep
+	grid_y /= gridystep 
+	xrep = np.ravel(np.matlib.repmat(xaxis,yn,1),'F')
+	points = np.transpose(np.vstack([xrep/gridxstep,np.ravel(ycorrected)/gridystep]))
+	zf = np.ravel(XX)
+	indexnonans=np.invert(np.isnan(points[:,0]))*np.invert(np.isnan(points[:,1]))*np.invert(np.isnan(zf))
+	XX_new = np.zeros(shape=(xn,len(grid_y_1d)))
+	# Calculate very tiny value relative to smallest value found in dataset to create a 
+	# monotonous increase in the interpolated values. This prevents cubic interpolation 
+	# from crashing since it cannot handle repeating values.
+	minaddnp=np.abs(np.nanmin(XX)*1e-3)
+	print(minaddnp)
+	if twodim == True:
+		print('2d')
+		try:
+			#XX_new = griddata(points, np.array(zf), (grid_x, grid_y), method='cubic')
+			XX_new = griddata(np.stack((points[:,0][indexnonans],points[:,1][indexnonans]),axis=1), np.array(zf)[indexnonans], (grid_x, grid_y), method=method)
+		except:
+			XX_new = griddata(points, np.array(zf), (grid_x, grid_y), method=method)
+			print('IVreverser {} interpolation failed, falling back to \'nearest\'.'.format(method))
+
+	if twodim == False:
+		print('1d')
+		XX_new = np.zeros(shape=(xn,len(grid_y_1d)))
+		try:
+			for i in range(0,xn):
+				indexnonans2 = np.nonzero(~np.isnan(ycorrected[i,:])) 
+				ycn = ycorrected[i,(indexnonans2)][0]
+				# Making sure ycn values are all unique by adding a random tiny value to each
+				ycn = np.linspace(0,minaddnp*1e-6,len(ycn))+ycn
+				yn = yaxis[indexnonans2]
+				f = interp1d(ycn,yn, kind=method, bounds_error=False, fill_value=np.nan)
+				XX_new[i,:] = f(grid_y_1d)
+		except:
+			print('IVreverser {} interpolation failed, falling back to \'nearest\'.'.format(method))
+			for i in range(0,xn):
+				f = interp1d(ycorrected[i,:],yaxis, kind='nearest', bounds_error=False, fill_value=np.nan)
+				XX_new[i,:] = f(grid_y_1d)
+	w['X'] = grid_x
+	w['Y'] = grid_y
 	w['XX'] = XX_new
-	#w['ext'][2] = ylimitneg
-	#w['ext'][3] = ylimitpos
 	w['ext'] = (w['ext'][0],w['ext'][1],ylimitneg,ylimitpos)
-	w['ystep'] = (ylimitpos-ylimitneg)/(len(gridyaxis)-1)
-	#print ylimitpos, ylimitneg, len(gridyaxis)
+	print(ylimitpos-ylimitneg,len(grid_y_1d)-1)
+	w['ystep'] = np.abs(ylimitpos-ylimitneg)/(len(grid_y_1d)-1)
 	print('new ystep:'+ str(w['ystep']))
 	w['ext'] = (w['ext'][0],w['ext'][1],ylimitneg,ylimitpos)
 	if w['yunit'].find('nA') != -1:
@@ -662,8 +808,8 @@ def helper_ivreverser(w): #Inverse I and V-bias measurements (works on both) by 
 		w['ylabel'] = '$I_\mathrm{D}$'
 		w['yunit'] = 'nA'
 		w['cbar_quantity'] = '$V_\mathrm{SD}$'
-		w['cbar_unit'] = 'mV' 
-	if w['yunit'].find('A') != -1:
+		w['cbar_unit'] = 'mV'
+	elif w['yunit'].find('A') != -1:
 		print('I sourced detected')
 		w['ylabel'] = '$V_\mathrm{SD}$'
 		w['yunit'] = 'V'
@@ -674,9 +820,10 @@ def helper_ivreverser(w): #Inverse I and V-bias measurements (works on both) by 
 		w['ylabel'] = '$I_\mathrm{D}$'
 		w['yunit'] = 'A'
 		w['cbar_quantity'] = '$V_\mathrm{SD}$'
-		w['cbar_unit'] = 'V' 
+		w['cbar_unit'] = 'V'
 
-def helper_ivreversernew(w): #Inverse I and V-bias measurements (works on both) by interpolating y-data on new homogeneous x-axis.
+def helper_ivreverser(w):  #Needs equally spaced axes
+	#Inverse I and V-bias measurements (works on both) by interpolating y-data on new homogeneous x-axis.
 	# new versiong since matplotlibs griddata was deprecated :/
 	from scipy.interpolate import griddata
 	from scipy.interpolate import interp1d
@@ -775,7 +922,8 @@ def helper_ivreversernew(w): #Inverse I and V-bias measurements (works on both) 
 		w['cbar_quantity'] = '$V_\mathrm{SD}$'
 		w['cbar_unit'] = 'V'
 
-def helper_excesscurrent(w): #Designed for I-bias. Calculate excess current by performing linear fit at high bias and calculate the zero-crossing of the x-axis
+def helper_excesscurrent(w):  #Needs equally spaced axes
+	#Designed for I-bias. Calculate excess current by performing linear fit at high bias and calculate the zero-crossing of the x-axis
 	XX = w['XX']
 	xn, yn = XX.shape
 	limitfactor = w['excesscurrent_rangefactor'] #Percentual range of y-axis to use in polyfit. 
@@ -802,7 +950,8 @@ def helper_excesscurrent(w): #Designed for I-bias. Calculate excess current by p
 	plt.ylabel(ylabel)
 	w['buffer']={'labels': [xlabel,ylabel], 'data':[dataarray], 'xaxis':[xaxis], 'measdata':[XX]} #wrapping for analaysis
 	
-def helper_linecut(w): #Make a linecut on specified axis and value.
+def helper_linecut(w):  #Needs equally spaced axes
+	#Make a linecut on specified axis and value.
 	XX = w['XX']
 	xn, yn = XX.shape
 	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
@@ -841,7 +990,8 @@ def helper_linecut(w): #Make a linecut on specified axis and value.
 	w['buffer']={'labels': [xlabel,ylabel], 'data':[dataarray], 'xaxis':[xaxis], 'vals':[linecutvalue]} #wrapping for further analysis
 
 
-def helper_resistance(w): #Calculate resistance of one sweep. Pretty old, not sure if it still works.
+def helper_resistance(w):  #Needs equally spaced axes
+	#Calculate resistance of one sweep. Pretty old, not sure if it still works.
 	XX = w['XX']
 	xn, yn = XX.shape
 	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
@@ -866,7 +1016,8 @@ def helper_resistance(w): #Calculate resistance of one sweep. Pretty old, not su
 	plt.plot(xaxis,resistance)
 	w['buffer'] = [xaxis,resistance,conductance]
 
-def helper_dbmtovolt(w): #Convert dmb to 'volt', rf-amplifier (type?) conversion table included. Interpolates linear to logarithmic power axis.
+def helper_dbmtovolt(w):  #Needs equally spaced axes
+	#Convert dmb to 'volt', rf-amplifier (type?) conversion table included. Interpolates linear to logarithmic power axis.
 	XX = w['XX']
 	xn, yn = XX.shape
 	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
@@ -897,16 +1048,13 @@ def helper_dbmtovolt(w): #Convert dmb to 'volt', rf-amplifier (type?) conversion
 	for i in range(0,yn):
 		XX_new[:,i] = np.interp(gridxaxis,xaxislin,XX[:,i], left=np.nan, right=np.nan)
 	w['XX'] = XX_new
-	#w['ext'][2] = ylimitneg
-	#w['ext'][3] = ylimitpos
 	w['ext'] = (xlimitneg,xlimitpos,w['ext'][2],w['ext'][3])
 	w['xstep'] = (xlimitpos-xlimitneg)/len(gridxaxis)
-	#print ylimitpos, ylimitneg, len(gridyaxis)
-	print('new xstep:'+ str(w['xstep']))
 	w['xlabel'] = '$V_\mathrm{rms}$ (V)'
 
 
-def helper_shapiro(w): #Looks for expected voltage of Shapiro step as function of applied frequency and order and returns closest measured index.
+def helper_shapiro(w):  #Needs equally spaced axes
+	#Looks for expected voltage of Shapiro step as function of applied frequency and order and returns closest measured index.
 	planck = 4.135668e-15
 	electron = 1#1.60e-19
 	rffreq = w['shapiro_rffreq'] #Freq in GHz
@@ -948,7 +1096,8 @@ def helper_shapiro(w): #Looks for expected voltage of Shapiro step as function o
 	w['buffer'] = shapiro
 	w['buffer']={'labels': [xlabel,ylabel], 'data':[shapiro], 'xaxis':[xaxis]}
 
-def helper_histogram(w): #Make a histogram
+def helper_histogram(w):  #Needs equally spaced axes
+	#Make a histogram
 	XX = w['XX']
 	xn, yn = XX.shape
 	#print yn,xn
@@ -970,7 +1119,8 @@ def helper_histogram(w): #Make a histogram
 	w['ylabel'] = '$V_\mathrm{SD}$ (hf/2e)'
 	w['ext'] = [w['ext'][0],w['ext'][1],histrange[0],histrange[1]]
 
-def helper_histogram2(w): #Make histogram using stats.binned_statistics. Not sure what the advantage was.
+def helper_histogram2(w):  #Needs equally spaced axes
+	#Make histogram using stats.binned_statistics. Not sure what the advantage was.
 	from scipy import stats
 	XX = w['XX']
 	xn, yn = XX.shape
@@ -993,22 +1143,12 @@ def helper_histogram2(w): #Make histogram using stats.binned_statistics. Not sur
 	print(isteps)
 	w['XX'] = isteps
 	w['ext'] = [w['ext'][0],w['ext'][1],histrange[0],histrange[1]]
-		# for j in range(0,histbins):
-			# inds = np.where(stats[2][:] == j+1)[0]
-			# xaxvals = [xaxis[k] for k in inds]
-			# if xaxvals:
-				# step[j] = argmax(xaxvals) - argmin(xaxvals)
-			# else:
-				# step[j] = 0
 
 def helper_minsubtract(w): #Subtract smallest value from data
 	w['XX'] = w['XX'] - np.min(w['XX'])
 
 def helper_factor(w): #Multiply data with a factor
 	w['XX'] = w['XX']*float(w['factor_factor'])
-	#w['cbar_trans'] = ['abs'] + w['cbar_trans']
-	#w['cbar_quantity'] = '|' +w['cbar_quantity']+'|'
-	#w['cbar_unit'] = w['cbar_unit']
 
 def helper_abs(w): #ABSOLUTELY
 	w['XX'] = np.abs(w['XX'])
@@ -1029,7 +1169,6 @@ def helper_flipyaxis(w):
 def helper_flipxaxis(w):
 	w['XX'] = np.flipud( w['XX'])
 	w['ext'] = (w['ext'][1],w['ext'][0],w['ext'][2],w['ext'][3])
-
 
 def helper_crosscorr(w):
 	A = w['XX']
@@ -1066,7 +1205,7 @@ def helper_crosscorr(w):
 	w['offsets'] = 	offsets
 	w['XX'] = A
 
-def helper_deint_cross(w):
+def helper_deint_cross(w):  #Needs equally spaced axes
 	A = w['XX']
 
 	B = A.copy() 
@@ -1086,7 +1225,8 @@ def helper_deint_cross(w):
 		A[i,:] = np.interp(x-offset,x,A[i,:])
 	w['XX'] = A
 
-def helper_ic(w): #For meander + SC measurements: split file at zero bias and use 0 to finite sweep direction values for
+def helper_ic(w):  #Needs equally spaced axes
+	#For meander + SC measurements: split file at zero bias and use 0 to finite sweep direction values for
 	# both pos and neg bias. Next stick them together again.
     data = w['XX']
     helper_deinterlace(w)
@@ -1110,15 +1250,10 @@ def helper_ic(w): #For meander + SC measurements: split file at zero bias and us
         bottom = X1[1:,(cutb):]
     #take the bottom of X1 (oneven)
     top = X0[:,:(cutb-1)]
-    #print top.shape
-    #print bottom.shape
     w['XX']=np.hstack((top,bottom))
-    #dinges = np.hstack((top,bottom))
-    #w['XX'] = bottom
-    # print bottom.shape
-    # print top.shape
 
-def helper_iretrap(w): #For meander + SC measurements: split file at zero bias and use finite to 0 sweep direction values (different 
+def helper_iretrap(w):  #Needs equally spaced axes
+	#For meander + SC measurements: split file at zero bias and use finite to 0 sweep direction values (different 
 	# from helper_ic) values for both pos and neg bias. Next stick them together again.
     data = w['XX']
     helper_deinterlace(w)
@@ -1143,7 +1278,8 @@ def helper_iretrap(w): #For meander + SC measurements: split file at zero bias a
     #top = X1[1:,:ynr]
     w['XX']=np.hstack((top,bottom))
 
-def helper_icvsx(w): #Finds switching current or retrapping current by peak fitting. Preparation of data required by various other styles.
+def helper_icvsx(w):  #Needs equally spaced axes
+	#Finds switching current or retrapping current by peak fitting. Preparation of data required by various other styles.
 	# Correct use is complicated and requires lots of tuning (see comments). Styles to use before: 
 	import sys
 	from IPython.display import display
@@ -1349,23 +1485,19 @@ STYLE_FUNCS = {
 	'deinterlace': helper_deinterlace,
 	'deinterlace0': helper_deinterlace0,
 	'deinterlace1': helper_deinterlace1,
-	'didv': helper_didv,
+	'diff': helper_diff,
 	'log': helper_log,
 	'logdb': helper_logdb,
 	'normal': helper_normal,
-	#'ssidrive': helper_ssidrive,
 	'flipaxes': helper_flipaxes,
 	'flipxaxis': helper_flipxaxis,
 	'flipyaxis': helper_flipyaxis,
 	'mov_avg': helper_mov_avg,
 	'abs': helper_abs,
 	'savgol': helper_savgol,
-	'sgdidv': helper_sgdidv,
-	'sgtwodidv': helper_sgtwodidv,
 	'fancylog': helper_fancylog,
 	'minsubtract': helper_minsubtract,
 	'crosscorr':helper_crosscorr,
-# 	'threshold_offset': helper_threshold_offset,
 	'massage': helper_massage,
 	'deint_cross': helper_deint_cross,
 	'shapiro': helper_shapiro,
@@ -1378,7 +1510,6 @@ STYLE_FUNCS = {
 	'excesscurrent': helper_excesscurrent,
 	'resistance': helper_resistance,
 	'vbiascorrector': helper_vbiascorrector,
-	'ivreverser': helper_ivreverser,
 	'ivreversernew': helper_ivreversernew,
 	'histogram': helper_histogram,
 	'int': helper_int,
@@ -1404,7 +1535,8 @@ STYLE_SPECS = {
 	'deinterlace': {'param_order': []},
 	'deinterlace0': {'param_order': []},
 	'deinterlace1': {'param_order': []},
-	'didv': {'condquant': False, 'param_order': ['condquant']},
+	#'didv': {'condquant': False, 'axis': -1, 'param_order': ['condquant', 'axis']},
+	'diff': {'condquant': False, 'axis': -1, 'gradient': True, 'order': 1, 'param_order': ['condquant','axis','gradient','order']},
 	'log': {'param_order': []},
 	'logdb': {'param_order': []},
 	'normal': {'param_order': []},
@@ -1415,8 +1547,8 @@ STYLE_SPECS = {
 # 	'threshold_offset': {'threshold':0.2,'start':0.0,'stop':1.0,'param_order':[]},
 	'mov_avg': {'m': 1, 'n': 3, 'win': None, 'param_order': ['m', 'n', 'win']},
 	'abs': {'param_order': []},
-	'savgol': {'samples': 7, 'order': 3, 'param_order': ['samples', 'order']},
-	'sgdidv': {'samples': 7, 'order': 3, 'condquant': False, 'param_order': ['samples', 'order', 'condquant']},
+	'savgol': {'condquant': False, 'axis': -1, 'difforder':1, 'samples': 7, 'order': 3, 'param_order': ['condquant','axis','difforder','samples','order']},
+	#'sgdidv': {'samples': 7, 'order': 3, 'condquant': False, 'param_order': ['samples', 'order', 'condquant']},
 	'sgtwodidv': {'samples': 21, 'order': 3, 'param_order': ['samples', 'order']},
 	'fancylog': {'cmin': None, 'cmax': None, 'param_order': ['cmin', 'cmax']},
 	'minsubtract': {'param_order': []},
@@ -1433,7 +1565,7 @@ STYLE_SPECS = {
 	'excesscurrent': {'datacutoff': 3, 'rangefactor': 0.15, 'plot': 0, 'plotval': 0,'param_order': ['datacutoff','rangefactor','plot','plotval']},
 	'resistance': {'linecutvalue': 0, 'dolinearfit': False, 'fitregion': 1, 'param_order': ['linecutvalue','dolinearfit','fitregion']},
 	'vbiascorrector':{'voffset': 0,'seriesr': 0, 'gridresolutionfactor': 1, 'didv':False, 'param_order': ['voffset','seriesr','gridresolutionfactor','didv']},
-	'ivreverser':{'gridresolutionfactor': 2, 'param_order': ['gridresolutionfactor']},
+	#'ivreverser':{'gridresolutionfactor': 2, 'param_order': ['gridresolutionfactor']},
 	'ivreversernew':{'gridresolutionfactor': 2, 'twodim': False, 'interpmethod': 'cubic', 'param_order': ['gridresolutionfactor','twodim','interpmethod']},
 	'histogram':{'bins': 25, 'rangemin': -1, 'rangemax': 1, 'param_order': ['bins','rangemin','rangemax']},
 	'int': {'param_order': []},
