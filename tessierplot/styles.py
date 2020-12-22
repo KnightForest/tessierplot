@@ -465,7 +465,7 @@ def helper_int(w):
 		for i in range(0,XX.shape[0]):
 			intarr = np.nancumsum(XX[i,:])*np.diff(Y[i,:],prepend=Y[i,0]-(Y[i,1]-Y[i,0]))
 			XX[i,:] = intarr - np.nanmean(intarr)
-		w['XX']=a*modifier
+		w['XX']=XX*modifier
 		dxunit = w['yunit']
 	if modifier is not 1 and dxunit == 'V':
 		w['cbar_unit'] = 'A'
@@ -703,7 +703,7 @@ def helper_ivreverserlockin(w):  #Needs equally spaced axes
 		for i in range(0,XX.shape[0]):
 			intarr = np.nancumsum(XX[i,:])*np.diff(Y[i,:],prepend=Y[i,0]-(Y[i,1]-Y[i,0]))
 			a[i,:] = intarr - np.nanmean(intarr)
-		XX=a*modifier
+		XX=XX*modifier
 		dxunit = w['yunit']
 	if modifier is not 1 and dxunit == 'V':
 		w['cbar_unit'] = 'A'

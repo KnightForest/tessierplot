@@ -858,7 +858,7 @@ class plotR(object):
 
 		self.fig.drawbutton = toggleButton('draw', self.linedraw.connect)
 		topwidget = self.fig.canvas.window()
-		toolbar = topwidget.children()[2]
+		toolbar = topwidget.children()[1]
 		action = toolbar.addWidget(self.fig.drawbutton)
 
 		self.fig.linedraw = self.linedraw
@@ -867,7 +867,7 @@ class plotR(object):
 
 		self.fig.cutbutton = toggleButton('cut', self.linecut.connect)
 		topwidget = self.fig.canvas.window()
-		toolbar = topwidget.children()[2]
+		toolbar = topwidget.children()[1]
 		action = toolbar.addWidget(self.fig.cutbutton)
 
 		self.fig.linecut = self.linecut
@@ -878,7 +878,7 @@ class plotR(object):
 		self.fiddle = Fiddle(self.fig)
 		self.fig.fiddlebutton = toggleButton('fiddle', self.fiddle.connect)
 		topwidget = self.fig.canvas.window()
-		toolbar = topwidget.children()[2]
+		toolbar = topwidget.children()[1]
 		action = toolbar.addWidget(self.fig.fiddlebutton)
 
 		#attach to the relevant figure to make sure the object does not go out of scope
