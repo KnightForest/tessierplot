@@ -180,6 +180,8 @@ def helper_changeaxis(w):
 			float(w['changeaxis_yfactor'])*w['ext'][3]+w['changeaxis_yoffset'])
 	w['ext'] = newext
 	w['XX'] = w['XX']*float(w['changeaxis_datafactor'])
+	w['X'] = w['X']*xfactor
+	w['Y'] = w['Y']*yfactor
 	if w['changeaxis_dataunit'] != None:
 		w['cbar_unit'] = w['changeaxis_dataunit']
 	if w['changeaxis_xunit'] != None:
