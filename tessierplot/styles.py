@@ -206,7 +206,6 @@ def helper_diff(w):
 		axis = -2
 	#Compute conductance quantum
 	cq = 2*sc.elementary_charge**2/sc.h
-
 	XX_t = XX
 	if axis==-1 or XX.ndim==1: #Diff and smooth on fast axis
 		if XX.ndim ==1:
@@ -234,31 +233,34 @@ def helper_diff(w):
 						XX_t[i,:] = np.gradient(XX_t[i,:],Y[i,:])	
 					else:
 						XX_t[i,:-1] = np.diff(XX_t[i,:])/np.diff(Y[i,:])			
-		if cbar_u == 'nA': 
+		if cbar_u == 'nA' and order == 1: 
 			if condquant == True:
-				XX_t = 1e6 * cq * XX_t
+				XX_t = (1e-6 / cq) * XX_t
 				w['cbar_unit'] = r'2$e^2$/h'
 			else:
 				w['cbar_unit'] = r'$\mu$S'
-		if cbar_u == 'A':
+		elif cbar_u == 'A' and order ==1:
 			if condquant == True:
-				XX_t = cq * XX_t
+				XX_t = (1/cq) * XX_t
 				w['cbar_unit'] = r'2$e^2$/h'
 			else:
 				w['cbar_unit'] = r'S'
 		
-		if cbar_u == 'mV':
+		elif cbar_u == 'mV' and order == 1:
 			if condquant == True:
-				XX_t = (1e6/cq) * XX_t
+				XX_t = 1e-6*cq * XX_t
 				w['cbar_unit'] = r'h/2$e^2$'
 			else:
+				XX_t = XX_t
 				w['cbar_unit'] = r'M$\Omega$'
-		if cbar_u == 'V':
+		elif cbar_u == 'V' and order ==1:
 			if condquant == True:
-				XX_t = (1/cq) * XX_t
+				XX_t = cq * XX_t
 				w['cbar_unit'] = r'h/2$e^2$'
 			else:
 				w['cbar_unit'] = r'$\Omega$'
+		else:
+			w['cbar_unit'] = ''
 	
 	elif axis==-2: #Diff and smooth in slow axis
 		if order == 0:
@@ -273,31 +275,33 @@ def helper_diff(w):
 					XX_t[:,i] = np.gradient(XX_t[:,i],X[:,i])
 				else:
 					XX_t[:-1,i] = np.diff(XX_t[:,i])/np.diff(X[:,i])	
-		if cbar_u == 'nA': 
+		if cbar_u == 'nA' and order == 1: 
 			if condquant == True:
-				XX_t = 1e6 * cq * XX_t
+				XX_t = (1e-6 / cq) * XX_t
 				w['cbar_unit'] = r'2e$^2$/h'
 			else:
 				w['cbar_unit'] = r'$\mu$S'
-		if cbar_u == 'A':
+		elif cbar_u == 'A' and order == 1:
 			if condquant == True:
-				XX_t = cq * XX_t
+				XX_t = (1/cq) * XX_t
 				w['cbar_unit'] = r'2e$^2$/h'
 			else:
 				w['cbar_unit'] = r'S'
 		
-		if cbar_u == 'mV':
+		elif cbar_u == 'mV' and order == 1:
 			if condquant == True:
-				XX_t = (1e6/cq) * XX_t
+				XX_t = (1e-6/cq) / XX_t
 				w['cbar_unit'] = r'h/2e$^2$'
 			else:
 				w['cbar_unit'] = r'M$\Omega$'
-		if cbar_u == 'V':
+		elif cbar_u == 'V' and order == 1:
 			if condquant == True:
-				XX_t = (1/cq) * XX_t
+				XX_t = cq / XX_t
 				w['cbar_unit'] = r'h/2e$^2$'
 			else:
 				w['cbar_unit'] = r'$\Omega$'
+		else:
+			w['cbar_unit'] = ''
 	w['XX']=XX_t
 
 def helper_savgol(w):
@@ -470,7 +474,7 @@ def helper_int(w):
 	if modifier is not 1 and dxunit == 'V':
 		w['cbar_unit'] = 'A'
 	elif modifier is not 1 and dxunit == 'A':
-		w['cbar_unit'] = 'V'
+		w['cbar_unit'] = 'int(S dA)'
 	elif w['cbar_unit'] == 'S' and dxunit == 'V':
 		w['cbar_unit'] = 'A'
 	elif w['cbar_unit'] == r'$\mu$S' and dxunit == 'mV':
