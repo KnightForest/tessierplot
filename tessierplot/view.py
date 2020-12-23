@@ -60,7 +60,7 @@ def gzipit(self): #compresses all .dat files to .gz, deletes .dat files.
             os.unlink(datfile)
 
 class tessierView(object):
-    def __init__(self, rootdir='./', filemask='.*\.dat(?:\.gz)?$',filterstring='',override=False,headercheck=None,style=[],showfilenames=False):
+    def __init__(self, rootdir='./', filemask='.*\.dat(?:\.gz)?$',filterstring='',override=False,headercheck=None,style=[],showfilenames=False, filter_raw=True):
         self._root = rootdir
         self._filemask = filemask
         self._filterstring = filterstring
@@ -69,6 +69,7 @@ class tessierView(object):
         self._style = style
         self._override = override
         self._showfilenames = showfilenames
+        self._filter_raw = filter_raw
         #check for and create thumbnail dir
         thumbnaildir = os.path.dirname(getthumbcachepath('./'))
         if not os.path.exists(thumbnaildir):
@@ -222,7 +223,7 @@ class tessierView(object):
 
     def _ipython_display_(self):
         
-        display_html(HTML(self.genhtml(refresh=False,style=self._style)))
+        display_html(HTML(self.genhtml(refresh=False,style=self._style,filter_raw=self._filter_raw)))
         
     def genhtml(self,refresh=False,**kwargs):
         if self._override:
