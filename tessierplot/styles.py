@@ -173,15 +173,14 @@ def helper_fixlabels(w):
 
 
 def helper_changeaxis(w):
-	print(w['ext'])
 	newext = (float(w['changeaxis_xfactor'])*w['ext'][0]+w['changeaxis_xoffset'],
 			float(w['changeaxis_xfactor'])*w['ext'][1]+w['changeaxis_xoffset'],
 			float(w['changeaxis_yfactor'])*w['ext'][2]+w['changeaxis_yoffset'],
 			float(w['changeaxis_yfactor'])*w['ext'][3]+w['changeaxis_yoffset'])
 	w['ext'] = newext
 	w['XX'] = w['XX']*float(w['changeaxis_datafactor'])
-	w['X'] = w['X']*xfactor
-	w['Y'] = w['Y']*yfactor
+	w['X'] = w['X']*float(w['changeaxis_xfactor'])
+	w['Y'] = w['Y']*float(w['changeaxis_yfactor'])
 	if w['changeaxis_dataunit'] != None:
 		w['cbar_unit'] = w['changeaxis_dataunit']
 	if w['changeaxis_xunit'] != None:
@@ -234,7 +233,7 @@ def helper_diff(w):
 					if gradient:
 						XX_t[i,:] = np.gradient(XX_t[i,:],Y[i,:])	
 					else:
-						XX_t[i,:-1] = np.diff(XX_t[i,:])/np.diff(Y[i,:])			
+						XX_t[i,:-1] = np.diff(XX_t[i,:])/np.diff(Y[i,:])	
 		if cbar_u == 'nA' and order == 1: 
 			if condquant == True:
 				XX_t = (1e-6 / cq) * XX_t
@@ -250,10 +249,9 @@ def helper_diff(w):
 		
 		elif cbar_u == 'mV' and order == 1:
 			if condquant == True:
-				XX_t = 1e-6*cq * XX_t
+				XX_t = 1e6*cq * XX_t
 				w['cbar_unit'] = r'h/2$e^2$'
 			else:
-				XX_t = XX_t
 				w['cbar_unit'] = r'M$\Omega$'
 		elif cbar_u == 'V' and order ==1:
 			if condquant == True:
@@ -280,26 +278,26 @@ def helper_diff(w):
 		if cbar_u == 'nA' and order == 1: 
 			if condquant == True:
 				XX_t = (1e-6 / cq) * XX_t
-				w['cbar_unit'] = r'2e$^2$/h'
+				w['cbar_unit'] = r'2$e^2$/h'
 			else:
 				w['cbar_unit'] = r'$\mu$S'
-		elif cbar_u == 'A' and order == 1:
+		elif cbar_u == 'A' and order ==1:
 			if condquant == True:
 				XX_t = (1/cq) * XX_t
-				w['cbar_unit'] = r'2e$^2$/h'
+				w['cbar_unit'] = r'2$e^2$/h'
 			else:
 				w['cbar_unit'] = r'S'
 		
 		elif cbar_u == 'mV' and order == 1:
 			if condquant == True:
-				XX_t = (1e-6/cq) / XX_t
-				w['cbar_unit'] = r'h/2e$^2$'
+				XX_t = 1e6*cq * XX_t
+				w['cbar_unit'] = r'h/2$e^2$'
 			else:
 				w['cbar_unit'] = r'M$\Omega$'
-		elif cbar_u == 'V' and order == 1:
+		elif cbar_u == 'V' and order ==1:
 			if condquant == True:
-				XX_t = cq / XX_t
-				w['cbar_unit'] = r'h/2e$^2$'
+				XX_t = cq * XX_t
+				w['cbar_unit'] = r'h/2$e^2$'
 			else:
 				w['cbar_unit'] = r'$\Omega$'
 		else:
@@ -348,34 +346,35 @@ def helper_savgol(w):
 				w['cbar_quantity'] = '$\partial^{}$'.format(difforder) + cbar_q + '/$\partial$' + w['ylabel'] + '$^{}$'.format(difforder)
 			y = np.diff(Y)
 			yd = y[0]
-			print(samples,order,difforder,yd,np.diff(Y)[0],axis)
 			XX_t = signal.savgol_filter(XX, samples, order, deriv=difforder, delta=np.diff(Y,axis=axis)[0,0], axis=axis, mode='constant',cval=np.nan)
 
-		if cbar_u == 'nA': 
+		if cbar_u == 'nA' and order == 1: 
 			if condquant == True:
-				XX_t = 1e6 * cq * XX_t
-				w['cbar_unit'] = r'2e$^2$/h'
+				XX_t = (1e-6 / cq) * XX_t
+				w['cbar_unit'] = r'2$e^2$/h'
 			else:
 				w['cbar_unit'] = r'$\mu$S'
-		if cbar_u == 'A':
+		elif cbar_u == 'A' and order ==1:
 			if condquant == True:
-				XX_t = cq * XX_t
-				w['cbar_unit'] = r'2e$^2$/h'
+				XX_t = (1/cq) * XX_t
+				w['cbar_unit'] = r'2$e^2$/h'
 			else:
 				w['cbar_unit'] = r'S'
 		
-		if cbar_u == 'mV':
+		elif cbar_u == 'mV' and order == 1:
 			if condquant == True:
-				XX_t = (1e6/cq) * XX_t
-				w['cbar_unit'] = r'h/2e$^2$'
+				XX_t = 1e6*cq * XX_t
+				w['cbar_unit'] = r'h/2$e^2$'
 			else:
 				w['cbar_unit'] = r'M$\Omega$'
-		if cbar_u == 'V':
+		elif cbar_u == 'V' and order ==1:
 			if condquant == True:
-				XX_t = (1/cq) * XX_t
-				w['cbar_unit'] = r'h/2e$^2$'
+				XX_t = cq * XX_t
+				w['cbar_unit'] = r'h/2$e^2$'
 			else:
 				w['cbar_unit'] = r'$\Omega$'
+		else:
+			w['cbar_unit'] = ''
 
 	elif axis==-2: #Diff and smooth in slow axis
 		if difforder == 0:
@@ -385,31 +384,33 @@ def helper_savgol(w):
 		else:
 			w['cbar_quantity'] = '$\partial^{}$'.format(difforder) + cbar_q + '/$\partial$' + w['xlabel'] + '$^{}$'.format(difforder)
 		XX_t = signal.savgol_filter(XX, samples, order, deriv=difforder, delta=np.diff(X,axis=axis)[0,0], axis=axis, mode='constant',cval=np.nan)
-		if cbar_u == 'nA': 
+		if cbar_u == 'nA' and order == 1: 
 			if condquant == True:
-				XX_t = 1e6 * cq * XX_t
-				w['cbar_unit'] = r'2e$^2$/h'
+				XX_t = (1e-6 / cq) * XX_t
+				w['cbar_unit'] = r'2$e^2$/h'
 			else:
 				w['cbar_unit'] = r'$\mu$S'
-		if cbar_u == 'A':
+		elif cbar_u == 'A' and order ==1:
 			if condquant == True:
-				XX_t = cq * XX_t
-				w['cbar_unit'] = r'2e$^2$/h'
+				XX_t = (1/cq) * XX_t
+				w['cbar_unit'] = r'2$e^2$/h'
 			else:
 				w['cbar_unit'] = r'S'
 		
-		if cbar_u == 'mV':
+		elif cbar_u == 'mV' and order == 1:
 			if condquant == True:
-				XX_t = (1e6/cq) * XX_t
-				w['cbar_unit'] = r'h/2e$^2$'
+				XX_t = 1e6*cq * XX_t
+				w['cbar_unit'] = r'h/2$e^2$'
 			else:
 				w['cbar_unit'] = r'M$\Omega$'
-		if cbar_u == 'V':
+		elif cbar_u == 'V' and order ==1:
 			if condquant == True:
-				XX_t = (1/cq) * XX_t
-				w['cbar_unit'] = r'h/2e$^2$'
+				XX_t = cq * XX_t
+				w['cbar_unit'] = r'h/2$e^2$'
 			else:
 				w['cbar_unit'] = r'$\Omega$'
+		else:
+			w['cbar_unit'] = ''
 	w['XX']=XX_t
 		
 def helper_hardgap(w): #Needs equally spaced axes
@@ -691,142 +692,7 @@ def helper_vbiascorrector(w): #Needs equally spaced axes
 	w['ext'] = [w['ext'][0],w['ext'][1],ylimitneg,ylimitpos]
 
 def helper_ivreverserlockin(w):  #Needs equally spaced axes
-	XX = w['XX']
-	X = w['X']
-	Y = w['Y']
-	ccstrtwo = r'2e$^2$/h' 
-	ccstr = r'e$^2$/h' 
-	modifier = 1
-	if ccstrtwo in w['cbar_unit']:
-		modifier = 	 (2*sc.elementary_charge**2/sc.h)
-	elif ccstr in w['cbar_unit']:
-		modifier = (sc.elementary_charge**2/sc.h)
-	if XX.ndim == 1:
-		intarr = np.nancumsum(XX)*np.diff(X,prepend=X[0]-(X[1]-X[0]))
-		XX = (intarr - intarr[int(len(intarr)/2)])*modifier
-		dxunit = w['xunit']
-	else:
-		for i in range(0,XX.shape[0]):
-			intarr = np.nancumsum(XX[i,:])*np.diff(Y[i,:],prepend=Y[i,0]-(Y[i,1]-Y[i,0]))
-			a[i,:] = intarr - np.nanmean(intarr)
-		XX=XX*modifier
-		dxunit = w['yunit']
-	if modifier is not 1 and dxunit == 'V':
-		w['cbar_unit'] = 'A'
-	elif modifier is not 1 and dxunit == 'A':
-		w['cbar_unit'] = 'V'
-	elif w['cbar_unit'] == 'S' and dxunit == 'V':
-		w['cbar_unit'] = 'A'
-	elif w['cbar_unit'] == r'$\mu$S' and dxunit == 'mV':
-		w['cbar_unit'] = 'nA'
-	elif w['cbar_unit'] == r'$\Omega$' and dxunit == 'A':
-		w['cbar_unit'] = 'V'
-	elif w['cbar_unit'] == r'k$\Omega$' and dxunit == 'nA':
-		w['cbar_unit'] = 'mV'
-	elif w['cbar_unit'] == r'M$\Omega$' and dxunit == 'nA':
-		w['cbar_unit'] = r'$\mu$V'
-	else:
-		w['cbar_unit'] = 'int(' + w['cbar_unit'] + ')/d' + w['yunit']
-	w['cbar_quantity'] = ''
-
-	#Inverse I and V-bias measurements (works on both) by interpolating y-data on new homogeneous x-axis.
-	# new versiong since matplotlibs griddata was deprecated :/
-	from scipy.interpolate import griddata
-	from scipy.interpolate import interp1d
-	import math
-	import numpy.ma as ma
-	import numpy as np
-	import numpy.matlib
-	twodim = strtobool(w['ivreverser_twodim'])
-	method = w['ivreverser_interpmethod']
-	XX = w['XX']
-	xn, yn = XX.shape
-	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
-	yaxis = np.linspace(w['ext'][2],w['ext'][3],w['XX'].shape[1])
-	ycorrected = np.zeros(shape=(xn,yn))
-	gridresolutionfactor = int(w['ivreverser_gridresolutionfactor']) # Example: Factor of 2 doubles the number of y datapoints for non-linear interpolation
-	
-	for i in range(0,xn):
-		ycorrected[i,:] = XX[i,:] #y-axis becomes data axis
-		XX[i,:] = yaxis #data axis becomes y-axis (replace with repmat)
-	ylimitneg,ylimitpos = (np.nanmin(ycorrected*10))/10, (np.nanmax(ycorrected*10))/10
-	#print(ylimitneg,ylimitpos)
-	grid_x, grid_y = np.mgrid[w['ext'][0]:w['ext'][1]:xn*1j, ylimitneg:ylimitpos:(yn*gridresolutionfactor)*1j]
-	grid_y_1d = np.linspace(ylimitneg,ylimitpos,(yn*gridresolutionfactor))
-	gridxstep = np.abs(grid_x[1,0]-grid_x[0,0])
-	gridystep = np.abs(grid_y[0,1]-grid_y[0,0])
-	#gridxstep,gridystep=1,1
-	#print(gridxstep,gridystep)
-	grid_x /= gridxstep
-	grid_y /= gridystep 
-	xrep = np.ravel(np.matlib.repmat(xaxis,yn,1),'F')
-	points = np.transpose(np.vstack([xrep/gridxstep,np.ravel(ycorrected)/gridystep]))
-	zf = np.ravel(XX)
-	indexnonans=np.invert(np.isnan(points[:,0]))*np.invert(np.isnan(points[:,1]))*np.invert(np.isnan(zf))
-	XX_new = np.zeros(shape=(xn,len(grid_y_1d)))
-	# Calculate very tiny value relative to smallest value found in dataset to create a 
-	# monotonous increase in the interpolated values. This prevents cubic interpolation 
-	# from crashing since it cannot handle repeating values.
-	minaddnp=np.abs(np.nanmin(XX)*1e-3)
-	print(minaddnp)
-	if twodim == True:
-		print('2d')
-		try:
-			#XX_new = griddata(points, np.array(zf), (grid_x, grid_y), method='cubic')
-			XX_new = griddata(np.stack((points[:,0][indexnonans],points[:,1][indexnonans]),axis=1), np.array(zf)[indexnonans], (grid_x, grid_y), method=method)
-		except:
-			XX_new = griddata(points, np.array(zf), (grid_x, grid_y), method=method)
-			print('IVreverser {} interpolation failed, falling back to \'nearest\'.'.format(method))
-
-	if twodim == False:
-		print('1d')
-		XX_new = np.zeros(shape=(xn,len(grid_y_1d)))
-		try:
-			for i in range(0,xn):
-				indexnonans2 = np.nonzero(~np.isnan(ycorrected[i,:])) 
-				ycn = ycorrected[i,(indexnonans2)][0]
-				# Making sure ycn values are all unique by adding a random tiny value to each
-				ycn = np.linspace(0,minaddnp*1e-6,len(ycn))+ycn
-				yn = yaxis[indexnonans2]
-				f = interp1d(ycn,yn, kind=method, bounds_error=False, fill_value=np.nan)
-				XX_new[i,:] = f(grid_y_1d)
-		except:
-			print('IVreverser {} interpolation failed, falling back to \'nearest\'.'.format(method))
-			for i in range(0,xn):
-				f = interp1d(ycorrected[i,:],yaxis, kind='nearest', bounds_error=False, fill_value=np.nan)
-				XX_new[i,:] = f(grid_y_1d)
-	w['X'] = grid_x
-	w['Y'] = grid_y
-	w['XX'] = XX_new
-	w['ext'] = (w['ext'][0],w['ext'][1],ylimitneg,ylimitpos)
-	print(ylimitpos-ylimitneg,len(grid_y_1d)-1)
-	w['ystep'] = np.abs(ylimitpos-ylimitneg)/(len(grid_y_1d)-1)
-	print('new ystep:'+ str(w['ystep']))
-	w['ext'] = (w['ext'][0],w['ext'][1],ylimitneg,ylimitpos)
-	if w['yunit'].find('nA') != -1:
-		print('I sourced detected')
-		w['ylabel'] = '$V_\mathrm{SD}$'
-		w['yunit'] = 'mV'
-		w['cbar_quantity'] = '$I_\mathrm{S}$'
-		w['cbar_unit'] = 'nA'
-	elif w['yunit'].find('mV') != -1:
-		print('V sourced detected')
-		w['ylabel'] = '$I_\mathrm{D}$'
-		w['yunit'] = 'nA'
-		w['cbar_quantity'] = '$V_\mathrm{SD}$'
-		w['cbar_unit'] = 'mV'
-	elif w['yunit'].find('A') != -1:
-		print('I sourced detected')
-		w['ylabel'] = '$V_\mathrm{SD}$'
-		w['yunit'] = 'V'
-		w['cbar_quantity'] = '$I_\mathrm{S}$'
-		w['cbar_unit'] = 'A'
-	elif w['yunit'].find('V') != -1:
-		print('V sourced detected')
-		w['ylabel'] = '$I_\mathrm{D}$'
-		w['yunit'] = 'A'
-		w['cbar_quantity'] = '$V_\mathrm{SD}$'
-		w['cbar_unit'] = 'V'
+	pass
 
 def helper_ivreverser(w):  #Needs equally spaced axes
 	#Inverse I and V-bias measurements (works on both) by interpolating y-data on new homogeneous x-axis.
@@ -850,13 +716,13 @@ def helper_ivreverser(w):  #Needs equally spaced axes
 		ycorrected[i,:] = XX[i,:] #y-axis becomes data axis
 		XX[i,:] = yaxis #data axis becomes y-axis (replace with repmat)
 	ylimitneg,ylimitpos = (np.nanmin(ycorrected*10))/10, (np.nanmax(ycorrected*10))/10
-	#print(ylimitneg,ylimitpos)
+	print('ylimits',ylimitneg,ylimitpos)
 	grid_x, grid_y = np.mgrid[w['ext'][0]:w['ext'][1]:xn*1j, ylimitneg:ylimitpos:(yn*gridresolutionfactor)*1j]
 	grid_y_1d = np.linspace(ylimitneg,ylimitpos,(yn*gridresolutionfactor))
 	gridxstep = np.abs(grid_x[1,0]-grid_x[0,0])
 	gridystep = np.abs(grid_y[0,1]-grid_y[0,0])
 	#gridxstep,gridystep=1,1
-	#print(gridxstep,gridystep)
+	print('gridsteps',gridxstep,gridystep)
 	grid_x /= gridxstep
 	grid_y /= gridystep 
 	xrep = np.ravel(np.matlib.repmat(xaxis,yn,1),'F')
@@ -868,7 +734,7 @@ def helper_ivreverser(w):  #Needs equally spaced axes
 	# monotonous increase in the interpolated values. This prevents cubic interpolation 
 	# from crashing since it cannot handle repeating values.
 	minaddnp=np.abs(np.nanmin(XX)*1e-3)
-	print(minaddnp)
+	print('minaddnp',minaddnp)
 	if twodim == True:
 		print('2d')
 		try:
@@ -895,8 +761,9 @@ def helper_ivreverser(w):  #Needs equally spaced axes
 			for i in range(0,xn):
 				f = interp1d(ycorrected[i,:],yaxis, kind='nearest', bounds_error=False, fill_value=np.nan)
 				XX_new[i,:] = f(grid_y_1d)
-	w['X'] = grid_x
-	w['Y'] = grid_y
+	w['X'] = grid_x*gridxstep #grid_x and grid_y were divided by steps above but do not represent true values so
+	w['Y'] = grid_y*gridystep #this is a stupid fix but it works and I'l leave it for now.
+	print(np.nanmax(w['Y']),np.nanmin(w['Y']))
 	w['XX'] = XX_new
 	w['ext'] = (w['ext'][0],w['ext'][1],ylimitneg,ylimitpos)
 	print(ylimitpos-ylimitneg,len(grid_y_1d)-1)
