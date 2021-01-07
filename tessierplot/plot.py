@@ -679,7 +679,6 @@ class plotR(object):
 		coord_keys,coord_units,coord_labels = self.data.coordkeys_n
 		value_keys,value_units,value_labels = self.data.valuekeys_n
 		coord_keys_raw,coord_units_raw,coord_labels_raw = self.data.coordkeys_n
-
 		#Filtering raw value axes
 		if filter_raw== True:
 			value_keys_filtered = []
@@ -747,7 +746,7 @@ class plotR(object):
 					xaxislabel = coord_labels[-1]
 				else: #else defaulting to column name for axis labels
 					xaxislabel = coord_keys[-1] 
-				if axislabeltype == 'label' and len(value_label) == len(value_keys):
+				if axislabeltype == 'label' and len(value_labels) == len(value_keys):
 					cbar_quantity = value_labels[value_axis]
 				else: #else defaulting to column name for axis labels
 					cbar_quantity = value_keys[value_axis]
