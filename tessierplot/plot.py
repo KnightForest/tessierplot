@@ -202,8 +202,10 @@ class plotR(object):
 		    	break
 		    datastd = datastd[booleanmask] # apply mask to data
 		values, edges = np.histogram(datastd, 256) # bin for 256 colors in colorscale
-		stretchfactor = 1.05 # stretching colorscale so that the data sits comfortably within its bounds
-		cminlim , cmaxlim = np.min(datastd)/stretchfactor , np.max(datastd)*stretchfactor
+		stretchfactor = .05 # stretching colorscale so that the data sits comfortably within its bounds
+		cminlim = np.min(datastd)-((np.max(datastd)-np.min(datastd))*stretchfactor)
+		cmaxlim = np.max(datastd)+((np.max(datastd)-np.min(datastd))*stretchfactor)
+		#cminlim , cmaxlim = np.min(datastd)-/stretchfactor , np.max(datastd)*stretchfactor
 		# maxima = edges[argrelmax(values,order=24)] # fits first peak in histrogram distribution to get offset for lower clim (makes plots prettier)
 		# try:
 		# 	if maxima.size>0:
