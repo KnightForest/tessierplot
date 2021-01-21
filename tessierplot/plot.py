@@ -190,18 +190,32 @@ class plotR(object):
 	def autoColorScale(self,data):
 		#filter out NaNs or infinities, should any have crept in
 		data = data[np.isfinite(data)]
-		m=2
-		datastd= data[abs(data - np.mean(data)) < m * np.std(data)]
-		values, edges = np.histogram(datastd, 256)
-		maxima = edges[argrelmax(values,order=24)]
-		try:
-			if maxima.size>0:
-				cminlim , cmaxlim = maxima[0] , np.max(datastd)
-			else:
-				cminlim , cmaxlim = np.min(datastd) , np.max(datastd)
-		except Exception as e:
-			print('Colorscale fallback to min-max value')
-			cminlim , cmaxlim = np.min(data) , np.max(data)
+		#print(data)
+		m = 2 # n standard deviations to be considered as outliers
+		datastd = data # make copy
+		booleanmask = np.array([False]) # initialise boolean mask
+		while False in booleanmask: 
+		    if np.std(datastd) < 0.1*np.mean(np.abs(datastd)): # check data has a std larger than 10 of the mean
+		    	break
+		    booleanmask = abs(datastd - np.mean(datastd)) < m * np.std(datastd) # make boolean mask based with outliers marked as False
+		    if np.sum(booleanmask) < 0.95*len(data): #Loop to break the recursive std determination
+		    	break
+		    datastd = datastd[booleanmask] # apply mask to data
+		values, edges = np.histogram(datastd, 256) # bin for 256 colors in colorscale
+		stretchfactor = 1.05 # stretching colorscale so that the data sits comfortably within its bounds
+		cminlim , cmaxlim = np.min(datastd)/stretchfactor , np.max(datastd)*stretchfactor
+		# maxima = edges[argrelmax(values,order=24)] # fits first peak in histrogram distribution to get offset for lower clim (makes plots prettier)
+		# try:
+		# 	if maxima.size>0:
+		# 		pass
+		# 		print('doejedit')
+		# 		cminlim , cmaxlim = np.min(datastd)/stretchfactor , np.max(datastd)*stretchfactor
+		# 	else:
+		# 		cminlim , cmaxlim = np.min(datastd)/stretchfactor , np.max(datastd)*stretchfactor
+		# except Exception as e:
+		# 	print('Colorscale fallback to min-max value')
+		# 	cminlim , cmaxlim = np.min(datastd)/stretchfactor , np.max(datastd)*stretchfactor
+		# print(cminlim,cmaxlim)
 		return (cminlim,cmaxlim)
 
 	def plothigherorder(self,	 massage_func=None,
