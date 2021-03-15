@@ -62,9 +62,9 @@ _fontsize_plot_title = 10
 _fontsize_axis_labels = 10
 _fontsize_axis_tick_labels = 10
 
-_fontsize_plot_title = 10
-_fontsize_axis_labels = 10
-_fontsize_axis_tick_labels = 10
+_fontsize_plot_title_thumb = 9
+_fontsize_axis_labels_thumb = 9
+_fontsize_axis_tick_labels_thumb = 9
 
 rcP = {	 'figure.figsize': (_plot_width, _plot_height), #(width in inch, height in inch)
 		'axes.labelsize':  _fontsize_axis_labels,
@@ -75,9 +75,9 @@ rcP = {	 'figure.figsize': (_plot_width, _plot_height), #(width in inch, height 
 		}
 
 rcP_thumb = {  'figure.figsize': (_plot_width_thumb, _plot_height_thumb), #(width in inch, height in inch)
-		'axes.labelsize':  _fontsize_axis_labels,
-		'xtick.labelsize': _fontsize_axis_tick_labels,
-		'ytick.labelsize': _fontsize_axis_tick_labels,
+		'axes.labelsize':  _fontsize_axis_labels_thumb,
+		'xtick.labelsize': _fontsize_axis_tick_labels_thumb,
+		'ytick.labelsize': _fontsize_axis_tick_labels_thumb,
 		'legend.fontsize': 5.,
 		'backend':qtaggregator
 		}
@@ -164,23 +164,19 @@ class plotR(object):
 
 		uniques_col_str = coords[filter]
 		try:
-			# if self.isthumbnail:
-			# 	for k in rcP:
-			# 		mpl.rcParams[k] = rcP_thumb[k]
-			# else:
-			# 	for k in rcP:
-			# 		mpl.rcParams[k] = rcP[k]
-			if self.is2d():
-				fig = self.plot2d(uniques_col_str=uniques_col_str,**kwargs)
-			else:
-				fig = self.plot3d(uniques_col_str=uniques_col_str,**kwargs)
-				#self.exportToMtx()
 			if self.isthumbnail:
-				#print(self.valueaxes_n)
-				fig.set_size_inches(_plot_width_thumb, (self.valueaxes_n-1)*2+_plot_height_thumb)
+				if self.is2d():
+					fig = self.plot2d(uniques_col_str=uniques_col_str,**kwargs)
+				else:
+					fig = self.plot3d(uniques_col_str=uniques_col_str,cbar_orientation='vertical',**kwargs)
 				fig.savefig(self.thumbfile,bbox_inches='tight' )
 				fig.savefig(self.thumbfile_datadir,bbox_inches='tight' )
 				plt.close(fig)
+			else:
+				if self.is2d():
+					fig = self.plot2d(uniques_col_str=uniques_col_str,**kwargs)
+				else:
+					fig = self.plot3d(uniques_col_str=uniques_col_str,**kwargs)
 		except Exception as e:
 			print('fail in quickplot')
 			print(e)
@@ -237,7 +233,7 @@ class plotR(object):
 						uniques_col_str=[], #
 						drawCbar=True, # Switch colorbar
 						cax_destination=None, # Specify destination colorbar axis, default 'None' makes new axis
-						subplots_args={'top':0.96, 'bottom':0.17, 'left':0.14, 'right':0.85,'hspace':0.4,'wspace':0.3}, # Relative spacings and margins for subplots
+						subplots_args={'top':0.96, 'bottom':0.17, 'left':0.14, 'right':0.85,'hspace':0.1,'wspace':0.1}, # Relative spacings and margins for subplots
 						ax_destination=None,  # Specify destination data axis, default 'None' makes new axis
 						n_index=None, # Still a mysterious parameter.. filters subplots somehow
 						style=['normal'],  # Used styles for plotting
@@ -352,27 +348,21 @@ class plotR(object):
 		else:
 			value_axes = list(value_axis)
 
-		width = int(np.ceil(np.sqrt(len(value_axes))))
-		height = int(np.ceil(len(value_axes)/width))
-		#print(len(value_axes),width,height)
-		gs = gridspec.GridSpec(height,width)
-		
-		#width = len(value_axes)
-		#n_subplots = n_subplots *width
-		#gs = gridspec.GridSpec(int(n_subplots/width)+n_subplots%width, width)
-		#print('gridspec',int(n_subplots/width)+n_subplots%width,width)
-		cnt=0 #subplot counter
-
-		if self.isthumbnail	is True:
+		if not self.isthumbnail:
+			width = int(np.ceil(np.sqrt(len(value_axes))))
+			height = int(np.ceil(len(value_axes)/width))
+			gs = gridspec.GridSpec(height,width)
+			for k in rcP:
+				mpl.rcParams[k] = rcP[k]
+			self.fig.set_size_inches(width*_plot_width, height*_plot_height)
+		else:
+			gs = gridspec.GridSpec(len(value_axes),1)
 			for k in rcP:
 				mpl.rcParams[k] = rcP_thumb[k]
 			self.fig.set_size_inches(_plot_width_thumb, (len(value_axes)-1)*2+_plot_height_thumb)
+		
+		cnt=0 #subplot counter
 
-		else:
-			for k in rcP:
-				mpl.rcParams[k] = rcP[k]
-			#self.fig.set_size_inches((len(value_axes)-1)*2+_plot_width, _plot_height)
-			self.fig.set_size_inches(width*_plot_width, height*_plot_height)
 		#enumerate over the generated list of unique values specified in the uniques columns
 		#print('ucs',uniques_col_str)
 		#print('value keys', value_keys)
@@ -801,23 +791,18 @@ class plotR(object):
 		else:
 			value_axes = list(value_axis)
 
-		width = int(np.ceil(np.sqrt(len(value_axes))))
-		height = int(np.ceil(len(value_axes)/width))
-		#print(len(value_axes),width,height)
-		gs = gridspec.GridSpec(height,width)
-		
-		cnt=0 #subplot counter
-
-		if self.isthumbnail	is True:
-			for k in rcP:
-				mpl.rcParams[k] = rcP_thumb[k]
-			self.fig.set_size_inches(_plot_width_thumb, (len(value_axes)-1)*2+_plot_height_thumb)
-
-		else:
+		if not self.isthumbnail:
+			width = int(np.ceil(np.sqrt(len(value_axes))))
+			height = int(np.ceil(len(value_axes)/width))
+			gs = gridspec.GridSpec(height,width)
 			for k in rcP:
 				mpl.rcParams[k] = rcP[k]
-			#self.fig.set_size_inches((len(value_axes)-1)*2+_plot_width, _plot_height)
 			self.fig.set_size_inches(width*_plot_width, height*_plot_height)
+		else:
+			gs = gridspec.GridSpec(len(value_axes),1)
+			for k in rcP:
+				mpl.rcParams[k] = rcP_thumb[k]
+				self.fig.set_size_inches(_plot_width_thumb, (len(value_axes)-1)*2+_plot_height_thumb)
 
 		for i,j in enumerate(self.data.make_filter_from_uniques_in_columns(uniques_col_str)):
 		
