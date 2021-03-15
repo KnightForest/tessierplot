@@ -136,6 +136,9 @@ class SuperColorbar(ColorbarBase):
         self.set_cmap(cm)
         self.set_clim(cl)
         self.draw_all()
+        if self.orientation == 'horizontal':
+            self.ax.xaxis.set_label_position('top')
+            self.ax.xaxis.set_ticks_position('top')
 
 class MultiPointNormalize(colors.Normalize):
     def __init__(self, vmin=None, vmax=None, points=None, clip=False):

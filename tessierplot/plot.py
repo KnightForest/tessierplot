@@ -52,11 +52,11 @@ from .data import Data
 from . import helpers
 from . import colorbar
 
-_plot_width = 7. # in inch (ffing inches eh)
-_plot_height = 7. # in inch
+_plot_width = 4.5 # in inch (ffing inches eh)
+_plot_height = 3.75 # in inch
 
 _plot_width_thumb = 4. # in inch (ffing inches eh)
-_plot_height_thumb = 4. # in inch
+_plot_height_thumb = 3.5 # in inch
 
 _fontsize_plot_title = 10
 _fontsize_axis_labels = 10
@@ -160,16 +160,16 @@ class plotR(object):
 
 	def quickplot(self,**kwargs):
 		coords = np.array(self.data.coordkeys)
-		filter = self.data.dims < 5
+		filter = self.data.dims < 2 # kick out coordinate axes with less than 2 entries
 
 		uniques_col_str = coords[filter]
 		try:
-			if self.isthumbnail:
-				for k in rcP:
-					mpl.rcParams[k] = rcP_thumb[k]
+			# if self.isthumbnail:
+			# 	for k in rcP:
+			# 		mpl.rcParams[k] = rcP_thumb[k]
 			# else:
-			#	for k in rcP:
-			#		mpl.rcParams[k] = rcP[k]
+			# 	for k in rcP:
+			# 		mpl.rcParams[k] = rcP[k]
 			if self.is2d():
 				fig = self.plot2d(uniques_col_str=uniques_col_str,**kwargs)
 			else:
@@ -205,26 +205,13 @@ class plotR(object):
 		stretchfactor = .05 # stretching colorscale so that the data sits comfortably within its bounds
 		cminlim = np.min(datastd)-((np.max(datastd)-np.min(datastd))*stretchfactor)
 		cmaxlim = np.max(datastd)+((np.max(datastd)-np.min(datastd))*stretchfactor)
-		#cminlim , cmaxlim = np.min(datastd)-/stretchfactor , np.max(datastd)*stretchfactor
-		# maxima = edges[argrelmax(values,order=24)] # fits first peak in histrogram distribution to get offset for lower clim (makes plots prettier)
-		# try:
-		# 	if maxima.size>0:
-		# 		pass
-		# 		print('doejedit')
-		# 		cminlim , cmaxlim = np.min(datastd)/stretchfactor , np.max(datastd)*stretchfactor
-		# 	else:
-		# 		cminlim , cmaxlim = np.min(datastd)/stretchfactor , np.max(datastd)*stretchfactor
-		# except Exception as e:
-		# 	print('Colorscale fallback to min-max value')
-		# 	cminlim , cmaxlim = np.min(datastd)/stretchfactor , np.max(datastd)*stretchfactor
-		# print(cminlim,cmaxlim)
 		return (cminlim,cmaxlim)
 
 	def plothigherorder(self,	 massage_func=None,
 						uniques_col_str=[],
 						drawCbar=True,
 						cax_destination=None,
-						subplots_args={'top':0.96, 'bottom':0.17, 'left':0.14, 'right':0.85,'hspace':0.4},
+						subplots_args={'top':0.96, 'bottom':0.17, 'left':0.14, 'right':0.85,'hspace':0.6,'wspace':0.6},
 						ax_destination=None,
 						n_index=None,
 						style=['normal'],
@@ -234,7 +221,6 @@ class plotR(object):
 						aspect='auto',
 						interpolation='nearest',
 						value_axis=-1,
-						sweepoverride=False,
 						imshow=True,
 						cbar_orientation='vertical',
 						cbar_location ='normal',
@@ -247,27 +233,26 @@ class plotR(object):
 		print('Cubeplotplaceholder')
 		pass
 
-	def plot3d(self,	massage_func=None,
-						uniques_col_str=[],
-						drawCbar=True,
-						cax_destination=None,
-						subplots_args={'top':0.96, 'bottom':0.17, 'left':0.14, 'right':0.85,'hspace':0.4},
-						ax_destination=None,
-						n_index=None,
-						style=['normal'],
-						xlims_manual=None,
-						ylims_manual=None,
-						clim=None,
-						aspect='auto',
-						interpolation='nearest',
-						value_axis=-1,
-						sweepoverride=False,
-						imshow=True,
-						cbar_orientation='vertical',
-						cbar_location ='normal',
-						filter_raw = True,
-						ccmap = None,
-						supress_plot = False, #Added suppression of plot option
+	def plot3d(self,	massage_func=None, # For externally defined styles not defined in styles.py
+						uniques_col_str=[], #
+						drawCbar=True, # Switch colorbar
+						cax_destination=None, # Specify destination colorbar axis, default 'None' makes new axis
+						subplots_args={'top':0.96, 'bottom':0.17, 'left':0.14, 'right':0.85,'hspace':0.4,'wspace':0.3}, # Relative spacings and margins for subplots
+						ax_destination=None,  # Specify destination data axis, default 'None' makes new axis
+						n_index=None, # Still a mysterious parameter.. filters subplots somehow
+						style=['normal'],  # Used styles for plotting
+						xlims=None, # Set non-default x-axis limits
+						ylims=None, # Set non-default x-axis limits
+						clim=None, # Set non-default colorbar limits
+						aspect='auto', # Control aspect ration of plot
+						interpolation='nearest', # Interpolation in colorplot (data is unaffected)
+						value_axis=-1, # Selects which subplot to plot (list), -1 plots all
+						imshow=True, # Default uses imshow, else pcolormesh is used
+						cbar_orientation='horizontal', # Orientataion of colorbar, either vertical or horizontal
+						cbar_location ='normal', # 'inset' allows plotting colorbar inside the main fig
+						filter_raw = True, # Filters out all subplots whith the word 'raw' in the name or label of the plot
+						ccmap = None, #Allows loading of custom colormap
+						supress_plot = False, #Suppression of all plotting functions, only processes data
 						norm = 'nan', #Added for NaN value support
 						axislabeltype = 'label', #Use 'label' or 'name' on axis labels
 						**kwargs):
@@ -276,16 +261,21 @@ class plotR(object):
 			self.fig = plt.figure()
 			self.fig.subplots_adjust(**subplots_args)
 			
+		#loading of colormap
 		if not ccmap:
 			self.ccmap = loadCustomColormap()
 		else:
 			self.ccmap = ccmap
 		
+
 		if len(uniques_col_str)==0:
 			coords = np.array(self.data.coordkeys)
-			filter = self.data.dims < 2
+			#print('coords',coords)
+			filter = self.data.dims < 2 # kick out set axes with less than two entries
+			#print(filter)
 			uniques_col_str = coords[filter]
-
+			#print('ucs',uniques_col_str)
+		#uniques_col_str=['backgate']
 		#determine how many subplots we need
 		n_subplots = 1
 
@@ -308,36 +298,87 @@ class plotR(object):
 			value_units = value_units_filtered
 			value_labels = value_labels_filtered
 
+		# #make a list of uniques per column associated with column name
+		# uniques_by_column = dict(zip(coord_keys + value_keys, self.data.dims))
+		# print(uniques_by_column)
+		# print(uniques_col_str)
+		# #by this array
+		# for i in uniques_col_str:
+		# 	print('n',n_subplots)
+		# 	n_subplots *= uniques_by_column[i]
+		# 	print(n_subplots)
+
+		# if n_index is not None:
+		# 	n_index = np.array(n_index)
+		# 	n_subplots = len(n_index)
+
+		# if n_subplots > 1:
+		# 	width = 1
+		# else:
+		# 	width = 1
+		# n_valueaxes = len(value_keys)	
+		
+		# if value_axis == -1:
+		# 	value_axes = range(n_valueaxes)
+		# else:
+		# 	value_axes = list([value_axis])
+		# self.valueaxes_n = len(value_axes) 
+		# width = 1#len(value_axes)
+		# height = len(value_axes)
+		# n_subplots = n_subplots *width#int(n_subplots/width)+n_subplots%width
+		# gs = gridspec.GridSpec(height,width)
+		# cnt=0 #subplot counter
+		# print(height,width)
+
 		#make a list of uniques per column associated with column name
-		uniques_by_column = dict(zip(coord_keys + value_keys, self.data.dims))
+		uniques_by_column = dict(zip(self.data.coordkeys + self.data.valuekeys, self.data.dims))
 
 		#by this array
-		for i in uniques_col_str:
-			n_subplots *= uniques_by_column[i]
+		# for i in uniques_col_str:
+		# 	n_subplots *= uniques_by_column[i]
 
-		if n_index is not None:
-			n_index = np.array(n_index)
-			n_subplots = len(n_index)
+		# if n_index is not None:
+		# 	n_index = np.array(n_index)
+		# 	n_subplots = len(n_index)
 
-		if n_subplots > 1:
-			width = 1
-		else:
-			width = 1
-		n_valueaxes = len(value_keys)	
+		# if n_subplots > 1:
+		# 	width = 2
+		# else:
+		# 	width = 1
 		
+		value_axes = []	
 		if value_axis == -1:
-			value_axes = range(n_valueaxes)
+			value_axes = list(range(len(value_keys)))
 		else:
-			value_axes = list([value_axis])
-		self.valueaxes_n = len(value_axes) 
-		width = 1#len(value_axes)
-		height = len(value_axes)
-		n_subplots = n_subplots *width#int(n_subplots/width)+n_subplots%width
+			value_axes = list(value_axis)
+
+		width = int(np.ceil(np.sqrt(len(value_axes))))
+		height = int(np.ceil(len(value_axes)/width))
+		#print(len(value_axes),width,height)
 		gs = gridspec.GridSpec(height,width)
+		
+		#width = len(value_axes)
+		#n_subplots = n_subplots *width
+		#gs = gridspec.GridSpec(int(n_subplots/width)+n_subplots%width, width)
+		#print('gridspec',int(n_subplots/width)+n_subplots%width,width)
 		cnt=0 #subplot counter
 
+		if self.isthumbnail	is True:
+			for k in rcP:
+				mpl.rcParams[k] = rcP_thumb[k]
+			self.fig.set_size_inches(_plot_width_thumb, (len(value_axes)-1)*2+_plot_height_thumb)
+
+		else:
+			for k in rcP:
+				mpl.rcParams[k] = rcP[k]
+			#self.fig.set_size_inches((len(value_axes)-1)*2+_plot_width, _plot_height)
+			self.fig.set_size_inches(width*_plot_width, height*_plot_height)
 		#enumerate over the generated list of unique values specified in the uniques columns
+		#print('ucs',uniques_col_str)
+		#print('value keys', value_keys)
+		#print('value axes', value_axes)
 		for j,ind in enumerate(self.data.make_filter_from_uniques_in_columns(uniques_col_str)):
+			#print(j)
 			#each value axis needs a plot
 
 			for value_axis in value_axes:
@@ -407,30 +448,27 @@ class plotR(object):
 				self.x = x
 				self.y = y
 				self.z = z
-				#now set the lims
-				xlims = (x.min(),x.max())
-				ylims = (y.min(),y.max())
-				xnew = xlims
-				ynew = ylims
-
-				if not (xlims_manual == None):
-					xnew = xlims
-					if xlims_manual[0] > xlims[0]:
-						xnew[0] = xlims_manual[0]
-					
-					if xlims_manual[1] > xlims[1]:
-						xnew[1] = xlims_manual[1]
-
-				if not (ylims_manual == None):
-					ynew = ylims
-					if ylims_manual[0] > ylims[0]:
-						ynew[0] = ylims_manual[0]
-					
-					if ylims_manual[1] > ylims[1]:
-						ynew[1] = ylims_manual[1]
-
-				ext = xlims+ylims
+				ext = (x.min(),x.max(),y.min(),y.max())
 				self.extent = ext
+				
+				#setting custom xlims and ylims, restricted within extent of data
+				if xlims == None:
+					_xlims = (ext[0],ext[1])
+				else: #sets custum xlims only if they restrict the default xaxis
+					xzip = list(zip(xlims,[ext[0],ext[1]]))
+					xlimsl = 2*[None]
+					xlimsl[0]=max(xzip[0])
+					xlimsl[1]=min(xzip[1])
+					_xlims=tuple(xlimsl)
+
+				if ylims == None:
+					_ylims = (ext[2],ext[3])
+				else: #sets custum xyims only if they restrict the default yaxis
+					yzip = list(zip(ylims,[ext[2],ext[3]]))
+					ylimsl = 2*[None]
+					ylimsl[0]=max(yzip[0])
+					ylimsl[1]=min(yzip[1])
+					_ylims=tuple(ylimsl)
 
 				#Gridding and interpolating unevenly spaced data
 				extx = abs(ext[1]-ext[0])
@@ -478,15 +516,15 @@ class plotR(object):
 				self.Y = Y
 
 				#determine stepsize for di/dv, inprincipe only y step is used (ie. the diff is also taken in this direction and the measurement swept..)
-				xstep = float(xlims[1] - xlims[0])/(len(self.X[:,0])-1)
-				ystep = float(ylims[1] - ylims[0])/(len(self.Y[0,:])-1)
+				xstep = float(ext[1] - ext[0])/(len(self.X[:,0])-1)
+				ystep = float(ext[3] - ext[2])/(len(self.Y[0,:])-1)
 				self.exportData.append(XX)
 				try:
 					m={
 						'xu':xu,
 						'yu':yu,
-						'xlims':xlims,
-						'ylims':ylims,
+						'xlims':_xlims,
+						'ylims':_ylims,
 						'zlims':(0,0),
 						'xname':coord_keys[-2],
 						'yname':coord_keys[-1],
@@ -586,7 +624,13 @@ class plotR(object):
 						colormap.set_bad('grey',1.0)
 						#self.im = ax.imshow(masked_array_nans,extent=ext, cmap=colormap,aspect=aspect,interpolation=interpolation, clim=clim)
 						#self.im = ax.imshow(np.rot90(XX) ,extent=ext, cmap=plt.get_cmap(self.ccmap) ,aspect=aspect,interpolation=interpolation, clim=clim)
-						self.im = ax.imshow(np.rot90(XX), extent=ext, cmap=plt.get_cmap(self.ccmap), aspect=aspect, interpolation=interpolation, norm=self.imshow_norm,clim=clim)
+						self.im = ax.imshow(np.rot90(XX), 
+											extent=ext, 
+											cmap=plt.get_cmap(self.ccmap), 
+											aspect=aspect, 
+											interpolation=interpolation, 
+											norm=self.imshow_norm,
+											clim=clim)
 					else:
 						xs = np.linspace(ext[0],ext[1],XX.shape[0])
 						ys = np.linspace(ext[2],ext[3],XX.shape[1])
@@ -594,9 +638,16 @@ class plotR(object):
 
 						colormap = (plt.get_cmap(self.ccmap)) # Support for plotting NaN values
 						colormap.set_bad('none',1.0)
-						self.im = ax.pcolormesh(xv,yv,np.rot90(np.fliplr(XX)),cmap=plt.get_cmap(self.ccmap), vmin=clim[0], vmax=clim[1])
-					if not clim:
-						self.im.set_clim(self.autoColorScale(XX.flatten()))
+						self.im = ax.pcolormesh(xv,yv,np.rot90(np.fliplr(XX)),
+															   cmap=plt.get_cmap(self.ccmap), 
+															   vmin=clim[0], 
+															   vmax=clim[1])
+				if not clim:
+					self.im.set_clim(self.autoColorScale(XX.flatten()))
+				
+				if not (xlims==None) or not (ylims==None):
+					ax.set_xlim(_xlims)
+					ax.set_ylim(_ylims)
 				#ax.locator_params(nbins=5, axis='y') #Added to hardcode number of x ticks.
 				#ax.locator_params(nbins=7, axis='x')
 				if 'flipaxes' in style:
@@ -630,7 +681,7 @@ class plotR(object):
 						divider = make_axes_locatable(ax)
 						if cbar_orientation == 'horizontal': # Added some hardcode config for colorbar, more pretty out of the box
 							cax = divider.append_axes("top", size="5%", pad=0.05)
-							cax.set_aspect(0.1)
+							cax.set_aspect(0.07)
 							cax.set_anchor('E')
 						else:
 							cax = divider.append_axes("right", size="2.5%", pad=0.05)
@@ -640,21 +691,20 @@ class plotR(object):
 						cbar = self.cbar
 
 						if cbar_orientation == 'horizontal': #Added some hardcode config for colorbar, more pretty out of the box
-							cbar.set_label(cbar_title,labelpad=-15, x = -0.3, horizontalalignment='right')
-							cbar.ax.xaxis.set_label_position('top')
-							cbar.ax.xaxis.set_ticks_position('top')
 							tick_locator = ticker.MaxNLocator(nbins=3)
 							cbar.locator = tick_locator
-
+							cbar.set_label(cbar_title,labelpad=-17, x = -0.08, horizontalalignment='right')
+							cbar.ax.xaxis.set_label_position('top')
+							cbar.ax.xaxis.set_ticks_position('top')
 						else:
 							tick_locator = ticker.MaxNLocator(nbins=3)
 							cbar.locator = tick_locator
 							cbar.set_label(cbar_title)#,labelpad=-19, x=1.32)
-							cbar.update_ticks()
 						
 						self.cbar = cbar
 						cbar.update_ticks()
 						if supress_plot == False:
+							plt.tight_layout()
 							plt.show()
 				self.ax = ax
 				cnt+=1 #counter for subplots
@@ -667,18 +717,21 @@ class plotR(object):
 	
 		return self.fig
 
-	def plot2d(self,fiddle=False,
-					n_index=None,
-					value_axis = -1,
-					style=['normal'],
-					uniques_col_str=[],
-					legend=False,
+	def plot2d(self,massage_func=None,
+					uniques_col_str=[], #
+					subplots_args={'top':0.96, 'bottom':0.17, 'left':0.14, 'right':0.85,'hspace':0.3,'wspace':0.6},
 					ax_destination=None,
-					subplots_args={'top':0.96, 'bottom':0.17, 'left':0.14, 'right':0.85,'hspace':0.3},
-					massage_func=None,
+					n_index=None,
+					style=['normal'],
+					xlims=None,
+					ylims=None,
+					aspect='auto',
+					value_axis = -1,
+					fiddle=False,
+					supress_plot = False,
+					legend=False,
 					filter_raw=True, #Do not show plots with 'Raw' string in label
 					axislabeltype = 'label', #Use 'label' or 'name' on axis labels
-                    supress_plot = False,
 					**kwargs):
 					
 		if not self.fig and not ax_destination:
@@ -715,32 +768,57 @@ class plotR(object):
 		if len(uniques_col_str)==0:
 			uniques_col_str = coord_keys[:-1]
 
-		if n_index is not None:
-			n_index = np.array(n_index)
-			n_subplots = len(n_index)
+		# if n_index is not None:
+		# 	n_index = np.array(n_index)
+		# 	n_subplots = len(n_index)
 
-		if n_subplots > 1:
-			width = 2
-		else:
-			width = 1
-		n_valueaxes = len(value_keys)
+		# if n_subplots > 1:
+		# 	width = 2
+		# else:
+		# 	width = 1
+		# n_valueaxes = len(value_keys)
+		# if value_axis == -1:
+		# 	value_axes = range(n_valueaxes)
+		# else:
+		# 	if type(value_axis) is not list:
+		# 		value_axes = list([value_axis])
+		# 	else:
+		# 		value_axes = value_axis
+		# self.valueaxes_n = len(value_axes) 
+
+		# width = len(value_axes)
+		# n_subplots = n_subplots * width
+		# gs = gridspec.GridSpec(width,int(n_subplots/width)+n_subplots%width)
+
+		# if n_index is not None:
+		# 	n_index = np.array(n_index)
+		# 	n_subplots = len(n_index)
+		# ax = None
+
+		value_axes = []	
 		if value_axis == -1:
-			value_axes = range(n_valueaxes)
+			value_axes = list(range(len(value_keys)))
 		else:
-			if type(value_axis) is not list:
-				value_axes = list([value_axis])
-			else:
-				value_axes = value_axis
-		self.valueaxes_n = len(value_axes) 
+			value_axes = list(value_axis)
 
-		width = len(value_axes)
-		n_subplots = n_subplots * width
-		gs = gridspec.GridSpec(width,int(n_subplots/width)+n_subplots%width)
+		width = int(np.ceil(np.sqrt(len(value_axes))))
+		height = int(np.ceil(len(value_axes)/width))
+		#print(len(value_axes),width,height)
+		gs = gridspec.GridSpec(height,width)
+		
+		cnt=0 #subplot counter
 
-		if n_index is not None:
-			n_index = np.array(n_index)
-			n_subplots = len(n_index)
-		ax = None
+		if self.isthumbnail	is True:
+			for k in rcP:
+				mpl.rcParams[k] = rcP_thumb[k]
+			self.fig.set_size_inches(_plot_width_thumb, (len(value_axes)-1)*2+_plot_height_thumb)
+
+		else:
+			for k in rcP:
+				mpl.rcParams[k] = rcP[k]
+			#self.fig.set_size_inches((len(value_axes)-1)*2+_plot_width, _plot_height)
+			self.fig.set_size_inches(width*_plot_width, height*_plot_height)
+
 		for i,j in enumerate(self.data.make_filter_from_uniques_in_columns(uniques_col_str)):
 		
 			for k,value_axis in enumerate(value_axes):
@@ -772,6 +850,26 @@ class plotR(object):
 
 				npx = np.array(x)
 				npxx = np.array(xx)
+				self.XX = npxx
+				self.X = npx
+				self.x = x
+				self.z = xx
+
+				#setting custom xlims and ylims, restricted within extent of data
+				if xlims == None:
+					_xlims = (x.min(),x.max())
+				else: #sets custum xlims only if they restrict the default xaxis
+					xzip = list(zip(xlims,[x.min(),x.max()]))
+					xlimsl = 2*[None]
+					xlimsl[0]=max(xzip[0])
+					xlimsl[1]=min(xzip[1])
+					_xlims=tuple(xlimsl)
+
+				if ylims == None:
+					_ylims = (xx.min(),xx.max())
+				else: #sets custum xyims always (since this is the data axis)
+					_ylims=tuple(ylims)
+
 				#print(npx,npy)
 				if len(npx) > 1:
 					xstep = float(abs(npx[-1] - npx[0]))/(len(npx)-1)
@@ -784,8 +882,6 @@ class plotR(object):
 					pass
 					# this crashes sometimes. did not investiagte yet what the problem is. switched off in the meantime
 					#title = '\n'.join([title, '{:s}: {:g}'.format(uniques_axis_designations[i],data[z].iloc[0])])
-				self.XX = npxx
-
 				wrap = styles.getPopulatedWrap(style)
 				wrap['XX'] = npxx
 				wrap['X']  = npx
@@ -813,6 +909,7 @@ class plotR(object):
 						ax = ax_destination
 					else:
 						ax = plt.subplot(gs[k])
+					plt.tight_layout()
 					ax.plot(wrap['X'],wrap['XX'],'o-', fillstyle='none', markersize=2,label=title,**kwargs)
 					#self.cutAx.plot(xx,z,'o-',fillstyle='none',markersize=2)
 					if legend:
@@ -821,7 +918,9 @@ class plotR(object):
 					if ax:
 						ax.set_xlabel(xaxislabelwithunit)
 						ax.set_ylabel(yaxislabelwithunit)
-		
+					if not (xlims==None) or not (ylims==None):
+						ax.set_xlim(_xlims)
+						ax.set_ylim(_ylims)
 		return self.fig
 
 
