@@ -343,10 +343,10 @@ class plotR(object):
 		# 	width = 1
 		
 		value_axes = []	
-		if value_axis == -1:
-			value_axes = list(range(len(value_keys)))
-		elif type(value_axis) is not list:
+		if type(value_axis) is not list:
 			value_axes = [value_axis]
+		if value_axes[0] == -1:
+			value_axes = list(range(len(value_keys)))
 		else:
 			value_axes = value_axis
 		if not self.isthumbnail:
@@ -787,10 +787,12 @@ class plotR(object):
 		# ax = None
 
 		value_axes = []	
-		if value_axis == -1:
+		if type(value_axis) is not list:
+			value_axes = [value_axis]
+		if value_axes[0] == -1:
 			value_axes = list(range(len(value_keys)))
 		else:
-			value_axes = list(value_axis)
+			value_axes = value_axis
 
 		if not self.isthumbnail:
 			width = int(np.ceil(np.sqrt(len(value_axes))))
