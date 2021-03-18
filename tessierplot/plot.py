@@ -346,13 +346,17 @@ class plotR(object):
 		value_axes = []	
 		if type(value_axis) is not list:
 			value_axes = [value_axis]
+		else:
+			value_axes = value_axis	
 		if value_axes[0] == -1:
 			value_axes = list(range(len(value_keys)))
-		else:
-			value_axes = value_axis
+
 		if not self.isthumbnail:
 			width = int(np.ceil(np.sqrt(len(value_axes))))
 			height = int(np.ceil(len(value_axes)/width))
+			for i in uniques_col_str:
+			# 	print('n',n_subplots)
+				height *= uniques_by_column[i]
 			gs = gridspec.GridSpec(height,width)
 			for k in rcP:
 				mpl.rcParams[k] = rcP[k]
@@ -790,10 +794,11 @@ class plotR(object):
 		value_axes = []	
 		if type(value_axis) is not list:
 			value_axes = [value_axis]
+		else:
+			value_axes = value_axis	
 		if value_axes[0] == -1:
 			value_axes = list(range(len(value_keys)))
-		else:
-			value_axes = value_axis
+
 
 		if not self.isthumbnail:
 			width = int(np.ceil(np.sqrt(len(value_axes))))
