@@ -44,6 +44,7 @@ import math
 import re
 import matplotlib.ticker as ticker
 import pandas as pd
+import copy
 
 #all tessier related imports
 from .gui import *
@@ -52,11 +53,11 @@ from .data import Data
 from . import helpers
 from . import colorbar
 
-_plot_width = 4.5 # in inch (ffing inches eh)
-_plot_height = 3.75 # in inch
+_plot_width = 4.75 # in inch (ffing inches eh)
+_plot_height = 4.25 # in inch
 
-_plot_width_thumb = 4. # in inch (ffing inches eh)
-_plot_height_thumb = 3.5 # in inch
+_plot_width_thumb = 4.1 # in inch (ffing inches eh)
+_plot_height_thumb = 3.25 # in inch
 
 _fontsize_plot_title = 10
 _fontsize_axis_labels = 10
@@ -160,7 +161,7 @@ class plotR(object):
 
 	def quickplot(self,**kwargs):
 		coords = np.array(self.data.coordkeys)
-		filter = self.data.dims < 2 # kick out coordinate axes with less than 2 entries
+		filter = self.data.dims < 5 # kick out coordinate axes with less than 2 entries
 
 		uniques_col_str = coords[filter]
 		try:
@@ -258,11 +259,10 @@ class plotR(object):
 			self.fig.subplots_adjust(**subplots_args)
 			
 		#loading of colormap
-		if not ccmap:
+		if ccmap:
 			self.ccmap = loadCustomColormap()
 		else:
-			self.ccmap = ccmap
-		
+			self.ccmap = copy.copy(mpl.cm.get_cmap("inferno"))		
 
 		if len(uniques_col_str)==0:
 			coords = np.array(self.data.coordkeys)
@@ -345,16 +345,17 @@ class plotR(object):
 		value_axes = []	
 		if value_axis == -1:
 			value_axes = list(range(len(value_keys)))
+		elif type(value_axis) is not list:
+			value_axes = [value_axis]
 		else:
-			value_axes = list(value_axis)
-
+			value_axes = value_axis
 		if not self.isthumbnail:
 			width = int(np.ceil(np.sqrt(len(value_axes))))
 			height = int(np.ceil(len(value_axes)/width))
 			gs = gridspec.GridSpec(height,width)
 			for k in rcP:
 				mpl.rcParams[k] = rcP[k]
-			self.fig.set_size_inches(width*_plot_width, height*_plot_height)
+			self.fig.set_size_inches(width*_plot_width*np.sqrt(2)/np.sqrt(height), height*_plot_height*np.sqrt(2)/np.sqrt(height))
 		else:
 			gs = gridspec.GridSpec(len(value_axes),1)
 			for k in rcP:

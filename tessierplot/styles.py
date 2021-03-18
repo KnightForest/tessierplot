@@ -570,7 +570,7 @@ def helper_movingmeansubtract(w):  #Needs equally spaced axes
 	w['XX'] = XX
 	
 def helper_meansubtract(w):  #Needs equally spaced axes
-	offset = np.nanmean(w['XX'])
+	offset = np.nanmean(w['XX'][np.isfinite(w['XX'])])
 	print('Subtracted mean:' + str(offset))
 	w['XX'] = w['XX']-offset
 
@@ -717,10 +717,10 @@ def helper_ivreverser(w):  #Needs equally spaced axes
 	ycorrected = np.zeros(shape=(xn,yn))
 	gridresolutionfactor = int(w['ivreverser_gridresolutionfactor']) # Example: Factor of 2 doubles the number of y datapoints for non-linear interpolation
 	
-	for i in range(0,xn):
+	for i in range(0,xn): #numpy.ma.masked_invalid(a).sum()
 		ycorrected[i,:] = XX[i,:] #y-axis becomes data axis
 		XX[i,:] = yaxis #data axis becomes y-axis (replace with repmat)
-	ylimitneg,ylimitpos = (np.nanmin(ycorrected*10))/10, (np.nanmax(ycorrected*10))/10
+	ylimitneg,ylimitpos = (np.nanmin(ycorrected[np.isfinite(ycorrected)]*10))/10, (np.nanmax(ycorrected[np.isfinite(ycorrected)]*10))/10
 	print('ylimits',ylimitneg,ylimitpos)
 	grid_x, grid_y = np.mgrid[w['ext'][0]:w['ext'][1]:xn*1j, ylimitneg:ylimitpos:(yn*gridresolutionfactor)*1j]
 	grid_y_1d = np.linspace(ylimitneg,ylimitpos,(yn*gridresolutionfactor))
@@ -1433,7 +1433,7 @@ STYLE_SPECS = {
 	'icvsx': {'useonlythreshold': True, 'pixelnoiserange': 3, 'ppt': 0.5, 'stepoffset': 0, 'strictzero': True, 'plateaulim': 1e6,'gapmax': 1e6,'param_order': ['useonlythreshold','pixelnoiserange','ppt','stepoffset','strictzero','plateaulim','gapmax']},
 	'int': {'param_order': []},
 	'iretrap': {'param_order': []},
-	'ivreverser':{'gridresolutionfactor': 2, 'twodim': False, 'interpmethod': 'cubic', 'param_order': ['gridresolutionfactor','twodim','interpmethod']},
+	'ivreverser':{'gridresolutionfactor': 10, 'twodim': False, 'interpmethod': 'cubic', 'param_order': ['gridresolutionfactor','twodim','interpmethod']},
 	'linecut': {'linecutvalue': 1,'axis': None,'param_order': ['linecutvalue','axis']},
 	'log': {'param_order': []},
 	'logdb': {'param_order': []},
