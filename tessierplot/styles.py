@@ -469,9 +469,14 @@ def helper_int(w):
 		w['XX'] = (intarr - intarr[int(len(intarr)/2)])*modifier
 		dxunit = w['xunit']
 	else:
+		# zeroindexes = [None]*XX.shape[0]
+		# for i in range(0,XX.shape[0]):
+		# 	zeroindexes[i] = np.argmin(np.abs(XX[i,:]))
+		# zeroindex = np.bincount(zeroindexes).argmax()
 		for i in range(0,XX.shape[0]):
 			intarr = np.nancumsum(XX[i,:])*np.diff(Y[i,:],prepend=Y[i,0]-(Y[i,1]-Y[i,0]))
-			XX[i,:] = intarr - np.nanmean(intarr)
+			zeroindex = np.argmin(np.abs(Y[i,:]))
+			XX[i,:] = intarr - intarr[zeroindex]
 		w['XX']=XX*modifier
 		dxunit = w['yunit']
 	if modifier is not 1 and dxunit == 'V':
@@ -672,7 +677,7 @@ def helper_vbiascorrector(w): #Needs equally spaced axes
 	ycorrected = np.zeros(shape=(xn,yn))
 	gridresolutionfactor = w['vbiascorrector_gridresolutionfactor'] # Example: Factor of 2 doubles the number of y datapoints for non-linear interpolation
 	for i in range(0,xn):
-		ycorrected[i,:] = yaxis-voffset-XX[i,:]*seriesr*1e-3
+		ycorrected[i,:] = yaxis-voffset-XX[i,:]*seriesr
 	ylimitneg,ylimitpos = np.nanmin(ycorrected), np.nanmax(ycorrected)
 	gridyaxis = np.linspace(ylimitneg,ylimitpos,int(yn*gridresolutionfactor))
 	gridxaxis = xaxis
@@ -1445,7 +1450,7 @@ STYLE_SPECS = {
 	'sgtwodidv': {'samples': 21, 'order': 3, 'param_order': ['samples', 'order']},
 	'shapiro': {'rffreq': 2.15e9, 'nsteps': 1, 'millivolts': 1, 'param_order': ['rffreq','nsteps','millivolts']},
 	'ssidrive': {'param_order': []},
-	'vbiascorrector':{'voffset': 0,'seriesr': 0, 'gridresolutionfactor': 1, 'didv':False, 'param_order': ['voffset','seriesr','gridresolutionfactor','didv']},
+	'vbiascorrector':{'voffset': 0,'seriesr': 0, 'gridresolutionfactor': 2, 'didv':False, 'param_order': ['voffset','seriesr','gridresolutionfactor','didv']},
 }
 
 	#linecutvalue = w['linecut_value']
