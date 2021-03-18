@@ -188,16 +188,17 @@ class plotR(object):
 		#filter out NaNs or infinities, should any have crept in
 		data = data[np.isfinite(data)]
 		#print(data)
-		m = 2 # n standard deviations to be considered as outliers
+		m = 2.5 # n standard deviations to be considered as outliers
 		datastd = data # make copy
 		booleanmask = np.array([False]) # initialise boolean mask
 		while False in booleanmask: 
 		    if np.std(datastd) < 0.1*np.mean(np.abs(datastd)): # check data has a std larger than 10 of the mean
 		    	break
 		    booleanmask = abs(datastd - np.mean(datastd)) < m * np.std(datastd) # make boolean mask based with outliers marked as False
-		    if np.sum(booleanmask) < 0.95*len(data): #Loop to break the recursive std determination
+		    if np.sum(booleanmask) < 0.8*len(data): #Loop to break the recursive std determination
 		    	break
 		    datastd = datastd[booleanmask] # apply mask to data
+		
 		values, edges = np.histogram(datastd, 256) # bin for 256 colors in colorscale
 		stretchfactor = .05 # stretching colorscale so that the data sits comfortably within its bounds
 		cminlim = np.min(datastd)-((np.max(datastd)-np.min(datastd))*stretchfactor)
