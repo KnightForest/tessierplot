@@ -392,6 +392,7 @@ class Data(pandas.DataFrame):
         self._filepath = None #filepath
         self._header = None #header
         self._sorted_data = None
+        self._value_keys = None
 
     @property
     def _constructor(self):
@@ -452,6 +453,7 @@ class Data(pandas.DataFrame):
     @property
     def valuekeys(self):
         value_keys = [i['name'] for n,i in enumerate(self._header) if ('column' in self._header[n] and i['type']=='value')]
+        self._value_keys=value_keys
         return value_keys
 
 

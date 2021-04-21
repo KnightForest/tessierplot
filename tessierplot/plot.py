@@ -161,7 +161,7 @@ class plotR(object):
 
 	def quickplot(self,**kwargs):
 		coords = np.array(self.data.coordkeys)
-		filter = self.data.dims < 5 # kick out coordinate axes with less than 2 entries
+		filter = self.data.dims < 2 # kick out coordinate axes with less than 2 entries
 
 		uniques_col_str = coords[filter]
 		try:
@@ -258,6 +258,9 @@ class plotR(object):
 		if not self.fig and not ax_destination:
 			self.fig = plt.figure()
 			self.fig.subplots_adjust(**subplots_args)
+		if n_index is not None:
+			if len(n_index)==0:
+				n_index = None
 			
 		#loading of colormap
 		if ccmap:
@@ -265,84 +268,41 @@ class plotR(object):
 		else:
 			self.ccmap = copy.copy(mpl.cm.get_cmap("inferno"))		
 
-		if len(uniques_col_str)==0:
-			coords = np.array(self.data.coordkeys)
-			#print('coords',coords)
-			filter = self.data.dims < 2 # kick out set axes with less than two entries
-			#print(filter)
-			uniques_col_str = coords[filter]
-			#print('ucs',uniques_col_str)
-		#uniques_col_str=['backgate']
-		#determine how many subplots we need
-		n_subplots = 1
-
 		#make a list of uniques per column associated with column name
-		coord_keys,coord_units,coord_labels = self.data.coordkeys_n
-		value_keys,value_units,value_labels = self.data.valuekeys_n
-		coord_keys_raw,coord_units_raw,value_labels_raw = self.data.coordkeys_n
+		value_keys_raw,value_units_raw,value_labels_raw = self.data.valuekeys_n
+		coord_keys_raw,coord_units_raw,coord_labels_raw = self.data.coordkeys_n
 
 		#Filtering raw value axes
-		if filter_raw== True:
+		if filter_raw== True and self.isthumbnail:
 			value_keys_filtered = []
 			value_labels_filtered = []
 			value_units_filtered = []
-			for n,value_label in enumerate(value_labels):
-				if value_label.find('raw')==-1 and value_label.find('Raw')== -1:
-					value_labels_filtered.append(value_label)
-					value_keys_filtered.append(value_keys[n])
-					value_units_filtered.append(value_units[n])
+			for n,value_label_raw in enumerate(value_labels_raw):
+				if value_label_raw.find('raw')==-1 and value_label_raw.find('Raw')== -1:
+					value_labels_filtered.append(value_label_raw)
+					value_keys_filtered.append(value_keys_raw[n])
+					value_units_filtered.append(value_units_raw[n])
 			value_keys = value_keys_filtered
 			value_units = value_units_filtered
 			value_labels = value_labels_filtered
-
-		# #make a list of uniques per column associated with column name
-		# uniques_by_column = dict(zip(coord_keys + value_keys, self.data.dims))
-		# print(uniques_by_column)
-		# print(uniques_col_str)
-		# #by this array
-		# for i in uniques_col_str:
-		# 	print('n',n_subplots)
-		# 	n_subplots *= uniques_by_column[i]
-		# 	print(n_subplots)
-
-		# if n_index is not None:
-		# 	n_index = np.array(n_index)
-		# 	n_subplots = len(n_index)
-
-		# if n_subplots > 1:
-		# 	width = 1
-		# else:
-		# 	width = 1
-		# n_valueaxes = len(value_keys)	
-		
-		# if value_axis == -1:
-		# 	value_axes = range(n_valueaxes)
-		# else:
-		# 	value_axes = list([value_axis])
-		# self.valueaxes_n = len(value_axes) 
-		# width = 1#len(value_axes)
-		# height = len(value_axes)
-		# n_subplots = n_subplots *width#int(n_subplots/width)+n_subplots%width
-		# gs = gridspec.GridSpec(height,width)
-		# cnt=0 #subplot counter
-		# print(height,width)
+		else:
+			value_keys = value_keys_raw
+			value_units = value_units_raw
+			value_labels = value_labels_raw
 
 		#make a list of uniques per column associated with column name
 		uniques_by_column = dict(zip(self.data.coordkeys + self.data.valuekeys, self.data.dims))
+		if len(uniques_by_column)>2:
+			uniques_col_str = [list(uniques_by_column)[0]]
+			titlecube = 'Cube map, '
+		else:
+			titlecube = ''
 
-		#by this array
-		# for i in uniques_col_str:
-		# 	n_subplots *= uniques_by_column[i]
+		coord_keys = [key for key in coord_keys_raw if key not in uniques_col_str ]
+		coord_units = list(coord_units_raw[i] for i in [i for i, key in enumerate(coord_keys_raw) if key not in uniques_col_str])
+		coord_labels = list(coord_labels_raw[i] for i in [i for i, key in enumerate(coord_keys_raw) if key not in uniques_col_str])
+		unique_labels = list(coord_labels_raw[i] for i in [i for i, key in enumerate(coord_keys_raw) if key in uniques_col_str])
 
-		# if n_index is not None:
-		# 	n_index = np.array(n_index)
-		# 	n_subplots = len(n_index)
-
-		# if n_subplots > 1:
-		# 	width = 2
-		# else:
-		# 	width = 1
-		
 		value_axes = []	
 		if type(value_axis) is not list:
 			value_axes = [value_axis]
@@ -352,16 +312,26 @@ class plotR(object):
 			value_axes = list(range(len(value_keys)))
 
 		if not self.isthumbnail:
-			width = int(np.ceil(np.sqrt(len(value_axes))))
-			height = int(np.ceil(len(value_axes)/width))
-			for i in uniques_col_str:
-			# 	print('n',n_subplots)
-				height *= uniques_by_column[i]
+			if n_index is not None:
+				n_index = set(n_index)
+				n_subplots = len(n_index)
+			else:
+				n_subplots = len(list(self.data.make_filter_from_uniques_in_columns(uniques_col_str)))
+			width = int(np.ceil(np.sqrt(len(value_axes*n_subplots))))
+			height = int(np.ceil(len(value_axes*n_subplots)/width))
+			
 			gs = gridspec.GridSpec(height,width)
 			for k in rcP:
 				mpl.rcParams[k] = rcP[k]
 			self.fig.set_size_inches(width*_plot_width*np.sqrt(2)/np.sqrt(height), height*_plot_height*np.sqrt(2)/np.sqrt(height))
 		else:
+			if n_index is not None:
+				n_index = n_index[0]
+				#n_subplots = 1
+			else:
+				n_subplots = len(list(self.data.make_filter_from_uniques_in_columns(uniques_col_str)))
+
+			
 			gs = gridspec.GridSpec(len(value_axes),1)
 			for k in rcP:
 				mpl.rcParams[k] = rcP_thumb[k]
@@ -370,23 +340,17 @@ class plotR(object):
 		cnt=0 #subplot counter
 
 		#enumerate over the generated list of unique values specified in the uniques columns
-		#print('ucs',uniques_col_str)
-		#print('value keys', value_keys)
-		#print('value axes', value_axes)
 		for j,ind in enumerate(self.data.make_filter_from_uniques_in_columns(uniques_col_str)):
 			#print(j)
 			#each value axis needs a plot
 
 			for value_axis in value_axes:
 				#plot only if number of the plot is indicated
-				if n_index is not None:
+				if not self.isthumbnail and n_index is not None:
 					if j not in n_index:
 						continue
-				us=uniques_col_str
-				coord_keys = [key for key in coord_keys if key not in uniques_col_str ]
-				coord_units = list(coord_units[i] for i in [i for i, key in enumerate(coord_keys) if key not in uniques_col_str])
-				coord_labels = list(coord_labels[i] for i in [i for i, key in enumerate(coord_keys) if key not in uniques_col_str])
-
+				if self.isthumbnail and j is not 0:
+					continue
 				data_slice = (self.data.loc[ind]).dropna(subset=[coord_keys[-2], coord_keys[-1]]) #Dropping rows with NaNs in coordinates
 				xu = np.size(data_slice[coord_keys[-2]].unique())
 				yu = np.size(data_slice[coord_keys[-1]].unique())
@@ -405,14 +369,9 @@ class plotR(object):
 						ystep=ystep1
 					else:
 						ystep=ystep2
-					#ystep = np.float(np.format_float_scientific(ystep, unique=False, precision=10))
 					ystart = data_slice[coord_keys[-1]].iloc[-1]+ystep
 					yend = missingpoints*ystep+ystart-ystep
 					yarr = np.linspace(ystart,yend,missingpoints)
-					#print(ystep1,ystep2,ystep,ystart,yend,yarr)
-					#for i in range(0,len(yarr)):
-					#	yarr[i] = np.float(np.format_float_scientific(yarr[i], unique=False, precision=10))
-					#print('yarr',yarr)
 					zarr = np.zeros(int(xu*yu-lenz)) + np.nan
 					concatdf = pd.DataFrame({coord_keys[-2]: xarr,
 									   coord_keys[-1]: yarr,
@@ -470,17 +429,15 @@ class plotR(object):
 				extx = abs(ext[1]-ext[0])
 				xdx = np.diff(X, axis=0)
 				xdxshape = xdx.shape
-				#for i in range(0,int(xdxshape[0])): # Rounding to finite precision to find stepsize
-				#	for j in range(0,int(xdxshape[1])):
-				#		xdx[i,j]=np.format_float_scientific(xdx[i,j], unique=False, precision=10)
-				minxstep = np.nanmin(abs(xdx[xdx > 1e-19])) # removing rounding errors from diff
-				minxsteps = int(round(extx/minxstep,0))+1
+				if len(xdx) is not 0:
+					minxstep = np.nanmin(abs(xdx[xdx > 1e-19])) # removing rounding errors from diff
+					minxsteps = int(round(extx/minxstep,0))+1
+				else:
+					minxsteps = extx
+				
 				exty = abs(ext[3]-ext[2])
 				ydy = np.diff(Y, axis=1)#.astype(float)
 				ydyshape = ydy.shape
-				#for i in range(0,ydyshape[0]):
-				#		for j in range(0,ydyshape[1]):
-				#				ydy[i,j]=np.format_float_scientific(ydy[i,j], unique=False, precision=10)
 				minystep = np.nanmin(abs(ydy[ydy > 1e-19])) # removing rounding errors from diff
 				minysteps = int(round(exty/minystep,0))+1
 				if minysteps > 100*yu: #limiting the interpolation stepsize
@@ -491,7 +448,6 @@ class plotR(object):
 					grid_x, grid_y = np.mgrid[ext[0]:ext[1]:minxsteps*1j, ext[2]:ext[3]:minysteps*1j]
 					gridxstep = np.abs(grid_x[1,0]-grid_x[0,0])
 					gridystep = np.abs(grid_y[0,1]-grid_y[0,0])
-					#print(gridxstep,gridystep)
 					grid_x /= gridxstep
 					grid_y /= gridystep
 					points = np.transpose(np.array([x/gridxstep,y/gridystep]))
@@ -512,8 +468,14 @@ class plotR(object):
 				self.Y = Y
 
 				#determine stepsize for di/dv, inprincipe only y step is used (ie. the diff is also taken in this direction and the measurement swept..)
-				xstep = float(ext[1] - ext[0])/(len(self.X[:,0])-1)
-				ystep = float(ext[3] - ext[2])/(len(self.Y[0,:])-1)
+				try:
+					xstep = float(ext[1] - ext[0])/(len(self.X[:,0])-1)
+				except:
+					xstep = 0
+				try:
+					ystep = float(ext[3] - ext[2])/(len(self.Y[0,:])-1)
+				except:
+					ystep=0
 				self.exportData.append(XX)
 				try:
 					m={
@@ -614,12 +576,8 @@ class plotR(object):
 					self.deinterXXeven_data = xx_even
 				else:
 					if imshow:
-						#masked_array_nans = np.ma.array(np.rot90(XX), mask=np.isnan(np.rot90(XX)))
-						#masked_array_nans = np.rot90(XX)
 						colormap = (plt.get_cmap(self.ccmap))
 						colormap.set_bad('grey',1.0)
-						#self.im = ax.imshow(masked_array_nans,extent=ext, cmap=colormap,aspect=aspect,interpolation=interpolation, clim=clim)
-						#self.im = ax.imshow(np.rot90(XX) ,extent=ext, cmap=plt.get_cmap(self.ccmap) ,aspect=aspect,interpolation=interpolation, clim=clim)
 						self.im = ax.imshow(np.rot90(XX), 
 											extent=ext, 
 											cmap=plt.get_cmap(self.ccmap), 
@@ -657,10 +615,13 @@ class plotR(object):
 				
 				title = ''
 				for i in uniques_col_str:
-					title = '\n'.join([title, '{:s}: {:g} {:s}'.format(i,getattr(data_slice,i).iloc[0], coord_units_raw[coord_keys_raw.index(i)] )])
+					title = '\n'.join([title, '{:s}: {:g} {:s}'.format(unique_labels[0],getattr(data_slice,i).iloc[0], coord_units_raw[coord_keys_raw.index(i)] )])
 
 				if 'notitle' not in style:
-					ax.set_title(title)
+					if not self.isthumbnail:
+						ax.set_title(title, loc='left', pad=32, weight='bold')
+					if self.isthumbnail:
+						ax.set_title(titlecube + title, loc='left', pad=0, weight='bold',fontsize=10)						
 				# create an axes on the right side of ax. The width of cax will be 5%
 				# of ax and the padding between cax and ax will be fixed at 0.05 inch.
 				if drawCbar:
@@ -734,11 +695,6 @@ class plotR(object):
 			self.fig = plt.figure()
 			self.fig.subplots_adjust(**subplots_args)
 
-		# if len(uniques_col_str)==0:
-		#	coords = np.array(self.data.coordkeys)
-		#	filter = self.data.dims < 5
-		#	uniques_col_str = coords[filter]
-
 		#determine how many subplots we need
 		n_subplots = 1
 		coord_keys,coord_units,coord_labels = self.data.coordkeys_n
@@ -763,33 +719,6 @@ class plotR(object):
 		#assume 2d plots with data in the two last columns
 		if len(uniques_col_str)==0:
 			uniques_col_str = coord_keys[:-1]
-
-		# if n_index is not None:
-		# 	n_index = np.array(n_index)
-		# 	n_subplots = len(n_index)
-
-		# if n_subplots > 1:
-		# 	width = 2
-		# else:
-		# 	width = 1
-		# n_valueaxes = len(value_keys)
-		# if value_axis == -1:
-		# 	value_axes = range(n_valueaxes)
-		# else:
-		# 	if type(value_axis) is not list:
-		# 		value_axes = list([value_axis])
-		# 	else:
-		# 		value_axes = value_axis
-		# self.valueaxes_n = len(value_axes) 
-
-		# width = len(value_axes)
-		# n_subplots = n_subplots * width
-		# gs = gridspec.GridSpec(width,int(n_subplots/width)+n_subplots%width)
-
-		# if n_index is not None:
-		# 	n_index = np.array(n_index)
-		# 	n_subplots = len(n_index)
-		# ax = None
 
 		value_axes = []	
 		if type(value_axis) is not list:

@@ -175,6 +175,7 @@ class tessierView(object):
                 #extract the directory which is the date of measurement
                 datedir = os.path.basename(os.path.normpath(dir+'/../'))
                 measfiledir = os.path.basename(os.path.normpath(dir))
+
                 #print(measfiledir)
                 if os.name == 'nt': # avoid problems with very long path names in windows
                    dir = win32api.GetShortPathName(dir)
@@ -198,6 +199,8 @@ class tessierView(object):
                     if self._showfilenames:
                         print(fullpath)
                     df = data.Data.load_header_only(fullpath)
+                    #print(df._header)
+                    value_keys = [i['name'] for n,i in enumerate(df._header) if ('column' in df._header[n] and i['type']=='value')]
 
                     if headercheck is None or df.coordkeys[-2] == headercheck:
                         thumbpath = self.makethumbnail(fullpath,**kwargs)
@@ -210,13 +213,15 @@ class tessierView(object):
                                                  'thumbpath':thumbpath_html,
                                                  'datedir':datedir, 
                                                  'measname':measname,
-                                                 'comment': comment})
+                                                 'comment':comment,
+                                                 'value_keys':value_keys})
                             else:
                                 self._allthumbs.append({'datapath':fullpath,
                                                  'thumbpath':thumbpath_html,
                                                  'datedir':datedir, 
                                                  'measname':measname,
-                                                 'comment': 'n.a.'})
+                                                 'comment': 'n.a.',
+                                                 'value_keys':value_keys})
                             images += 1
         return self._allthumbs
 
@@ -237,10 +242,11 @@ class tessierView(object):
         #since files are served from ipyhton notebook from ./files/
         all_relative = [{ 
                             'thumbpath':'./files/'+os.path.relpath(k['thumbpath'],start=os.getcwd()),
-                            'datapath':k['datapath'], 
-                            'datedir':k['datedir'], 
-                            'measname':k['measname'],
-                            'comment': k['comment'] } for k in self._allthumbs]
+                            'datapath': k['datapath'], 
+                            'datedir': k['datedir'], 
+                            'measname': k['measname'],
+                            'comment': k['comment'],
+                            'value_keys': k['value_keys'] } for k in self._allthumbs]
         out=u"""
 
         
@@ -271,7 +277,6 @@ class tessierView(object):
             <div id='{{ item.datapath }}' class='col'>  {# mousehover filename and measurement comment #}
 
                 <div class='name'> {{ item.measname + '\n' + 'Comment: ' + item.comment }} </div>
-
                 <div class='thumb'>
                         <img src="{{ item.thumbpath }}?{{ nowstring }}"/> 
                 </div>
@@ -305,21 +310,17 @@ class tessierView(object):
                         <option value="{{"\\'meansubtract\\',\\'deinterlace1\\',\\'mov_avg\\',\\'diff\\'"|e}} ">deinterlace1,diff</option>
                     </select>
                     </br>
-                    Axis:
+                    Measurement axis:
                     <select name="value_axis">
                         <option value="{{'-1'}}">All</option>
-                        <option value="{{'0'}}">0</option>
-                        <option value="{{'1'}}">1</option>
-                        <option value="{{'2'}}">2</option>
-                        <option value="{{'3'}}">3</option>
-                        <option value="{{'4'}}">4</option>
-                        <option value="{{'5'}}">5</option>
-                        <option value="{{'7'}}">7</option>
-                        <option value="{{'8'}}">8</option>
-                        <option value="{{'9'}}">9</option>
+                        {% for key in item.value_keys %}
+                            <option value="{{ loop.index0 }}">{{ key }}</option>{{ i }}
+                        {% endfor %}
                     </select>
                     <input type="checkbox" name="stylechecker" value="{{"\\'flipaxes\\',"|e}} ">Flip axes
-                    
+                    </br>
+                    Cube index:
+                    <input type="number" name="n_index" min="0" max="999">
                     </form>            
                 </div>
             </div>
@@ -404,24 +405,35 @@ class tessierView(object):
                 //window.alert(v_ax)
                 return v_ax
             }
+            function getCube_index(id) {
+                id = id.replace(/\\\\/g,"\\\\\\\\");
+                var x = document.querySelectorAll('form[name=\\"'+id+'\\"]')
+                form = x[0]; //should be only one form
+                n_index = form.n_index;
+                var n_ind = n_index.value
+                //window.alert(n_ind)
+                return n_ind
+            }
             function plotwithStyle(id) {
                 var style = getStyle(id);
                 var v_ax = getValue_axis(id);
-                //window.alert(v_ax)
-                var value_axis = form.value_axis
-                plot(id,style,v_ax);
+                var n_ind = getCube_index(id);
+                //window.alert(n_ind);
+                var value_axis = form.value_axis;
+                plot(id,style,v_ax,n_ind);
             }
-            function plot(id,style,v_ax){
+            function plot(id,style,v_ax,n_ind){
                 //window.alert(style)
                 //window.alert(v_ax)
+                //window.alert(n_ind)
                 dir = id.split('/');
                 
                 exec = 'filename \= \"' + id + '\"; {{ plotcommand }}';
-                exec = exec.printf(style,v_ax)
+                exec = exec.printf(style,v_ax,n_ind)
                 //window.alert(exec)
                 pycommand(exec);
             }
-            String.prototype.printf = function (style,v_ax) {
+            String.prototype.printf = function (style,v_ax,n_ind) {
                 var useArguments = false;
                 var _arguments = arguments;
                 var i = -1;
@@ -429,7 +441,8 @@ class tessierView(object):
                 useArguments = true;
                 }
                 if (style instanceof Array || useArguments) {
-                var that = this.replace(/\%a/g,v_ax)
+                var that = this.replace(/\%c/g,n_ind)
+                that = that.replace(/\%a/g,v_ax)
                 return that.replace(/\%s/g,
                 function (a, b) {
                   i++;
@@ -503,7 +516,7 @@ class tessierView(object):
         """
         temp = jj.Template(out)
 
-        plotcommand = """\\nimport matplotlib.pyplot as plt\\nimport imp\\nif not plt.get_fignums():\\n from tessierplot import plot as ts\\n imp.reload(ts)\\np = ts.plotR(filename)\\np.quickplot(style=%s,value_axis=[%a])\\n"""
+        plotcommand = """\\nimport matplotlib.pyplot as plt\\nimport imp\\nif not plt.get_fignums():\\n from tessierplot import plot as ts\\n imp.reload(ts)\\np = ts.plotR(filename)\\np.quickplot(style=%s,value_axis=[%a],n_index=[%c])\\n"""
         
         import datetime
         d=datetime.datetime.utcnow()
