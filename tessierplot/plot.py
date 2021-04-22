@@ -694,6 +694,9 @@ class plotR(object):
 		if not self.fig and not ax_destination:
 			self.fig = plt.figure()
 			self.fig.subplots_adjust(**subplots_args)
+		if n_index is not None:
+			if len(n_index)==0:
+				n_index = None            
 
 		#determine how many subplots we need
 		n_subplots = 1
