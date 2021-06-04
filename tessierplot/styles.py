@@ -696,6 +696,10 @@ def helper_vbiascorrector(w): #Needs equally spaced axes
 	#print w['ystep']
 	w['ext'] = [w['ext'][0],w['ext'][1],ylimitneg,ylimitpos]
 
+def helper_unwrap(w):  #Needs equally spaced axes
+	w['XX'] = np.unwrap(w['XX'])
+	pass
+
 def helper_ivreverserlockin(w):  #Needs equally spaced axes
 	pass
 
@@ -1398,6 +1402,7 @@ STYLE_FUNCS = {
 	'rshunt': helper_rshunt,
 	'savgol': helper_savgol,
 	'shapiro': helper_shapiro,
+	'unwrap': helper_unwrap,
 	'vbiascorrector': helper_vbiascorrector,
 	}
 
@@ -1449,7 +1454,7 @@ STYLE_SPECS = {
 	'savgol': {'condquant': False, 'axis': -1, 'difforder':1, 'samples': 7, 'order': 3, 'param_order': ['condquant','axis','difforder','samples','order']},
 	'sgtwodidv': {'samples': 21, 'order': 3, 'param_order': ['samples', 'order']},
 	'shapiro': {'rffreq': 2.15e9, 'nsteps': 1, 'millivolts': 1, 'param_order': ['rffreq','nsteps','millivolts']},
-	'ssidrive': {'param_order': []},
+	'unwrap': {'param_order': []},
 	'vbiascorrector':{'voffset': 0,'seriesr': 0, 'gridresolutionfactor': 2, 'didv':False, 'param_order': ['voffset','seriesr','gridresolutionfactor','didv']},
 }
 

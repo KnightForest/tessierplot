@@ -304,6 +304,8 @@ class tessierView(object):
                         <option value="{{"\\'meansubtract\\',\\'mov_avg(n=3)\\',\\'ivreverser\\',\\'mov_avg(n=3)\\',\\'diff\\'"|e}}">ivreverser,diff</option>
                         <option value="{{"\\'int\\',\\'meansubtract\\',\\'ivreverser\\',\\'diff\\'"|e}}">int,ivreverser,diff</option>
                         <option value="{{"\\'int\\',\\'meansubtract\\',\\'ivreverser\\',\\'diff\\'"|e}}">int,mov_avg,ivreverser,diff</option>
+                        <option value="{{"\\'unwrap\\'"|e}}">unwrap</option>
+                        <option value="{{"\\'unwrap\\',\\'diff\\',\\'mov_avg(n=24)\\'"|e}}">unwrap,diff,mov_avg</option>
                         <option value="{{"\\'meansubtract\\',\\'deinterlace0\\'"|e}} ">deinterlace0</option>
                         <option value="{{"\\'meansubtract\\',\\'deinterlace1\\'"|e}} ">deinterlace1</option>
                         <option value="{{"\\'meansubtract\\',\\'deinterlace0\\',\\'mov_avg\\',\\'diff\\'"|e}} ">deinterlace0,diff</option>
