@@ -509,6 +509,20 @@ class Data(pandas.DataFrame):
 
         return dims
 
+    # @property
+    # def uniquecoordvals(self):
+    #     #returns an array with the amount of unique values of each coordinate column
+
+    #     dims = np.array([],dtype='int')
+    #     #first determine the columns belong to the axes (not measure) coordinates
+    #     cols = [i for n,i in enumerate(self._header) if ('column' in self._header[n] and i['type'] == 'coordinate')]
+
+    #     for i in cols:
+    #         col = getattr(self.sorted_data,i['name']).unique()
+    #         #dims = np.hstack( ( dims ,(col.unique())  ) )
+
+    #     return col
+
     def make_filter_from_uniques_in_columns(self,columns):
     #generator to make a filter which creates measurement 'sets'
         import math

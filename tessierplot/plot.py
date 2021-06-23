@@ -122,7 +122,7 @@ class plotR(object):
 		#if the uniques of a dimension is less than x, plot in sequential 2d, otherwise 3d
 
 		#maybe put logic here to plot some uniques as well from nonsequential axes?
-		filter = self.data.dims < 5
+		filter = self.data.dims < 2
 		filter_neg = np.array([not x for x in filter],dtype="bool")
 
 		coords = np.array(self.data.coordkeys)
@@ -237,7 +237,7 @@ class plotR(object):
 						cax_destination=None, # Specify destination colorbar axis, default 'None' makes new axis
 						subplots_args={'top':0.96, 'bottom':0.17, 'left':0.14, 'right':0.85,'hspace':0.1,'wspace':0.1}, # Relative spacings and margins for subplots
 						ax_destination=None,  # Specify destination data axis, default 'None' makes new axis
-						n_index=None, # Still a mysterious parameter.. filters subplots somehow
+						n_index=None, # Index of higher dimensional measurement
 						style=['normal'],  # Used styles for plotting
 						xlims=None, # Set non-default x-axis limits
 						ylims=None, # Set non-default x-axis limits
@@ -293,8 +293,8 @@ class plotR(object):
 		#make a list of uniques per column associated with column name
 		uniques_by_column = dict(zip(self.data.coordkeys + self.data.valuekeys, self.data.dims))
 		if len(uniques_by_column)>2:
-			uniques_col_str = [list(uniques_by_column)[0]]
-			titlecube = 'Cube map, '
+			uniques_col_str = list(uniques_by_column)[0:-2]
+			titlecube = 'Higher order measurement, '
 		else:
 			titlecube = ''
 
@@ -330,8 +330,6 @@ class plotR(object):
 				#n_subplots = 1
 			else:
 				n_subplots = len(list(self.data.make_filter_from_uniques_in_columns(uniques_col_str)))
-
-			
 			gs = gridspec.GridSpec(len(value_axes),1)
 			for k in rcP:
 				mpl.rcParams[k] = rcP_thumb[k]
@@ -614,8 +612,8 @@ class plotR(object):
 				ax.set_ylabel(yaxislabelwithunit)
 				
 				title = ''
-				for i in uniques_col_str:
-					title = '\n'.join([title, '{:s}: {:g} {:s}'.format(unique_labels[0],getattr(data_slice,i).iloc[0], coord_units_raw[coord_keys_raw.index(i)] )])
+				for h,i in enumerate(uniques_col_str):
+					title = '\n'.join([title, '{:s}: {:g} {:s}'.format(unique_labels[h],getattr(data_slice,i).iloc[0], coord_units_raw[coord_keys_raw.index(i)] )])
 
 				if 'notitle' not in style:
 					if not self.isthumbnail:

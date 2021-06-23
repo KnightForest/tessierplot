@@ -198,30 +198,39 @@ class tessierView(object):
                 if isinfilterstring:    #liable for improvement
                     if self._showfilenames:
                         print(fullpath)
-                    df = data.Data.load_header_only(fullpath)
+                    #df = data.Data.load_header_only(fullpath)
+                    df = data.Data.from_file(fullpath)
                     #print(df._header)
-                    value_keys = [i['name'] for n,i in enumerate(df._header) if ('column' in df._header[n] and i['type']=='value')]
+                    #print(df.coordkeys)
+                    #value_keys = [i['name'] for n,i in enumerate(df._header) if ('column' in df._header[n] and i['type']=='value')]
+                    #coord_keys = [i['name'] for n,i in enumerate(df._header) if ('column' in df._header[n] and i['type']=='coordinate')]
 
-                    if headercheck is None or df.coordkeys[-2] == headercheck:
+                    #print(df.dims)
+                    #higherdim_coords=np.zeros(3)
+                    if len(df.coordkeys) > 2:
+                        higherdim_coords = [df.coordkeys[0:-2],df.dims[0:-2],[],[]]
+                        higherdim_coords[2] = [[] for i in range(len(higherdim_coords[0]))]
+                        for i,coords in enumerate(higherdim_coords[0]):
+                            higherdim_coords[2][i] = getattr(df.sorted_data,coords).unique()
+                        higherdim_coords[3] = df.coordkeys_n[1]
+                    else:
+                        higherdim_coords = None
+                    if headercheck is None or df.coordkeys[-2] == headercheck: # Strange conditional, maybe obsolete
                         thumbpath = self.makethumbnail(fullpath,**kwargs)
 
                         if thumbpath:
                             thumbpath_html = thumbpath.replace('#','%23') # html does not like number signs in file paths
                             if 'comment' in df._header[-1]:
                                 comment = (df._header[-1]['comment'])
-                                self._allthumbs.append({'datapath':fullpath,
+                            else:
+                                comment = 'n.a.'
+                            self._allthumbs.append({'datapath':fullpath,
                                                  'thumbpath':thumbpath_html,
                                                  'datedir':datedir, 
                                                  'measname':measname,
                                                  'comment':comment,
-                                                 'value_keys':value_keys})
-                            else:
-                                self._allthumbs.append({'datapath':fullpath,
-                                                 'thumbpath':thumbpath_html,
-                                                 'datedir':datedir, 
-                                                 'measname':measname,
-                                                 'comment': 'n.a.',
-                                                 'value_keys':value_keys})
+                                                 'value_keys':df.valuekeys,
+                                                 'higherdim_coords':higherdim_coords})
                             images += 1
         return self._allthumbs
 
@@ -246,7 +255,8 @@ class tessierView(object):
                             'datedir': k['datedir'], 
                             'measname': k['measname'],
                             'comment': k['comment'],
-                            'value_keys': k['value_keys'] } for k in self._allthumbs]
+                            'value_keys': k['value_keys'],
+                            'higherdim_coords': k['higherdim_coords'] } for k in self._allthumbs]
         out=u"""
 
         
@@ -257,7 +267,7 @@ class tessierView(object):
         <div id='outer'>
     
     {% set ncolumns = 4 %}
-    {% set vars = {'lastdate': '', 'columncount': 1} %}
+    {% set vars = {'lastdate': '', 'columncount': 1, 'higherorder': 0,} %}
 
     {% for item in items %}
     
@@ -285,7 +295,6 @@ class tessierView(object):
                     <button id='{{ item.datapath }}' onClick='toclipboard(this.id)'>Filename to clipboard</button>
                     <br/>
                     <button id='{{ item.datapath }}' onClick='refresh(this.id)'>Refresh</button>
-                    <br/>
                     <button id='{{ item.datapath }}' onClick='plotwithStyle(this.id)' class='plotStyleSelect'>Plot with</button>
                     <form name='{{ item.datapath }}'>
                     Style:
@@ -305,7 +314,7 @@ class tessierView(object):
                         <option value="{{"\\'int\\',\\'meansubtract\\',\\'ivreverser\\',\\'diff\\'"|e}}">int,ivreverser,diff</option>
                         <option value="{{"\\'int\\',\\'meansubtract\\',\\'ivreverser\\',\\'diff\\'"|e}}">int,mov_avg,ivreverser,diff</option>
                         <option value="{{"\\'unwrap\\'"|e}}">unwrap</option>
-                        <option value="{{"\\'unwrap\\',\\'diff\\',\\'mov_avg(n=24)\\'"|e}}">unwrap,diff,mov_avg</option>
+                        <option value="{{"\\'unwrap\\',\\'diff\\',\\'mov_avg(n=6)\\'"|e}}">unwrap,diff,mov_avg</option>
                         <option value="{{"\\'meansubtract\\',\\'deinterlace0\\'"|e}} ">deinterlace0</option>
                         <option value="{{"\\'meansubtract\\',\\'deinterlace1\\'"|e}} ">deinterlace1</option>
                         <option value="{{"\\'meansubtract\\',\\'deinterlace0\\',\\'mov_avg\\',\\'diff\\'"|e}} ">deinterlace0,diff</option>
@@ -316,13 +325,32 @@ class tessierView(object):
                     <select name="value_axis">
                         <option value="{{'-1'}}">All</option>
                         {% for key in item.value_keys %}
-                            <option value="{{ loop.index0 }}">{{ key }}</option>{{ i }}
+                            <option value="{{ loop.index0 }}">{{ key }}</option>
                         {% endfor %}
                     </select>
+                    </br>
                     <input type="checkbox" name="stylechecker" value="{{"\\'flipaxes\\',"|e}} ">Flip axes
                     </br>
-                    Cube index:
-                    <input type="number" name="n_index" min="0" max="999">
+                    {% if (item.higherdim_coords != None) %}
+                        {% for key in item.higherdim_coords[0] %}
+                            {{ key }} 
+                            <select name="n_index{{ loop.index0 }}">
+                                <option value="{{''}}">All</option>
+                                {% set prevloop = loop.index0 %}
+                                {% for key in range(item.higherdim_coords[1][loop.index0]) %}
+                                    <option value="{{ loop.index0 }}">{{ item.higherdim_coords[2][prevloop][key] }}</option>
+                                {% endfor %}
+                            </select>
+                            {{ item.higherdim_coords[3][loop.index0] }}
+                            </br>
+                            <input type="hidden" name="higherorderdims{{ loop.index0 }}" value="{{ item.higherdim_coords[1][loop.index0] }}">
+                        {% endfor %}
+                        {% if vars.update({'higherorder': item.higherdim_coords[0]|length}) %} {% endif %}
+                    {% else %} 
+                        {% if vars.update({'higherorder': 0}) %} {% endif %}
+                    {% endif %}
+                    <input type="hidden" name="higherorder" value="{{ vars.higherorder }}">
+
                     </form>            
                 </div>
             </div>
@@ -407,21 +435,46 @@ class tessierView(object):
                 //window.alert(v_ax)
                 return v_ax
             }
-            function getCube_index(id) {
+            function getHO_index(id) {
                 id = id.replace(/\\\\/g,"\\\\\\\\");
-                var x = document.querySelectorAll('form[name=\\"'+id+'\\"]')
+                var x = document.querySelectorAll('form[name=\\"'+id+'\\"]');
                 form = x[0]; //should be only one form
-                n_index = form.n_index;
-                var n_ind = n_index.value
-                //window.alert(n_ind)
+                //window.alert( form.higherorder.value );
+                if (form.higherorder.value > 0) {
+                    var n_ind_temp = parseInt(0)
+                    var coorddim = parseInt(1)
+                    //window.alert('fHO ' + form.higherorder.value)
+                    for (var i = form.higherorder.value - 1; i >= 0; i--) {
+                        var str = 'n_index' + i;
+                        var str2 = 'higherorderdims' + i;
+                        //window.alert(str + ': ' + form[str].value);
+                        //window.alert(str2 + ': ' + form[str2].value);
+                        var coordindex = parseInt(form[str].value);
+                        //window.alert('cindex:' + coordindex + ', cdimprev' + coorddim);
+                        //n_ind_temp = n_ind_temp * coorddim + coordindex
+                        n_ind_temp = n_ind_temp + coordindex * coorddim
+                        coorddim = parseInt(form[str2].value);
+                        //window.alert('n_ind_temp' + ': ' + n_ind_temp);
+                    }
+                    if (isNaN(n_ind_temp)) {
+                        n_ind=''
+                    } else {
+                        n_ind=n_ind_temp
+                    }
+                } else {
+                    var n_ind = ''
+                }
+                //window.alert('n_indfinal'+n_ind)
+
+                
                 return n_ind
             }
             function plotwithStyle(id) {
                 var style = getStyle(id);
                 var v_ax = getValue_axis(id);
-                var n_ind = getCube_index(id);
+                var n_ind = getHO_index(id);
                 //window.alert(n_ind);
-                var value_axis = form.value_axis;
+                //var value_axis = form.value_axis;
                 plot(id,style,v_ax,n_ind);
             }
             function plot(id,style,v_ax,n_ind){
