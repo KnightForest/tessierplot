@@ -5,7 +5,7 @@
 ##Only load this part on first import, calling this on reload has dire consequences
 ## Note: there is still a bug where closing a previously plotted window and plotting another plot causes the window and the kernel to hang
 
-try:
+try: # Importing PyQt5 if available
 	from PyQt5 import QtCore
 except:
 	isqt5 = False
@@ -18,7 +18,7 @@ except:
 else:
 	isqt5=True
 
-import IPython
+import IPython #Importing IPython modules
 ipy=IPython.get_ipython()
 if isqt5:
 	ipy.magic("pylab qt5")
@@ -53,6 +53,7 @@ from .data import Data
 from . import helpers
 from . import colorbar
 
+# Setting default plot properties
 _plot_width = 4.75 # in inch (ffing inches eh)
 _plot_height = 4.25 # in inch
 
@@ -67,6 +68,7 @@ _fontsize_plot_title_thumb = 9
 _fontsize_axis_labels_thumb = 9
 _fontsize_axis_tick_labels_thumb = 9
 
+# Settings for 'normal' plots
 rcP = {	 'figure.figsize': (_plot_width, _plot_height), #(width in inch, height in inch)
 		'axes.labelsize':  _fontsize_axis_labels,
 		'xtick.labelsize': _fontsize_axis_tick_labels,
@@ -75,6 +77,7 @@ rcP = {	 'figure.figsize': (_plot_width, _plot_height), #(width in inch, height 
 		'backend':qtaggregator
 		}
 
+# Settings for generating thumbnails
 rcP_thumb = {  'figure.figsize': (_plot_width_thumb, _plot_height_thumb), #(width in inch, height in inch)
 		'axes.labelsize':  _fontsize_axis_labels_thumb,
 		'xtick.labelsize': _fontsize_axis_tick_labels_thumb,
@@ -83,6 +86,7 @@ rcP_thumb = {  'figure.figsize': (_plot_width_thumb, _plot_height_thumb), #(widt
 		'backend':qtaggregator
 		}
 		
+# Parse regex for old dat files to extract units and names
 def parseUnitAndNameFromColumnName(inp):
 	reg = re.compile(r'\{(.*?)\}')
 	z = reg.findall(inp)
@@ -90,7 +94,7 @@ def parseUnitAndNameFromColumnName(inp):
 		z = inp
 	return z
 
-
+# Loading of custom colormap from file
 def loadCustomColormap(file=helpers.get_asset('cube2.txt')):
 	do = np.loadtxt(file)
 	ccmap = mpl.colors.LinearSegmentedColormap.from_list('name',do)
@@ -99,6 +103,7 @@ def loadCustomColormap(file=helpers.get_asset('cube2.txt')):
 	ccmap.set_over(do[-1])
 	return ccmap
 
+# Main plotting class
 class plotR(object):
 	def __init__(self,file,isthumbnail=False,thumbs = None):
 		self.fig = None
@@ -117,6 +122,7 @@ class plotR(object):
 		#print(self.data._header)
 		#print(self.data.coordkeys)
 		
+	# Checks wheter plot is 2d and return boolean
 	def is2d(self,**kwargs):
 		nDim = self.data.ndim_sparse
 		#if the uniques of a dimension is less than x, plot in sequential 2d, otherwise 3d
@@ -128,9 +134,6 @@ class plotR(object):
 		coords = np.array(self.data.coordkeys)
 
 		return len(coords[filter_neg]) < 2
-
-	def measurementorder(self,**kwargs):
-		return len(np.array(self.data.coordkeys))
 
 	# def quickplot_processed(self,**kwargs):
 		# coords = np.array(self.data.coordkeys)
@@ -159,13 +162,14 @@ class plotR(object):
 		
 		# return fig
 
+	# Function that calls either plot2d (lines) or plot3d (colorplot) based on number of coordinate axes and uniques
 	def quickplot(self,**kwargs):
 		coords = np.array(self.data.coordkeys)
 		filter = self.data.dims < 2 # kick out coordinate axes with less than 2 entries
 
 		uniques_col_str = coords[filter]
 		try:
-			if self.isthumbnail:
+			if self.isthumbnail: # If generating thumbnails, different arguments can be given to plot2d or plot3d
 				if self.is2d():
 					fig = self.plot2d(uniques_col_str=uniques_col_str,**kwargs)
 				else:
@@ -179,11 +183,10 @@ class plotR(object):
 				else:
 					fig = self.plot3d(uniques_col_str=uniques_col_str,**kwargs)
 		except Exception as e:
-			print('fail in quickplot')
-			print(e)
-		
+			print('Error occured in quickplot: ',e)
 		return fig
 
+	# Automatic calibration of colorscale for colorplots
 	def autoColorScale(self,data):
 		#filter out NaNs or infinities, should any have crept in
 		data = data[np.isfinite(data)]
@@ -191,45 +194,21 @@ class plotR(object):
 		m = 2.5 # n standard deviations to be considered as outliers
 		datastd = data # make copy
 		booleanmask = np.array([False]) # initialise boolean mask
+		
+		# Loop that recursively throws out outliers until remaining data fits in 2.5 times the std
 		while False in booleanmask: 
-		    if np.std(datastd) < 0.1*np.mean(np.abs(datastd)): # check data has a std larger than 10 of the mean
+		    if np.std(datastd) < 0.1*np.mean(np.abs(datastd)): # Check that data has a std larger than 10 of its mean, if not, break loop
 		    	break
 		    booleanmask = abs(datastd - np.mean(datastd)) < m * np.std(datastd) # make boolean mask based with outliers marked as False
 		    if np.sum(booleanmask) < 0.8*len(data): #Loop to break the recursive std determination
 		    	break
 		    datastd = datastd[booleanmask] # apply mask to data
 		
-		values, edges = np.histogram(datastd, 256) # bin for 256 colors in colorscale
+		#values, edges = np.histogram(datastd, 256) # bin for 256 colors in colorscale
 		stretchfactor = .05 # stretching colorscale so that the data sits comfortably within its bounds
 		cminlim = np.min(datastd)-((np.max(datastd)-np.min(datastd))*stretchfactor)
 		cmaxlim = np.max(datastd)+((np.max(datastd)-np.min(datastd))*stretchfactor)
-		return (cminlim,cmaxlim)
-
-	def plothigherorder(self,	 massage_func=None,
-						uniques_col_str=[],
-						drawCbar=True,
-						cax_destination=None,
-						subplots_args={'top':0.96, 'bottom':0.17, 'left':0.14, 'right':0.85,'hspace':0.6,'wspace':0.6},
-						ax_destination=None,
-						n_index=None,
-						style=['normal'],
-						xlims_manual=None,
-						ylims_manual=None,
-						clim=None,
-						aspect='auto',
-						interpolation='nearest',
-						value_axis=-1,
-						imshow=True,
-						cbar_orientation='vertical',
-						cbar_location ='normal',
-						filter_raw = True,
-						ccmap = None,
-						#supress_plot = False, #Added suppression of plot option
-						norm = 'nan', #Added for NaN value support
-						**kwargs):
-		# Placeholder for plotting cube maps and higher order measurement. Should generate a loop for plotting colormaps.
-		print('Cubeplotplaceholder')
-		pass
+		return (cminlim,cmaxlim) # Return max and min lims for the colormap
 
 	def plot3d(self,	massage_func=None, # For externally defined styles not defined in styles.py
 						uniques_col_str=[], #
@@ -298,6 +277,7 @@ class plotR(object):
 		else:
 			titlecube = ''
 
+		# Collect keys, units and uniques
 		coord_keys = [key for key in coord_keys_raw if key not in uniques_col_str ]
 		coord_units = list(coord_units_raw[i] for i in [i for i, key in enumerate(coord_keys_raw) if key not in uniques_col_str])
 		coord_labels = list(coord_labels_raw[i] for i in [i for i, key in enumerate(coord_keys_raw) if key not in uniques_col_str])
