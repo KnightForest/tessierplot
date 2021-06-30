@@ -1355,7 +1355,18 @@ def helper_icvsx(w):  #Needs equally spaced axes
 	w['buffer'] = ic
 	w['buffer']={'labels': [xlabel,ylabel], 'data':[ic], 'xaxis':[xaxis]}
 	return ic
-	
+
+def helper_normalise(w):
+	axis = w['normalise_axis']
+	index = int(w['normalise_index'])
+	normalised=np.zeros(w['XX'].shape)
+	if axis == 'x':
+		for i in range(0,w['XX'].shape[0]):
+			normalised[i,:]=w['XX'][:,i]/w['XX'][:,index]
+	if axis == 'y':
+		for i in range(0,w['XX'].shape[0]):
+			normalised[i,:]=w['XX'][i,:]/w['XX'][index,:]
+	w['XX'] = normalised
 def helper_massage(w):
 	# func = w['massage_func']
 	# func(w)
@@ -1397,6 +1408,7 @@ STYLE_FUNCS = {
 	'mov_avg': helper_mov_avg,
 	'movingmeansubtract': helper_movingmeansubtract,
 	'normal': helper_normal,
+	'normalise': helper_normalise,
 	'offsetslopesubtract': helper_offsetslopesubtract,
 	'resistance': helper_resistance,
 	'rshunt': helper_rshunt,
@@ -1445,6 +1457,7 @@ STYLE_SPECS = {
 	'massage': {'param_order': []},
 	'meansubtract': {'param_order': []},
 	'minsubtract': {'param_order': []},
+	'normalise': {'axis': 'x', 'index': 0, 'param_order': ['axis','index']},
 	'mov_avg': {'m': 1, 'n': 3, 'win': None, 'param_order': ['m', 'n', 'win']},
 	'movingmeansubtract': {'window': 2,'param_order': ['window']},
 	'normal': {'param_order': []},
