@@ -577,8 +577,10 @@ class plotR(object):
 															   vmin=clim[0], 
 															   vmax=clim[1])
 				if not clim:
-					self.im.set_clim(self.autoColorScale(XX.flatten()))
-				
+					try:
+						self.im.set_clim(self.autoColorScale(XX.flatten()))
+					except:
+						pass
 				if not (xlims==None) or not (ylims==None):
 					ax.set_xlim(_xlims)
 					ax.set_ylim(_ylims)

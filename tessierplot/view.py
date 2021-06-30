@@ -198,16 +198,15 @@ class tessierView(object):
                 if isinfilterstring:    #liable for improvement
                     if self._showfilenames:
                         print(fullpath)
-                    #df = data.Data.load_header_only(fullpath)
-                    df = data.Data.from_file(fullpath)
+                    df = data.Data.load_header_only(fullpath)
                     #print(df._header)
                     #print(df.coordkeys)
-                    #value_keys = [i['name'] for n,i in enumerate(df._header) if ('column' in df._header[n] and i['type']=='value')]
-                    #coord_keys = [i['name'] for n,i in enumerate(df._header) if ('column' in df._header[n] and i['type']=='coordinate')]
+                    value_keys = [i['name'] for n,i in enumerate(df._header) if ('column' in df._header[n] and i['type']=='value')]
+                    coord_keys = [i['name'] for n,i in enumerate(df._header) if ('column' in df._header[n] and i['type']=='coordinate')]
 
-                    #print(df.dims)
-                    #higherdim_coords=np.zeros(3)
+                    # Ensures only the full file is loaded for higher order measurements (unavoidable)
                     if len(df.coordkeys) > 2:
+                        df = data.Data.from_file(fullpath)
                         higherdim_coords = [df.coordkeys[0:-2],df.dims[0:-2],[],[]]
                         higherdim_coords[2] = [[] for i in range(len(higherdim_coords[0]))]
                         for i,coords in enumerate(higherdim_coords[0]):
@@ -215,7 +214,7 @@ class tessierView(object):
                         higherdim_coords[3] = df.coordkeys_n[1]
                     else:
                         higherdim_coords = None
-                    if headercheck is None or df.coordkeys[-2] == headercheck: # Strange conditional, maybe obsolete
+                    if headercheck is None or coord_keys[-2] == headercheck: # # Filtering thumbnails when headercheck matches a coordinate axis
                         thumbpath = self.makethumbnail(fullpath,**kwargs)
 
                         if thumbpath:
@@ -229,7 +228,7 @@ class tessierView(object):
                                                  'datedir':datedir, 
                                                  'measname':measname,
                                                  'comment':comment,
-                                                 'value_keys':df.valuekeys,
+                                                 'value_keys':value_keys,
                                                  'higherdim_coords':higherdim_coords})
                             images += 1
         return self._allthumbs
