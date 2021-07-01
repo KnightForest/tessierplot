@@ -720,12 +720,14 @@ class plotR(object):
 			gs = gridspec.GridSpec(height,width)
 			for k in rcP:
 				mpl.rcParams[k] = rcP[k]
-			self.fig.set_size_inches(width*_plot_width, height*_plot_height)
+			if ax_destination == None:
+				self.fig.set_size_inches(width*_plot_width, height*_plot_height)
 		else:
 			gs = gridspec.GridSpec(len(value_axes),1)
 			for k in rcP:
 				mpl.rcParams[k] = rcP_thumb[k]
-				self.fig.set_size_inches(_plot_width_thumb, (len(value_axes)-1)*2+_plot_height_thumb)
+				if ax_destination == None:
+					self.fig.set_size_inches(_plot_width_thumb, (len(value_axes)-1)*2+_plot_height_thumb)
 
 		for i,j in enumerate(self.data.make_filter_from_uniques_in_columns(uniques_col_str)):
 		
