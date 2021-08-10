@@ -109,7 +109,7 @@ class plotR(object):
 		self.fig = None
 		self.file = file
 		self.isthumbnail = isthumbnail
-		if (thumbs is not None):
+		if (thumbs != None):
 			self.thumbfile = thumbs[0]
 			self.thumbfile_datadir = thumbs[1]
 
@@ -237,7 +237,7 @@ class plotR(object):
 		if not self.fig and not ax_destination:
 			self.fig = plt.figure()
 			self.fig.subplots_adjust(**subplots_args)
-		if n_index is not None:
+		if n_index != None:
 			if len(n_index)==0:
 				n_index = None
 			
@@ -284,7 +284,7 @@ class plotR(object):
 		unique_labels = list(coord_labels_raw[i] for i in [i for i, key in enumerate(coord_keys_raw) if key in uniques_col_str])
 
 		value_axes = []	
-		if type(value_axis) is not list:
+		if type(value_axis) != list:
 			value_axes = [value_axis]
 		else:
 			value_axes = value_axis	
@@ -292,7 +292,7 @@ class plotR(object):
 			value_axes = list(range(len(value_keys)))
 
 		if not self.isthumbnail:
-			if n_index is not None:
+			if n_index != None:
 				n_index = set(n_index)
 				n_subplots = len(n_index)
 			else:
@@ -306,7 +306,7 @@ class plotR(object):
 			if ax_destination == None:
 				self.fig.set_size_inches(width*_plot_width*np.sqrt(2)/np.sqrt(height), height*_plot_height*np.sqrt(2)/np.sqrt(height))
 		else:
-			if n_index is not None:
+			if n_index != None:
 				n_index = n_index[0]
 				#n_subplots = 1
 			else:
@@ -326,10 +326,10 @@ class plotR(object):
 
 			for value_axis in value_axes:
 				#plot only if number of the plot is indicated
-				if not self.isthumbnail and n_index is not None:
+				if not self.isthumbnail and n_index != None:
 					if j not in n_index:
 						continue
-				if self.isthumbnail and j is not 0:
+				if self.isthumbnail and j != 0:
 					continue
 				data_slice = (self.data.loc[ind]).dropna(subset=[coord_keys[-2], coord_keys[-1]]) #Dropping rows with NaNs in coordinates
 				xu = np.size(data_slice[coord_keys[-2]].unique())
@@ -409,7 +409,7 @@ class plotR(object):
 				extx = abs(ext[1]-ext[0])
 				xdx = np.diff(X, axis=0)
 				xdxshape = xdx.shape
-				if len(xdx) is not 0:
+				if len(xdx) != 0:
 					minxstep = np.nanmin(abs(xdx[xdx > 1e-19])) # removing rounding errors from diff
 					minxsteps = int(round(extx/minxstep,0))+1
 				else:
@@ -525,7 +525,7 @@ class plotR(object):
 				XX = w['XX']
 				cbar_trans_formatted = ''.join([''.join(s+'(') for s in w['cbar_trans']])
 				cbar_title = cbar_trans_formatted + w['cbar_quantity'] + ' (' + w['cbar_unit'] + ')'
-				if len(w['cbar_trans']) is not 0:
+				if len(w['cbar_trans']) != 0:
 					cbar_title = cbar_title + ')'
 
 				self.stylebuffer = w['buffer'] 
@@ -676,7 +676,7 @@ class plotR(object):
 		if not self.fig and not ax_destination:
 			self.fig = plt.figure()
 			self.fig.subplots_adjust(**subplots_args)
-		if n_index is not None:
+		if n_index != None:
 			if len(n_index)==0:
 				n_index = None            
 
@@ -706,7 +706,7 @@ class plotR(object):
 			uniques_col_str = coord_keys[:-1]
 
 		value_axes = []	
-		if type(value_axis) is not list:
+		if type(value_axis) != list:
 			value_axes = [value_axis]
 		else:
 			value_axes = value_axis	
@@ -732,7 +732,7 @@ class plotR(object):
 		for i,j in enumerate(self.data.make_filter_from_uniques_in_columns(uniques_col_str)):
 		
 			for k,value_axis in enumerate(value_axes):
-				if n_index is not None:
+				if n_index != None:
 						if i not in n_index:
 							continue
 				data = self.data.sorted_data[j]

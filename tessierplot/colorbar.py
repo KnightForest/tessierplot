@@ -14,7 +14,7 @@ class SuperColorbar(ColorbarBase):
         self._normticks = []
         self._normtickhandles = []
         self._dragtick = None #current tick being dragged
-        if ax is not None:
+        if ax != None:
             self.fig = ax.get_figure()
 
         self.mappable = mappable
@@ -64,7 +64,7 @@ class SuperColorbar(ColorbarBase):
         
         if self._dragtick:
             pos = self.get_pos(event)
-            if pos is not None:
+            if pos != None:
                 ind = self._normticks.index(self._dragtick)
                 self._normticks[ind] = pos
                 self._dragtick = pos
@@ -104,9 +104,9 @@ class SuperColorbar(ColorbarBase):
                 vmin, vmax = vmin
             except (TypeError, ValueError):
                 pass
-        if vmin is not None:
+        if vmin != None:
             self.norm.vmin = colors._sanitize_extrema(vmin)
-        if vmax is not None:
+        if vmax != None:
             self.norm.vmax = colors._sanitize_extrema(vmax)
         self.changed()
     def set_cmap(self, cmap):

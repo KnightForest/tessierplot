@@ -21,7 +21,7 @@ def nonzeromin(x):
 	if len(x.shape) > 1:
 		for i in range(x.shape[0]):
 			xnow = nonzeromin(x[i])
-			if xnow != 0 and xnow is not None and (nzm is None or nzm > xnow):
+			if xnow != 0 and xnow != None and (nzm is None or nzm > xnow):
 				nzm = xnow
 	else:
 		for i in range(x.shape[0]):
@@ -198,7 +198,7 @@ def helper_diff(w):
 	gradient = strtobool(w['diff_gradient'])
 	axis = int(w['diff_axis'])
 	order = int(w['diff_order'])
-	if order is not 1:
+	if order != 1:
 		condquant = False
 	#Keep axis selection with 0 or 1 compatibility:
 	if axis == 0 or XX.ndim==1:
@@ -317,7 +317,7 @@ def helper_savgol(w):
 	difforder = int(w['savgol_difforder']) # Order of the derivative
 	samples = int(w['savgol_samples']) # Samples for savgol filter
 	order = int(w['savgol_order']) # Order of savgol filter
-	if order is not 1:
+	if order != 1:
 		condquant = False
 	#Keep axis selection with 0 or 1 compatibility:
 	if axis == 0 or XX.ndim==1:
@@ -479,9 +479,9 @@ def helper_int(w):
 			XX[i,:] = intarr - intarr[zeroindex]
 		w['XX']=XX*modifier
 		dxunit = w['yunit']
-	if modifier is not 1 and dxunit == 'V':
+	if modifier != 1 and dxunit == 'V':
 		w['cbar_unit'] = 'A'
-	elif modifier is not 1 and dxunit == 'A':
+	elif modifier != 1 and dxunit == 'A':
 		w['cbar_unit'] = 'int(S dA)'
 	elif w['cbar_unit'] == 'S' and dxunit == 'V':
 		w['cbar_unit'] = 'A'
@@ -1059,7 +1059,7 @@ def helper_crosscorr(w):
 	#x in terms of linetrace, (y in terms of 3d plot)
 	x = np.linspace(w['ext'][2],w['ext'][3],A.shape[1])
 	x_org = x.copy()
-	if w['crosscorr_peakmin'] is not None:
+	if w['crosscorr_peakmin'] != None:
 		if w['crosscorr_peakmin'] > w['crosscorr_peakmax']:
 			peak = (x <= w['crosscorr_peakmin']) & (x >= w['crosscorr_peakmax'])
 		else:
@@ -1512,14 +1512,14 @@ def getPopulatedWrap(style=[]):
 	w = getEmptyWrap()
 	if style is None:
 		return w
-	elif type(style) is not list:
+	elif type(style) != list:
 		style = list([style])
 	for s in style:
 		try:
 			# Parse, process keyword arguments and collect non-kw arguments
 			sregex = re.match(REGEX_STYLE_WITH_PARAMS, s)
 			spar = []
-			if sregex is not None:
+			if sregex != None:
 				(s, sparamstr) = sregex.group(1,2)
 				sparams = (
 						sparamstr.replace(';',',').replace(':','=')
@@ -1536,7 +1536,7 @@ def getPopulatedWrap(style=[]):
 							val = True
 						elif val.lower() == False:
 							val = False
-						if type(val) is not bool:
+						if type(val) != bool:
 							try:
 								val = float(val)
 							except ValueError:
