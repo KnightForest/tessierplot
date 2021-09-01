@@ -348,7 +348,7 @@ def helper_diff(w):
 				w['cbar_unit'] = r'$\Omega$'
 		else:
 			w['cbar_unit'] = ''
-
+	w['XX'] = XX_t
 def helper_savgol(w):
 	'''Perform Savitzky-Golay smoothing and get nth order derivative on slow or fast axis'''
 	'''WARNING! differentiation only works for evenly spaced datapoints'''
