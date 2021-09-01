@@ -192,6 +192,8 @@ def helper_diff(w):
 	XX = w['XX']
 	Y = w['Y']
 	X = w['X']
+	xunit = w['xunit']
+	yunit = w['yunit']
 	cbar_q = w['cbar_quantity']
 	cbar_u = w['cbar_unit']
 	condquant = strtobool(w['diff_condquant'])
@@ -236,28 +238,50 @@ def helper_diff(w):
 						XX_t[i,:-1] = np.diff(XX_t[i,:])/np.diff(Y[i,:])	
 		if cbar_u == 'nA' and order == 1: 
 			if condquant == True:
-				XX_t = (1e-6 / cq) * XX_t
+				if yunit == 'mV':
+					XX_t = (1e-6 / cq) * XX_t
+				elif yunit == 'V':
+					XX_t = (1e-9 / cq) * XX_t
 				w['cbar_unit'] = r'2$e^2$/h'
 			else:
-				w['cbar_unit'] = r'$\mu$S'
+				if yunit == 'mV':
+					XX_t = (1e-6) * XX_t
+				elif yunit == 'V':
+					XX_t = (1e-9) * XX_t
+				w['cbar_unit'] = r'S'
 		elif cbar_u == 'A' and order ==1:
 			if condquant == True:
-				XX_t = (1/cq) * XX_t
+				if yunit == 'V':
+					XX_t = (1/cq) * XX_t
+				elif yunit == 'mV':
+					XX_t = (1e3/cq) * XX_t
 				w['cbar_unit'] = r'2$e^2$/h'
-			else:
+			else:			
+				if yunit == 'mV':
+					XX_t = (1e3) * XX_t
 				w['cbar_unit'] = r'S'
 		
 		elif cbar_u == 'mV' and order == 1:
 			if condquant == True:
-				XX_t = 1e6*cq * XX_t
+				if yunit == 'nA':
+					XX_t = 1e6*cq * XX_t
+				if yunit == 'A':
+					XX_t = 1e-3*cq * XX_t
 				w['cbar_unit'] = r'h/2$e^2$'
 			else:
-				w['cbar_unit'] = r'M$\Omega$'
+				if yunit == 'nA':
+					XX_t = 1e6 * XX_t
+				if yunit == 'A':
+					XX_t = 1e-3 * XX_t
+				w['cbar_unit'] = r'$\Omega$'
 		elif cbar_u == 'V' and order ==1:
 			if condquant == True:
-				XX_t = cq * XX_t
+				if yunit == 'nA':
+					XX_t = 1e9*cq * XX_t
 				w['cbar_unit'] = r'h/2$e^2$'
 			else:
+				if yunit == 'nA':
+					XX_t = 1e9 * XX_t
 				w['cbar_unit'] = r'$\Omega$'
 		else:
 			w['cbar_unit'] = ''
@@ -277,32 +301,53 @@ def helper_diff(w):
 					XX_t[:-1,i] = np.diff(XX_t[:,i])/np.diff(X[:,i])	
 		if cbar_u == 'nA' and order == 1: 
 			if condquant == True:
-				XX_t = (1e-6 / cq) * XX_t
+				if xunit == 'mV':
+					XX_t = (1e-6 / cq) * XX_t
+				elif xunit == 'V':
+					XX_t = (1e-9 / cq) * XX_t
 				w['cbar_unit'] = r'2$e^2$/h'
 			else:
-				w['cbar_unit'] = r'$\mu$S'
+				if xunit == 'mV':
+					XX_t = (1e-6) * XX_t
+				elif xunit == 'V':
+					XX_t = (1e-9) * XX_t
+				w['cbar_unit'] = r'S'
 		elif cbar_u == 'A' and order ==1:
 			if condquant == True:
-				XX_t = (1/cq) * XX_t
+				if xunit == 'V':
+					XX_t = (1/cq) * XX_t
+				elif xunit == 'mV':
+					XX_t = (1e3/cq) * XX_t
 				w['cbar_unit'] = r'2$e^2$/h'
-			else:
+			else:			
+				if xunit == 'mV':
+					XX_t = (1e3) * XX_t
 				w['cbar_unit'] = r'S'
 		
 		elif cbar_u == 'mV' and order == 1:
 			if condquant == True:
-				XX_t = 1e6*cq * XX_t
+				if xunit == 'nA':
+					XX_t = 1e6*cq * XX_t
+				if xunit == 'A':
+					XX_t = 1e-3*cq * XX_t
 				w['cbar_unit'] = r'h/2$e^2$'
 			else:
-				w['cbar_unit'] = r'M$\Omega$'
+				if xunit == 'nA':
+					XX_t = 1e6 * XX_t
+				if xunit == 'A':
+					XX_t = 1e-3 * XX_t
+				w['cbar_unit'] = r'$\Omega$'
 		elif cbar_u == 'V' and order ==1:
 			if condquant == True:
-				XX_t = cq * XX_t
+				if xunit == 'nA':
+					XX_t = 1e9*cq * XX_t
 				w['cbar_unit'] = r'h/2$e^2$'
 			else:
+				if xunit == 'nA':
+					XX_t = 1e9 * XX_t
 				w['cbar_unit'] = r'$\Omega$'
 		else:
 			w['cbar_unit'] = ''
-	w['XX']=XX_t
 
 def helper_savgol(w):
 	'''Perform Savitzky-Golay smoothing and get nth order derivative on slow or fast axis'''
