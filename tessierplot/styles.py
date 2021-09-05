@@ -1481,7 +1481,7 @@ STYLE_SPECS = {
 	'deinterlace0': {'param_order': []},
 	'deinterlace1': {'param_order': []},
 	'deleteouterdatapoints': {'n':0,'param_order': ['n']},
-	'diff': {'condquant': False, 'axis': -1, 'gradient': True, 'order': 1, 'param_order': ['condquant','axis','gradient','order']},
+	'diff': {'condquant': False, 'axis': 0, 'gradient': True, 'order': 1, 'param_order': ['condquant','axis','gradient','order']},
 	'excesscurrent': {'datacutoff': 3, 'rangefactor': 0.15, 'plot': 0, 'plotval': 0,'param_order': ['datacutoff','rangefactor','plot','plotval']},
 	'factor': {'factor':1,'param_order': ['factor']},
 	'fancylog': {'cmin': None, 'cmax': None, 'param_order': ['cmin', 'cmax']},
