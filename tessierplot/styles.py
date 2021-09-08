@@ -202,15 +202,10 @@ def helper_diff(w):
 	order = int(w['diff_order'])
 	if order != 1:
 		condquant = False
-	#Keep axis selection with 0 or 1 compatibility:
-	if axis == 0 or XX.ndim==1:
-		axis = -1
-	if axis == 1:
-		axis = -2
 	#Compute conductance quantum
 	cq = 2*sc.elementary_charge**2/sc.h
-	XX_t = XX
-	if axis==-1 or XX.ndim==1: #Diff and smooth on fast axis
+	XX_t = np.zeros((XX.shape[0],XX.shape[1]))
+	if axis==0 or axis == 10 or XX.ndim==1: #Diff and smooth on fast axis
 		if XX.ndim ==1:
 			if order == 0:
 				pass 
@@ -220,9 +215,9 @@ def helper_diff(w):
 				w['cbar_quantity'] = '$\partial^{}$'.format(order) + cbar_q + '/$\partial$' + w['xlabel'] + '$^{}$'.format(order)
 			for i in range(0,order):
 				if gradient:
-					XX_t = np.gradient(XX_t,X)
+					XX_t = np.gradient(XX,X)
 				else:
-					XX_t = np.append(np.diff(XX_t)/np.diff(X),np.nan)
+					XX_t = np.append(np.diff(XX)/np.diff(X),np.nan)
 		else:	
 			if order == 0:
 				pass 
@@ -233,9 +228,9 @@ def helper_diff(w):
 			for i in range(0,XX.shape[0]):
 				for j in range(0,order):
 					if gradient:
-						XX_t[i,:] = np.gradient(XX_t[i,:],Y[i,:])	
+						XX_t[i,:] = np.gradient(XX[i,:],Y[i,:])	
 					else:
-						XX_t[i,:-1] = np.diff(XX_t[i,:])/np.diff(Y[i,:])	
+						XX_t[i,:-1] = np.diff(XX[i,:])/np.diff(Y[i,:])	
 		if cbar_u == 'nA' and order == 1: 
 			if condquant == True:
 				if yunit == 'mV':
@@ -285,8 +280,8 @@ def helper_diff(w):
 				w['cbar_unit'] = r'$\Omega$'
 		else:
 			w['cbar_unit'] = ''
-	
-	elif axis==-2: #Diff and smooth in slow axis
+		XX = XX_t
+	if (axis==1 or axis == 10) and XX.ndim !=1: #Diff and smooth in slow axis
 		if order == 0:
 			pass 
 		elif order == 1:
@@ -296,9 +291,9 @@ def helper_diff(w):
 		for i in range(0,XX.shape[1]):
 			for j in range(0,order):
 				if gradient:
-					XX_t[:,i] = np.gradient(XX_t[:,i],X[:,i])
+					XX_t[:,i] = np.gradient(XX[:,i],X[:,i])
 				else:
-					XX_t[:-1,i] = np.diff(XX_t[:,i])/np.diff(X[:,i])	
+					XX_t[:-1,i] = np.diff(XX[:,i])/np.diff(X[:,i])	
 		if cbar_u == 'nA' and order == 1: 
 			if condquant == True:
 				if xunit == 'mV':
@@ -1481,7 +1476,7 @@ STYLE_SPECS = {
 	'deinterlace0': {'param_order': []},
 	'deinterlace1': {'param_order': []},
 	'deleteouterdatapoints': {'n':0,'param_order': ['n']},
-	'diff': {'condquant': False, 'axis': -1, 'gradient': True, 'order': 1, 'param_order': ['condquant','axis','gradient','order']},
+	'diff': {'condquant': False, 'axis': 0, 'gradient': True, 'order': 1, 'param_order': ['condquant','axis','gradient','order']},
 	'excesscurrent': {'datacutoff': 3, 'rangefactor': 0.15, 'plot': 0, 'plotval': 0,'param_order': ['datacutoff','rangefactor','plot','plotval']},
 	'factor': {'factor':1,'param_order': ['factor']},
 	'fancylog': {'cmin': None, 'cmax': None, 'param_order': ['cmin', 'cmax']},
