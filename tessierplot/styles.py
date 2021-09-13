@@ -1,5 +1,6 @@
 
 import numpy as np
+import numpy.matlib
 from scipy import signal
 import scipy.constants as sc
 import re
@@ -30,16 +31,49 @@ def nonzeromin(x):
 	return nzm
 
 def helper_deinterlace(w):
+	'''
+	Split interlaced plot in even and odd sweeps
+	
+	Warnings:
+	- Does not preserve X and Y matrices
+	- Only works on evenly spaced datapoints
+	'''
 	w['deinterXXodd'] = w['XX'][1::2,1:] #take every other column in a sweepback measurement, offset 1
 	w['deinterXXeven'] = w['XX'][::2,:] #offset 0
 
 def helper_deinterlace0(w):
+	'''
+	Use even sweeps of XX
+	
+	Warnings:
+	- Only works on evenly spaced datapoints
+	'''
 	w['XX'] = w['XX'][::2,:] #take even column in a sweepback measurement
+	w['Y'] = w['Y'][::2,:]
+	w['X'] = w['X'][::2,:]
 
 def helper_deinterlace1(w):
+	'''
+	Use odd sweeps of XX
+	
+	Warnings:
+	- Only works on evenly spaced datapoints
+	'''
 	w['XX'] = w['XX'][1::2,1:] #take odd column in a sweepback measurement
+	w['Y'] = w['Y'][1::2,1:]
+	w['X'] = w['X'][1::2,1:]
 
 def helper_mov_avg(w):
+	'''
+	Take moving average of XX
+	
+	Arguments:
+	m (int) - size of window along x-axis
+	n (int) - size of window along y-axis
+	
+	Warnings:
+	- Only works properly on evenly spaced datapoints
+	'''
 	(m, n) = (int(w['mov_avg_m']), int(w['mov_avg_n']))     # The shape of the window array
 	
 	data = w['XX']
@@ -51,19 +85,11 @@ def helper_mov_avg(w):
 		w['XX'] = moving_average_2d(w['XX'], win)
 
 def helper_fixlabels(w):
-	# List of hardcoded label replacements to make plots instantly look nicer. Will be different for every user/measurement though!
+	'''
+	List of hardcoded label replacements to make plots instantly look nicer. 
+	Will be different for every user/measurement though!
 
-	# if not isinstance(w['ylabel'], np.ndarray):
-	# 	ylabel = (w['ylabel'])
-	# else:
-	# 	ylabel = w['ylabel'][0]
-	# 	yunit = w['ylabel'][1]
-	# if not isinstance(w['xlabel'], np.ndarray):
-	# 	xlabel = (w['xlabel'])
-	# else:
-	# 	xlabel = w['xlabel'][0]
-	# 	xunit = w['xlabel'][1]
-
+	'''
 	xlabel = w['xlabel']
 	xunit = w['xunit']
 	ylabel = w['ylabel']
@@ -173,6 +199,13 @@ def helper_fixlabels(w):
 
 
 def helper_changeaxis(w):
+	'''
+	Scales axes and data with a factor and can change units
+	
+	Arguments:
+	xfactor (float), yfactor (float), datafactor (float) - scaling factor for x-matrix X, y-matrix Y and data XX
+	xunit (str), yunit (str), dataunit (str) - overrides unit for x-axis, y-axis and data
+	'''
 	newext = (float(w['changeaxis_xfactor'])*w['ext'][0]+w['changeaxis_xoffset'],
 			float(w['changeaxis_xfactor'])*w['ext'][1]+w['changeaxis_xoffset'],
 			float(w['changeaxis_yfactor'])*w['ext'][2]+w['changeaxis_yoffset'],
@@ -189,6 +222,17 @@ def helper_changeaxis(w):
 		w['yunit'] = w['changeaxis_yunit']
 
 def helper_diff(w):
+	'''
+	Performs differential on data
+	
+	Arguments:
+	condquant (bool) - expresses differential in units of 2e^2/h if units are applicable
+	gradient (bool) - performs gradient instead of simple diff, preferrable for multiple reasons
+	axis (0,1,10) - selects axis of differentiation: 1 -> y, 0 -> x, 10 -> y & x
+	order (int) - order of differential
+
+	'''
+
 	XX = w['XX']
 	Y = w['Y']
 	X = w['X']
@@ -345,8 +389,21 @@ def helper_diff(w):
 			w['cbar_unit'] = ''
 	w['XX'] = XX_t
 def helper_savgol(w):
-	'''Perform Savitzky-Golay smoothing and get nth order derivative on slow or fast axis'''
-	'''WARNING! differentiation only works for evenly spaced datapoints'''
+	'''
+	Performs Savitzky-Golay smoothing and get nth order derivative
+	
+	Arguments:
+	condquant (bool) - expresses differential in units of 2e^2/h if units are applicable
+	gradient (bool) - performs gradient instead of simple diff, preferrable for multiple reasons
+	axis (0,1,10) - selects axis of differentiation: 1 -> y, 0 -> x, 10 -> y & x
+	difforder (int) - order of differential
+	order (int)
+	samples (int)
+	
+	Warnings:
+	- Only works on evenly spaced datapoints
+	- !Not synced with latests revision of diff!
+	'''
 	XX = w['XX']
 	Y = w['Y']
 	X = w['X']
@@ -454,9 +511,34 @@ def helper_savgol(w):
 	w['XX']=XX_t
 		
 def helper_hardgap(w): #Needs equally spaced axes
+	'''
+	Specialised style to calculate two conductance ratios averaged over specific spaces in the data, expected in units of conductance. 
+	Does not modify data or axes
+	
+	Arguments:
+	gaprange (float) - symmetric range for averaging inside the superconducting gap in y-axis
+	outsidegaplimmin (float), outsidegaplimmax (float) - lower and upper limit defining range for averaging outside the gap
+	alphafactor (float) - compensation for slope in pinch-off versus bias due to finite source-drain capacitive coupling 
+	
+	Style returns: 
+	- additional 2d plot showing ratio of the the averaged values
+	- Stylebuffer dictionary with following entries:
+		w['buffer']={'labels': [xlabel,ylabel], 'data':[[gapconductance],[outsidegapconductance],[hardness],[outsidegapconductancecorr],[hardnesscorr]], 'xaxis':[xaxis]}
+			* in 'labels': xlabel of original x-axis, ylabel as '$G_\mathrm{G}/G_\mathrm{O}$'
+			* in 'data': 
+				# gapconductance: averaged conductance inside the gap
+				# outsidegapconductance: averaged conductance outside the gap
+				# hardness: ratio outsidegapconductance/gapconductance
+				# outsidegapconductancecorr: averaged conductance outside the gap corrected for alpha factor
+				# hardnesscorr: ratio outsidegapconductancecorr/gapconductance
+	
+	Warnings:
+	- Only works on evenly spaced datapoints
+	'''
+
 	XX = w['XX']
 	xn, yn = XX.shape
-	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
+	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0]) # should change this to work with X and Y object
 	yaxis = np.linspace(w['ext'][2],w['ext'][3],w['XX'].shape[1])
 	gaprange = [-float(w['hardgap_gaprange']),float(w['hardgap_gaprange'])]
 	outsidegaprange = [float(w['hardgap_outsidegapmin']),float(w['hardgap_outsidegapmax'])]
@@ -494,6 +576,14 @@ def helper_hardgap(w): #Needs equally spaced axes
 	w['buffer']={'labels': [xlabel,ylabel], 'data':[[gapconductance],[outsidegapconductance],[hardness],[outsidegapconductancecorr],[hardnesscorr]], 'xaxis':[xaxis]}
 
 def helper_int(w):
+	'''
+	Performs numerical integration of data along specified axis.
+	Converts units of conductance or resistance quantum to volt or ampere
+	
+	Warnings:
+	- Only works on evenly spaced datapoints
+	'''
+
 	XX = w['XX']
 	X = w['X']
 	Y = w['Y']
@@ -509,10 +599,6 @@ def helper_int(w):
 		w['XX'] = (intarr - intarr[int(len(intarr)/2)])*modifier
 		dxunit = w['xunit']
 	else:
-		# zeroindexes = [None]*XX.shape[0]
-		# for i in range(0,XX.shape[0]):
-		# 	zeroindexes[i] = np.argmin(np.abs(XX[i,:]))
-		# zeroindex = np.bincount(zeroindexes).argmax()
 		for i in range(0,XX.shape[0]):
 			intarr = np.nancumsum(XX[i,:])*np.diff(Y[i,:],prepend=Y[i,0]-(Y[i,1]-Y[i,0]))
 			zeroindex = np.argmin(np.abs(Y[i,:]))
@@ -538,12 +624,22 @@ def helper_int(w):
 	w['cbar_quantity'] = ''
 
 def helper_log(w):
+	'''
+	Calculates logarith of base 10 on data and modifies unit accordingly
+	
+	'''
+
 	w['XX'] = np.log10(np.abs(w['XX']))
 	w['cbar_trans'] = ['log$_{10}$','abs'] + w['cbar_trans']
 	w['cbar_quantity'] = w['cbar_quantity']
 	w['cbar_unit'] = w['cbar_unit']
 	
 def helper_logdb(w):
+	'''
+	Converts data to dB using 20log10(XX)
+
+	'''
+
 	w['XX'] = 20*np.log10(np.abs(w['XX']))
 	if w['cbar_quantity'] == '':
 		w['yunit'] = 'dB'
@@ -552,17 +648,13 @@ def helper_logdb(w):
 		w['cbar_quantity'] = w['cbar_quantity']
 		w['cbar_unit'] = w['cbar_unit']
 
-def helper_logy(w):
-	w['XX'] = np.log10(np.abs(w['XX']))
-	w['cbar_trans'] = ['log$_{10}$','abs'] + w['cbar_trans']
-	w['cbar_quantity'] = w['cbar_quantity']
-	w['cbar_unit'] = w['cbar_unit']
-
 def helper_fancylog(w):
 
 	'''
 	Use a logarithmic normalising function for plotting.
-	This might be incompatible with Fiddle. <- Can confirm
+	
+	Warning:
+	 - Incompatible with Fiddle (dynamic color scale modification)
 	'''
 	w['XX'] = abs(w['XX'])
 	(cmin, cmax) = (w['fancylog_cmin'], w['fancylog_cmax'])
@@ -579,9 +671,22 @@ def helper_fancylog(w):
 	w['imshow_norm'] = mplc.LogNorm(vmin=cmin, vmax=cmax)
 
 def helper_normal(w):
+	'''
+	Does nothing
+
+	Warning:
+	- Does nothing!
+	'''
 	pass
 	
 def helper_movingmeansubtract(w):  #Needs equally spaced axes
+	'''
+	Subtracts averaged value of multiple fast axis sweeps from itself. Used to remove slow moving noise.
+	
+	Arguments:
+	window (int) - number of fast axis sweeps to average over
+
+	'''
 	XX = w['XX']
 	xn, yn = XX.shape
 	meanarray = np.zeros(xn)
@@ -610,11 +715,23 @@ def helper_movingmeansubtract(w):  #Needs equally spaced axes
 	w['XX'] = XX
 	
 def helper_meansubtract(w):  #Needs equally spaced axes
+	'''
+	Subtracts average of all datapoints from data
+	'''
 	offset = np.nanmean(w['XX'][np.isfinite(w['XX'])])
 	print('Subtracted mean:' + str(offset))
 	w['XX'] = w['XX']-offset
 
 def helper_deleteouterdatapoints(w):  #Needs equally spaced axes
+	'''
+	Deletes outer datapoints in y-axis symmetrically 
+	
+	Arguments:
+	n (int) - number of datapoints to delete
+
+	Warnings:
+	- In its current state X and Y are not modified and matrices become inconsistent
+	'''
 	n = int((w['deleteouterdatapoints_n']))
 	XX = w['XX']
 	xn, yn = XX.shape
@@ -630,6 +747,17 @@ def helper_deleteouterdatapoints(w):  #Needs equally spaced axes
 	w['XX'] = XX_new
 
 def helper_offsetslopesubtract(w):  #Needs equally spaced axes
+	'''
+	Subtracts offset and/or slope from data
+	
+	Arguments:
+	offset (float) - value subtracted from all data
+	slope (float) - slope subtracted in y-direction
+	
+	Warnings:
+	- Currently only works for evenly spaced datapoints
+	'''
+
 	offset,slope = (w['offsetslopesubtract_offset']),(w['offsetslopesubtract_slope'])
 	#print offset
 	xaxis = np.linspace(w['ext'][1],w['ext'][2],w['XX'].shape[0])
@@ -655,6 +783,19 @@ def nan_helper(y):
     return np.isnan(y), lambda z: z.nonzero()[0]
 
 def helper_rshunt(w): #Needs equally spaced axes
+	'''
+	Corrects data for presence of a parallel resistor to ground and then re-interpolates data to an evenly spaced grid.
+	Assumes data has units of Volt.
+	
+	Arguments:
+	r (float) - value of parallel resistor (Ohm)
+	gridresolutionfactor (int) - factor with which the original number of datapoints is multiplied when creating the new interpolation grid
+
+	Warnings:
+	- Currently only works for evenly spaced datapoints
+	- Only compatible with data in Volt, others could be implemented
+	'''
+
 	import math
 	import numpy.ma as ma
 	XX = w['XX']#+1e3/float(w['vbiascorrector_seriesr'])
@@ -666,46 +807,43 @@ def helper_rshunt(w): #Needs equally spaced axes
 	ycorrected = np.zeros(shape=(xn,yn))
 	gridresolutionfactor = w['rshunt_gridresolutionfactor'] # Example: Factor of 2 doubles the number of y datapoints for non-linear interpolation
 	for i in range(0,xn):
-		#print((XX[i,:]/yaxis))
 		rtot = (XX[i,:]/yaxis)
-		#print(rtot)
-		#print(XX[i,:])
 		try:
 			rj = (1/((1/rtot)-(1/shuntr)))
 		except:
 			rj = 0 
 		ij = XX[i,:]/rj
-		#print(rj)
-		#print(ij)
 		ycorrected[i,:] = ij
-	print(np.nanmin(ycorrected))
-	ylimitneg,ylimitpos = (np.nanmin(ycorrected)), (np.nanmax(ycorrected))
-	print(ylimitneg,ylimitpos)
+	ylimitneg,ylimitpos = np.nanmin(ycorrected), np.nanmax(ycorrected)
 	gridyaxis = np.linspace(ylimitneg,ylimitpos,int(yn*gridresolutionfactor))
 	gridxaxis = xaxis
 	XX_new = np.zeros(shape=(xn,len(gridyaxis)))
-	if strtobool(w['rshunt_didv']) == True: # Calls didv within helper_vbiascorrector before interpolation to prevent artefacts.
-		w['didv_condquant']=False
-		helper_didv(w)
-		XX = w['XX']
-		for i in range(0,xn):
-			testarr = ycorrected[i,:]
-			nans, x= nan_helper(testarr)
-			testarr[nans]= np.interp(x(nans), x(~nans), testarr[~nans])
-			XX_new[i,:] = np.interp(gridyaxis,testarr[:-1],XX[i,:], left=np.nan, right=np.nan)
-	else:
-		for i in range(0,xn):
-			testarr = ycorrected[i,:]
-			nans, x= nan_helper(testarr)
-			testarr[nans]= np.interp(x(nans), x(~nans), testarr[~nans])
-			XX_new[i,:] = np.interp(gridyaxis,testarr,XX[i,:], left=np.nan, right=np.nan)
-			
+	for i in range(0,xn):
+		testarr = ycorrected[i,:]
+		nans, x= nan_helper(testarr)
+		testarr[nans]= np.interp(x(nans), x(~nans), testarr[~nans])
+		XX_new[i,:] = np.interp(gridyaxis,testarr,XX[i,:], left=np.nan, right=np.nan)
+	w['Y'] = numpy.matlib.repmat(gridyaxis,xn,1)		
+	w['Y'] = numpy.matlib.repmat(gridyaxis,xn,1)
+	w['X'] = np.transpose(numpy.matlib.repmat(xaxis,yn*gridresolutionfactor,1))
 	w['XX'] = XX_new
 	w['ystep'] = (ylimitpos-ylimitneg)/len(gridyaxis) #wrap ystep for analysis
-	#print w['ystep']
 	w['ext'] = [w['ext'][0],w['ext'][1],ylimitneg,ylimitpos]	
 
 def helper_vbiascorrector(w): #Needs equally spaced axes
+	'''
+	Corrects data for presence of a series resistor and then re-interpolates data to an evenly spaced grid.
+	Assumes data has units of current (A).
+	
+	Arguments:
+	r (float) - value of parallel resistor (Ohm)
+	gridresolutionfactor (int) - factor with which the original number of datapoints is multiplied when creating the new interpolation grid
+
+	Warnings:
+	- Currently only works for evenly spaced datapoints
+	- Only compatible with data in Amps, others could be implemented
+	'''
+
 	import math
 	import numpy.ma as ma
 	XX = w['XX']#+1e3/float(w['vbiascorrector_seriesr'])
@@ -715,35 +853,48 @@ def helper_vbiascorrector(w): #Needs equally spaced axes
 	voffset = w['vbiascorrector_voffset'] # Voltage offset
 	seriesr = w['vbiascorrector_seriesr'] # Series resistance
 	ycorrected = np.zeros(shape=(xn,yn))
-	gridresolutionfactor = w['vbiascorrector_gridresolutionfactor'] # Example: Factor of 2 doubles the number of y datapoints for non-linear interpolation
+	gridresolutionfactor = int(w['vbiascorrector_gridresolutionfactor']) # Example: Factor of 2 doubles the number of y datapoints for non-linear interpolation
 	for i in range(0,xn):
 		ycorrected[i,:] = yaxis-voffset-XX[i,:]*seriesr
 	ylimitneg,ylimitpos = np.nanmin(ycorrected), np.nanmax(ycorrected)
 	gridyaxis = np.linspace(ylimitneg,ylimitpos,int(yn*gridresolutionfactor))
 	gridxaxis = xaxis
 	XX_new = np.zeros(shape=(xn,len(gridyaxis)))
-	if strtobool(w['vbiascorrector_didv']) == True: # Calls didv within helper_vbiascorrector before interpolation to prevent artefacts.
-		helper_didv(w)
-		XX = w['XX']
-		#print XX.shape, w['XX'].shape
-		for i in range(0,xn):
-			XX_new[i,:] = np.interp(gridyaxis,ycorrected[i,:-1],XX[i,:], left=np.nan, right=np.nan)		#XX = w['XX']
-	else:
-		for i in range(0,xn):
-			XX_new[i,:] = np.interp(gridyaxis,ycorrected[i,:],XX[i,:], left=np.nan, right=np.nan)
+	for i in range(0,xn):
+		testarr = ycorrected[i,:]
+		nans, x= nan_helper(testarr)
+		testarr[nans]= np.interp(x(nans), x(~nans), testarr[~nans])
+		XX_new[i,:] = np.interp(gridyaxis,testarr,XX[i,:], left=np.nan, right=np.nan)
+	w['Y'] = numpy.matlib.repmat(gridyaxis,xn,1)
+	w['X'] = np.transpose(numpy.matlib.repmat(xaxis,yn*gridresolutionfactor,1))
 	w['XX'] = XX_new
 	w['ystep'] = (ylimitpos-ylimitneg)/len(gridyaxis) #wrap ystep for analysis
-	#print w['ystep']
-	w['ext'] = [w['ext'][0],w['ext'][1],ylimitneg,ylimitpos]
+	w['ext'] = [w['ext'][0],w['ext'][1],ylimitneg,ylimitpos]	
 
-def helper_unwrap(w):  #Needs equally spaced axes
+def helper_unwrap(w):
+	'''
+	Unwraps phase of data in radians
+	'''	
 	w['XX'] = np.unwrap(w['XX'])
+
+def helper_ivreverserlockin(w):
 	pass
 
-def helper_ivreverserlockin(w):  #Needs equally spaced axes
-	pass
+def helper_ivreverser(w):
+	'''
+	Inverses yaxis with data (i.e. inverses voltage and current axis in IVs) and interpolates the result in an evenly spaced grid.
+	Conductance or resistance data must first be numerically integrated. Attempts to correct axis labels and units as well.
 
-def helper_ivreverser(w):  #Needs equally spaced axes
+	Arguments:
+	twodim (bool) - perform interpolation in two dimensions
+	interpmethod (str) - scipy.interpolate.griddata method argument
+	gridresolutionfactor(int) - factor with which the original number of datapoints is multiplied when creating the new interpolation grid
+
+	Warnings:
+	- Currently only works for evenly spaced datapoints
+	- Rather complex style, see additional comments in the code
+	'''	
+
 	#Inverse I and V-bias measurements (works on both) by interpolating y-data on new homogeneous x-axis.
 	# new versiong since matplotlibs griddata was deprecated :/
 	from scipy.interpolate import griddata
@@ -779,9 +930,11 @@ def helper_ivreverser(w):  #Needs equally spaced axes
 	zf = np.ravel(XX)
 	indexnonans=np.invert(np.isnan(points[:,0]))*np.invert(np.isnan(points[:,1]))*np.invert(np.isnan(zf))
 	XX_new = np.zeros(shape=(xn,len(grid_y_1d)))
-	# Calculate very tiny value relative to smallest value found in dataset to create a 
-	# monotonous increase in the interpolated values. This prevents cubic interpolation 
-	# from crashing since it cannot handle repeating values.
+	'''
+	Calculate very tiny value relative to smallest value found in dataset to create a 
+	monotonous increase in the interpolated values. This prevents cubic interpolation 
+	from crashing since it cannot handle repeating values.
+	'''
 	minaddnp=np.abs(np.nanmin(XX)*1e-3)
 	print('minaddnp',minaddnp)
 	if twodim == True:
@@ -845,6 +998,26 @@ def helper_ivreverser(w):  #Needs equally spaced axes
 		w['cbar_unit'] = 'V'
 
 def helper_excesscurrent(w):  #Needs equally spaced axes
+	'''
+	Specialised style that plots excesscurrent for current-biased IV by performing a linear fit far away from the gap voltage.
+
+	Arguments:
+	rangefactor (float) - percentual range of y-axis to use in polyfit
+	datacutoff (int) - number of datapoints to discard at the beginning/end of the sweep, 0.1 means that the top and bottom 10% are used (20% of total plot)
+
+	Style returns: 
+	- Additional 2d plot showing positive and negative excesscurrent versus x-axis
+	- Stylebuffer dictionary with following entries:
+		w['buffer']={'labels': [xlabel,ylabel], 'data':[dataarray], 'xaxis':[xaxis], 'measdata':[XX]} #wrapping for analaysis
+			* in 'labels': xlabel,ylabel -> original x and y labels 
+			* in 'data': dataarray[:,0] -> array of excesscurrents for negative bias, dataarray[:,1] -> array of excesscurrents for positive bias
+			* in 'xaxis: xaxis -> original x-axis
+			* in 'measdata': XX -> original measurement data
+
+	Warnings:
+	- Currently only works for evenly spaced datapoints with symmetric bias
+	'''		
+
 	#Designed for I-bias. Calculate excess current by performing linear fit at high bias and calculate the zero-crossing of the x-axis
 	XX = w['XX']
 	xn, yn = XX.shape
@@ -873,7 +1046,23 @@ def helper_excesscurrent(w):  #Needs equally spaced axes
 	w['buffer']={'labels': [xlabel,ylabel], 'data':[dataarray], 'xaxis':[xaxis], 'measdata':[XX]} #wrapping for analaysis
 	
 def helper_linecut(w):  #Needs equally spaced axes
-	#Make a linecut on specified axis and value.
+	'''
+	Plots and buffers linecuts from a colorplot in either x- or y-direction
+
+	Arguments:
+	value (float) - values of x- or y-axis where linecuts should be taken. Values separated by a ! (i.e. value=2.3!2.5)
+	axis (str) - can be 'x' or 'y' pointing to the respective axis
+
+	Style returns: 
+	- Additional 2d plot showing requested linecuts
+	- Stylebuffer dictionary with following entries:
+		w['buffer']={'labels': [xlabel,ylabel], 'data':[dataarray], 'xaxis':[xaxis], 'vals':[linecutvalue]} #wrapping for further analysis
+			* in 'labels': xlabel,ylabel -> original x and y labels 
+			* in 'data': dataarray[:,{n-linecuts}] -> arrays of data values linecuts
+			* in 'xaxis: xaxis -> original x-axis
+			* in 'vals': linecutvalue -> values at which linecuts were taken
+	'''	
+
 	XX = w['XX']
 	xn, yn = XX.shape
 	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
@@ -1503,12 +1692,12 @@ STYLE_SPECS = {
 	'normal': {'param_order': []},
 	'offsetslopesubtract': {'slope': 0, 'offset': 0, 'param_order': ['slope', 'offset']},
 	'resistance': {'linecutvalue': 0, 'dolinearfit': False, 'fitregion': 1, 'param_order': ['linecutvalue','dolinearfit','fitregion']},
-	'rshunt': {'r':1e-10,'gridresolutionfactor': 2, 'didv': False,'param_order': ['r','gridresolutionfactor','didv']},
+	'rshunt': {'r':1e-10,'gridresolutionfactor': 2, 'param_order': ['r','gridresolutionfactor']},
 	'savgol': {'condquant': False, 'axis': -1, 'difforder':1, 'samples': 7, 'order': 3, 'param_order': ['condquant','axis','difforder','samples','order']},
 	'sgtwodidv': {'samples': 21, 'order': 3, 'param_order': ['samples', 'order']},
 	'shapiro': {'rffreq': 2.15e9, 'nsteps': 1, 'millivolts': 1, 'param_order': ['rffreq','nsteps','millivolts']},
 	'unwrap': {'param_order': []},
-	'vbiascorrector':{'voffset': 0,'seriesr': 0, 'gridresolutionfactor': 2, 'didv':False, 'param_order': ['voffset','seriesr','gridresolutionfactor','didv']},
+	'vbiascorrector':{'voffset': 0,'seriesr': 0, 'gridresolutionfactor': 2, 'param_order': ['voffset','seriesr','gridresolutionfactor']},
 }
 
 	#linecutvalue = w['linecut_value']

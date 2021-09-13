@@ -523,6 +523,8 @@ class plotR(object):
 				#unwrap
 				ext = w['ext']
 				XX = w['XX']
+				Y = w['Y']
+				X = w['X']
 				cbar_trans_formatted = ''.join([''.join(s+'(') for s in w['cbar_trans']])
 				cbar_title = cbar_trans_formatted + w['cbar_quantity'] + ' (' + w['cbar_unit'] + ')'
 				if len(w['cbar_trans']) != 0:
@@ -534,6 +536,8 @@ class plotR(object):
 				self.ylabel= w['ylabel']
 				self.yunit = w['yunit']
 				self.XX_processed = XX
+				self.Y_processed = Y
+				self.X_processed = X
 
 				if w['imshow_norm'] == None: # Support for plotting NaN values in a different color
 					self.imshow_norm = colorbar.MultiPointNormalize()
