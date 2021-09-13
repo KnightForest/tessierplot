@@ -246,7 +246,7 @@ def helper_diff(w):
 	order = int(w['diff_order'])
 	if order != 1:
 		condquant = False
-	#Compute conductance quantum
+	#Compute conductance quantum!
 	cq = 2*sc.elementary_charge**2/sc.h
 	XX_t = np.zeros((XX.shape[0],XX.shape[1]))
 	if axis==0 or axis == 10 or XX.ndim==1: #Diff and smooth on fast axis
