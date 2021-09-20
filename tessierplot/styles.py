@@ -716,6 +716,41 @@ def helper_movingmeansubtract(w):  #Needs equally spaced axes
 	#fig = plt.figure()
 	#plt.plot(meanarray)
 	w['XX'] = XX
+    
+def helper_movingmediansubtract(w):  #Needs equally spaced axes
+	'''
+	Subtracts averaged value of multiple fast axis sweeps from itself. Used to remove slow moving noise.
+	
+	Arguments:
+	window (int) - number of fast axis sweeps to average over
+
+	'''
+	XX = w['XX']
+	xn, yn = XX.shape
+	medianarray = np.zeros(xn)
+	for i in range(0,xn):
+		medianarray[i] = np.nanmedian(XX[i][:])
+	#print medianarray.shape
+	win=int(w['movingmediansubtract_window'])
+	print(win)
+	padleft = int(round((win-1+0.0001)/2))
+	padright = int(np.floor((win-1)/2))
+	valleft = medianarray[0]
+	valright = medianarray[-1]
+	#print padleft,padright,valleft,valright
+	medianarray = np.lib.pad(medianarray,(padleft,padright), 'constant', constant_values=(valleft,valright))
+	#print medianarray.shape
+	window = np.ones(win)
+	window /= window.sum()
+	if type(medianarray).__name__ not in ['ndarray', 'MaskedArray']:
+		medianarray = np.asarray(medianarray)
+	medianarray = signal.convolve(medianarray, window, mode='valid')
+	#print medianarray.shape
+	for i in range(0,len(medianarray)):
+		XX[i] = XX[i]-medianarray[i]
+	#fig = plt.figure()
+	#plt.plot(medianarray)
+	w['XX'] = XX
 	
 def helper_meansubtract(w):  #Needs equally spaced axes
 	'''
@@ -1639,6 +1674,7 @@ STYLE_FUNCS = {
 	'minsubtract': helper_minsubtract,
 	'mov_avg': helper_mov_avg,
 	'movingmeansubtract': helper_movingmeansubtract,
+    'movingmediansubtract': helper_movingmediansubtract,
 	'normal': helper_normal,
 	'normalise': helper_normalise,
 	'offsetslopesubtract': helper_offsetslopesubtract,
@@ -1692,6 +1728,7 @@ STYLE_SPECS = {
 	'normalise': {'axis': 'x', 'index': 0, 'param_order': ['axis','index']},
 	'mov_avg': {'m': 1, 'n': 3, 'win': None, 'param_order': ['m', 'n', 'win']},
 	'movingmeansubtract': {'window': 2,'param_order': ['window']},
+    'movingmediansubtract': {'window': 1,'param_order': ['window']},
 	'normal': {'param_order': []},
 	'offsetslopesubtract': {'slope': 0, 'offset': 0, 'param_order': ['slope', 'offset']},
 	'resistance': {'linecutvalue': 0, 'dolinearfit': False, 'fitregion': 1, 'param_order': ['linecutvalue','dolinearfit','fitregion']},
