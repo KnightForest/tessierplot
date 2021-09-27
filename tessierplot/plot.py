@@ -448,14 +448,6 @@ class plotR(object):
 				self.Y = Y
 
 				#determine stepsize for di/dv, inprincipe only y step is used (ie. the diff is also taken in this direction and the measurement swept..)
-				try:
-					xstep = float(ext[1] - ext[0])/(len(self.X[:,0])-1)
-				except:
-					xstep = 0
-				try:
-					ystep = float(ext[3] - ext[2])/(len(self.Y[0,:])-1)
-				except:
-					ystep=0
 				self.exportData.append(XX)
 				try:
 					m={
@@ -496,12 +488,10 @@ class plotR(object):
 				cbar_unit = value_units[value_axis]
 				#wrap all needed arguments in a datastructure
 				sbuffer = ''
-				cbar_trans = [] #trascendental tracer :P For keeping track of logs and stuff
+				cbar_trans = [] #transcendental tracer :P For keeping track of logs and stuff
 				w = styles.getPopulatedWrap(style)
 				w2 = {
 						'ext':ext,
-						'xstep': xstep,
-						'ystep': ystep,
 						'XX': XX,
 						'X': X,
 						'Y': Y,
@@ -784,12 +774,6 @@ class plotR(object):
 				else: #sets custum xyims always (since this is the data axis)
 					_ylims=tuple(ylims)
 
-				#print(npx,npy)
-				if len(npx) > 1:
-					xstep = float(abs(npx[-1] - npx[0]))/(len(npx)-1)
-				else:
-					xstep = np.nan
-				#ystep = float(abs(npy[-1] - npy[0]))/(len(npy)-1)
 				title =''
 
 				for i,z in enumerate(uniques_col_str):
@@ -805,8 +789,6 @@ class plotR(object):
 				wrap['cbar_quantity'] = cbar_quantity
 				wrap['cbar_unit'] = cbar_unit
 				wrap['massage_func'] = massage_func
-				wrap['xstep'] = xstep
-				wrap['ystep'] = np.nan
 				styles.processStyle(style,wrap)
 				xaxislabelwithunit = wrap['xlabel'] + ' (' + wrap['xunit'] + ')'
 				yaxislabelwithunit = wrap['cbar_quantity'] + ' (' + wrap['cbar_unit'] + ')'
@@ -823,7 +805,6 @@ class plotR(object):
 						ax = ax_destination
 					else:
 						ax = plt.subplot(gs[k])
-					plt.tight_layout()
 					ax.plot(wrap['X'],wrap['XX'],'o-', fillstyle='none', markersize=2,label=title,**kwargs)
 					#self.cutAx.plot(xx,z,'o-',fillstyle='none',markersize=2)
 					if legend:
@@ -835,6 +816,7 @@ class plotR(object):
 					if not (xlims==None) or not (ylims==None):
 						ax.set_xlim(_xlims)
 						ax.set_ylim(_ylims)
+					plt.tight_layout()
 		return self.fig
 
 

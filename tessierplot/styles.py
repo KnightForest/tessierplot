@@ -35,7 +35,7 @@ def helper_deinterlace(w):
 	Split interlaced plot in even and odd sweeps
 	
 	Warnings:
-	- Does not preserve X and Y matrices
+	- Does not preserve X and Y matrices and xstep,ystep
 	- Only works on evenly spaced datapoints
 	'''
 	w['deinterXXodd'] = w['XX'][1::2,1:] #take every other column in a sweepback measurement, offset 1
@@ -391,6 +391,7 @@ def helper_diff(w):
 		else:
 			w['cbar_unit'] = ''
 	w['XX'] = XX_t
+
 def helper_savgol(w):
 	'''
 	Performs Savitzky-Golay smoothing and get nth order derivative
@@ -773,15 +774,14 @@ def helper_deleteouterdatapoints(w):  #Needs equally spaced axes
 	n = int((w['deleteouterdatapoints_n']))
 	XX = w['XX']
 	xn, yn = XX.shape
-	newylim1 = w['ext'][2]+n*w['ystep']
-	newylim2 = w['ext'][3]-n*w['ystep']
+	#ystep = float(w['ext'][3] - w['ext'][2])/(len(self.Y[0,:])-1)
+	newylim1 = w['ext'][2]+n*float(w['ext'][3] - w['ext'][2])/(len(self.Y[0,:])-1)
+	newylim2 = w['ext'][3]-n*float(w['ext'][3] - w['ext'][2])/(len(self.Y[0,:])-1)
+	w['ext'] = [w['ext'][0],w['ext'][1],newylim1,newylim2]
 	print('n to be deleted:' + str(n))
 	XX_new = np.zeros(shape=(xn,(yn-2*n)))
 	for i in range(0,xn):
-		y1 = n
-		y2 = yn-n
-		XX_new[i,:] = XX[i,y1:y2]
-	w['ext'] = [w['ext'][0],w['ext'][1],newylim1,newylim2]
+		XX_new[i,:] = XX[i,n:(yn-n)]
 	w['XX'] = XX_new
 
 def helper_offsetslopesubtract(w):  #Needs equally spaced axes
@@ -865,7 +865,6 @@ def helper_rshunt(w): #Needs equally spaced axes
 	w['Y'] = numpy.matlib.repmat(gridyaxis,xn,1)
 	w['X'] = np.transpose(numpy.matlib.repmat(xaxis,yn*gridresolutionfactor,1))
 	w['XX'] = XX_new
-	w['ystep'] = (ylimitpos-ylimitneg)/len(gridyaxis) #wrap ystep for analysis
 	w['ext'] = [w['ext'][0],w['ext'][1],ylimitneg,ylimitpos]	
 
 def helper_vbiascorrector(w): #Needs equally spaced axes
@@ -874,7 +873,7 @@ def helper_vbiascorrector(w): #Needs equally spaced axes
 	Assumes data has units of current (A).
 	
 	Arguments:
-	r (float) - value of parallel resistor (Ohm)
+	rseries (float) - value of series resistor (Ohm)
 	gridresolutionfactor (int) - factor with which the original number of datapoints is multiplied when creating the new interpolation grid
 
 	Warnings:
@@ -906,7 +905,6 @@ def helper_vbiascorrector(w): #Needs equally spaced axes
 	w['Y'] = numpy.matlib.repmat(gridyaxis,xn,1)
 	w['X'] = np.transpose(numpy.matlib.repmat(xaxis,yn*gridresolutionfactor,1))
 	w['XX'] = XX_new
-	w['ystep'] = (ylimitpos-ylimitneg)/len(gridyaxis) #wrap ystep for analysis
 	w['ext'] = [w['ext'][0],w['ext'][1],ylimitneg,ylimitpos]	
 
 def helper_unwrap(w):
@@ -931,10 +929,9 @@ def helper_ivreverser(w):
 	Warnings:
 	- Currently only works for evenly spaced datapoints
 	- Rather complex style, see additional comments in the code
+	- Problems with unit conversion
 	'''	
 
-	#Inverse I and V-bias measurements (works on both) by interpolating y-data on new homogeneous x-axis.
-	# new versiong since matplotlibs griddata was deprecated :/
 	from scipy.interpolate import griddata
 	from scipy.interpolate import interp1d
 	import math
@@ -1007,8 +1004,6 @@ def helper_ivreverser(w):
 	w['XX'] = XX_new
 	w['ext'] = (w['ext'][0],w['ext'][1],ylimitneg,ylimitpos)
 	print(ylimitpos-ylimitneg,len(grid_y_1d)-1)
-	w['ystep'] = np.abs(ylimitpos-ylimitneg)/(len(grid_y_1d)-1)
-	print('new ystep:'+ str(w['ystep']))
 	w['ext'] = (w['ext'][0],w['ext'][1],ylimitneg,ylimitpos)
 	if w['yunit'].find('nA') != -1:
 		print('I sourced detected')
@@ -1049,7 +1044,7 @@ def helper_excesscurrent(w):  #Needs equally spaced axes
 		w['buffer']={'labels': [xlabel,ylabel], 'data':[dataarray], 'xaxis':[xaxis], 'measdata':[XX]} #wrapping for analaysis
 			* in 'labels': xlabel,ylabel -> original x and y labels 
 			* in 'data': dataarray[:,0] -> array of excesscurrents for negative bias, dataarray[:,1] -> array of excesscurrents for positive bias
-			* in 'xaxis: xaxis -> original x-axis
+			* in 'xaxis': xaxis -> original x-axis
 			* in 'measdata': XX -> original measurement data
 
 	Warnings:
@@ -1094,10 +1089,10 @@ def helper_linecut(w):  #Needs equally spaced axes
 	Style returns: 
 	- Additional 2d plot showing requested linecuts
 	- Stylebuffer dictionary with following entries:
-		w['buffer']={'labels': [xlabel,ylabel], 'data':[dataarray], 'xaxis':[xaxis], 'vals':[linecutvalue]} #wrapping for further analysis
+		w['buffer']={'labels': [xlabel,ylabel], 'data':[dataarray], 'xaxis':[xaxis], 'vals':[linecutvalue]}
 			* in 'labels': xlabel,ylabel -> original x and y labels 
 			* in 'data': dataarray[:,{n-linecuts}] -> arrays of data values linecuts
-			* in 'xaxis: xaxis -> original x-axis
+			* in 'xaxis': xaxis -> original x-axis
 			* in 'vals': linecutvalue -> values at which linecuts were taken
 	'''	
 
@@ -1106,11 +1101,10 @@ def helper_linecut(w):  #Needs equally spaced axes
 	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
 	yaxis = np.linspace(w['ext'][2],w['ext'][3],w['XX'].shape[1])
 	linecutvalue = w['linecut_value']
-	if type(w['linecut_value']) is str: #If multiple linecuts are given separated by '_', unpack.
+	if type(w['linecut_value']) is str: #If multiple linecuts are given separated by '!', unpack.
 		linecutvalue = w['linecut_value'].split('!')
 	else: 
 		linecutvalue = [w['linecut_value']]
-	print(linecutvalue)
 	linecutvalue = [float(i) for i in linecutvalue]
 	print(linecutvalue)
 	axis = w['linecut_axis'] #Specified axis either 'x' or 'y'
@@ -1140,7 +1134,28 @@ def helper_linecut(w):  #Needs equally spaced axes
 
 
 def helper_resistance(w):  #Needs equally spaced axes
-	#Calculate resistance of one sweep. Pretty old, not sure if it still works.
+	'''
+	Calculate resistance of one sweep. Pretty old, not sure if it still works.
+	
+	Arguments:
+	linecutvalue (float) - value of on 'y' axis where resistance should be determined
+	fitregion (float) - used if dolinearfit=True, determines region over which linear fit using polyfit is performed
+						over linecutvalue-fitregion to linecutvalue+fitregion
+	dolinearfit (bool) - if True, linear fit over linecutvalue-fitregion to linecutvalue+fitregion is performed.
+						 if False, resistance/conductance is calculated at single point
+	Style returns: 
+	- Additional 2d plot showing resistance vs x-axis.
+	- Stylebuffer dictionary with following entries:
+		w['buffer'] = [xaxis,resistance,conductance]
+			* in 'xaxis': xaxis -> original x-axis
+			* in 'resistance': resistance values vs x-axis
+			* in 'conductance': conductance values vs x-axis
+
+	Warning:
+	- Old style, not checked for cross compatibility with styles/units
+	- Expects y-axis in mV, data in nA. Should be made more general!
+	'''
+
 	XX = w['XX']
 	xn, yn = XX.shape
 	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
@@ -1166,13 +1181,31 @@ def helper_resistance(w):  #Needs equally spaced axes
 	w['buffer'] = [xaxis,resistance,conductance]
 
 def helper_dbmtovolt(w):  #Needs equally spaced axes
-	#Convert dmb to 'volt', rf-amplifier (type?) conversion table included. Interpolates linear to logarithmic power axis.
+	'''
+	Specialised style converting dB(m) to volt axis with a conversion table for a non-linear RF-amplifier.
+	
+	Arguments:
+	rfamp (bool) - if True, xaxis is first converted using conversion table in linrfamp() function.
+	attenuation (float) - attenuation in system, gets substracted from x-axis.
+	gridresolutionfactor(int) - factor with which the original number of datapoints is multiplied when creating the new interpolation grid
+	
+	Style returns: 
+	- Additional 2d plot showing resistance vs x-axis.
+	- Stylebuffer dictionary with following entries:
+		w['buffer'] = [xaxis,resistance,conductance]
+			* in 'xaxis': xaxis -> original x-axis
+			* in 'resistance': resistance values vs x-axis
+			* in 'conductance': conductance values vs x-axis
+
+	Warning:
+	- X matrix not changed accordingly
+	'''
 	XX = w['XX']
 	xn, yn = XX.shape
 	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
 	yaxis = np.linspace(w['ext'][2],w['ext'][3],w['XX'].shape[1])
 
-	def linrfamp(xaxis): #Conversion to volt using rf-amplifier
+	def linrfamp(xaxis): #Conversion to volt using rf-amplifier with specific non-linear input-output relation
 		dbin = np.linspace(-20,12,(20+12+1))
 		dbout = [9.8, 10.7, 11.7, 12.6, 13.6, 14.5, 15.5, 16.5, 17.4, 18.4, 19.3, 20.2, 21.1, 22, 22.8, 23.5, 24, 24.8, 25.3, 25.7, 26.1, 26.4, 26.6, 26.8, 27, 27.1, 27.2, 27.3, 27.4, 27.45, 27.5, 27.5, 27.5]
 		dbfit = np.poly1d(np.polyfit(dbin,dbout,deg=4))
@@ -1180,7 +1213,7 @@ def helper_dbmtovolt(w):  #Needs equally spaced axes
 		return vxaxis
 
 	def dbmtovolt(xaxis, attenuation):
-		vxaxis = np.sqrt(np.power(10, ((xaxis-30-attenuation)/10)))
+		vxaxis = np.sqrt(np.power(10, ((xaxis-attenuation)/10))) 
 		return vxaxis
 
 	if strtobool(w['dbmtovolt_rfamp'])==True: # Creates new power axis using attenuation and optional rf-amp
@@ -1198,11 +1231,29 @@ def helper_dbmtovolt(w):  #Needs equally spaced axes
 		XX_new[:,i] = np.interp(gridxaxis,xaxislin,XX[:,i], left=np.nan, right=np.nan)
 	w['XX'] = XX_new
 	w['ext'] = (xlimitneg,xlimitpos,w['ext'][2],w['ext'][3])
-	w['xstep'] = (xlimitpos-xlimitneg)/len(gridxaxis)
 	w['xlabel'] = '$V_\mathrm{rms}$ (V)'
 
 
 def helper_shapiro(w):  #Needs equally spaced axes
+	'''
+	Specialised style that fits shapiro steps in current bias. It takes the indexes on the y-axis 
+	
+	Arguments:
+	rffreq (float) - frequency of the RF signal
+	nsteps (int) - number of steps to fit
+	millivolts (bool) - set True if data is in mV instead of Volt
+	
+	Style returns: 
+	- Additional 2d plot showing 
+	- Stylebuffer dictionary with following entries:
+		w['buffer']={'labels': [xlabel,ylabel], 'data':[shapiro], 'xaxis':[xaxis]}
+			* in 'labels': xlabel,ylabel -> original x and y labels 
+			* in 'data': dataarray[:,{nth-step}] -> arrays of data values linecuts
+			* in 'xaxis': xaxis -> original x-axis
+
+	Warning:
+	- Expects y-axis to be current in A
+	'''
 	#Looks for expected voltage of Shapiro step as function of applied frequency and order and returns closest measured index.
 	planck = 4.135668e-15
 	electron = 1#1.60e-19
@@ -1261,7 +1312,7 @@ def helper_histogram(w):  #Needs equally spaced axes
 	#print fullhist.shape
 	for i in range(0,xn):
 		hist = np.histogram(XX[i,:],histbins, range=(histrange[0],histrange[1]))	
-		fullhist[i,:] = hist[0][:]*w['ystep']
+		fullhist[i,:] = hist[0][:]*float(w['ext'][3] - w['ext'][2])/(len(self.Y[0,:])-1)
 	w['XX'] = fullhist
 	w['cbar_quantity'] = '$I_\mathrm{bins}$'
 	w['cbar_unit'] = 'nA'
