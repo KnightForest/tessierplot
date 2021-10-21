@@ -272,11 +272,11 @@ class plotR(object):
 		#make a list of uniques per column associated with column name
 		uniques_by_column = dict(zip(self.data.coordkeys + self.data.valuekeys, self.data.dims))
 		if len(uniques_by_column)>2:
-			uniques_col_str = list(uniques_by_column)[0:-2]
+			if not uniques_col_str:
+				uniques_col_str = list(uniques_by_column)[0:-2]
 			titlecube = 'Higher order measurement, '
 		else:
 			titlecube = ''
-
 		# Collect keys, units and uniques
 		coord_keys = [key for key in coord_keys_raw if key not in uniques_col_str ]
 		coord_units = list(coord_units_raw[i] for i in [i for i, key in enumerate(coord_keys_raw) if key not in uniques_col_str])
