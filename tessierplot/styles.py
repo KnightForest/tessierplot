@@ -1110,7 +1110,7 @@ def helper_linecut(w):  #Needs equally spaced axes
 	axis = w['linecut_axis'] #Specified axis either 'x' or 'y'
 	fig = plt.figure()
 	if axis == 'x':
-		dataarray = np.zeros((len(linecutvalue),yn))
+		dataarray = np.zeros(len(linecutvalue),yn)
 		for val in range(len(linecutvalue)):
 			xindex = np.abs(xaxis - (linecutvalue[val])).argmin()
 			datavals = XX[xindex,:]
@@ -1130,7 +1130,7 @@ def helper_linecut(w):  #Needs equally spaced axes
 		ylabel = w['cbar_quantity'] + ' ('+ w['cbar_unit'] + ')'
 	plt.xlabel(xlabel)
 	plt.ylabel(ylabel)
-	w['buffer']={'labels': [xlabel,ylabel], 'data':[dataarray], 'xaxis':[xaxis], 'vals':[linecutvalue]} #wrapping for further analysis
+	w['buffer']={'labels': [xlabel,ylabel], 'data':dataarray, 'xaxis':xaxis, 'vals':[linecutvalue]} #wrapping for further analysis
 
 
 def helper_resistance(w):  #Needs equally spaced axes
@@ -1296,20 +1296,31 @@ def helper_shapiro(w):  #Needs equally spaced axes
 	w['buffer'] = shapiro
 	w['buffer']={'labels': [xlabel,ylabel], 'data':[shapiro], 'xaxis':[xaxis]}
 
-def helper_histogram(w):  #Needs equally spaced axes
-	#Make a histogram
+def helper_histogram(w): # Needs equally spaced axes
+	'''
+	Creates histrogram of data
+	
+	Arguments:
+	rangemin (float) - lower bound of histogram in units of measured data
+	rangemax (float) - upper bound of histogram in units of measured data
+	bins (int) - number of bins for histrogram
+	
+	Style returns: 
+	- XX matrix turns into histrogram
+
+	Warning:
+	- Old style, not checked for cross compatibility with styles/units
+	- Expects y-axis in V, data in nA. Should be made more general!
+	'''
 	XX = w['XX']
 	xn, yn = XX.shape
-	#print yn,xn
 	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
 	yaxis = np.linspace(w['ext'][2],w['ext'][3],w['XX'].shape[1])
 	histbins = 250
 	histrange = [w['histogram_rangemin'],w['histogram_rangemax']] #Range to histogram
 	histbins = int(w['histogram_bins']) #Nr. of bins
-	#print histbins,histrange
 	newvaxis = np.linspace(histrange[0],histrange[1],histbins)
 	fullhist = np.zeros(shape=(xn,histbins))
-	#print fullhist.shape
 	for i in range(0,xn):
 		hist = np.histogram(XX[i,:],histbins, range=(histrange[0],histrange[1]))	
 		fullhist[i,:] = hist[0][:]*float(w['ext'][3] - w['ext'][2])/(len(self.Y[0,:])-1)
@@ -1319,8 +1330,20 @@ def helper_histogram(w):  #Needs equally spaced axes
 	w['ylabel'] = '$V_\mathrm{SD}$ (hf/2e)'
 	w['ext'] = [w['ext'][0],w['ext'][1],histrange[0],histrange[1]]
 
-def helper_histogram2(w):  #Needs equally spaced axes
-	#Make histogram using stats.binned_statistics. Not sure what the advantage was.
+def helper_histogram2(w):# Needs equally spaced axes
+	'''
+	Creates histrogram of data using stats.binned_statistics. (Not sure what the advantage was)
+	!Not working propertly at the moment!
+	
+	Arguments:
+	
+	Style returns: 
+	- XX matrix turns into histrogram
+
+	Warning:
+	- Old style, not checked for cross compatibility with styles/units
+	- Unfinished style, bins and range are hardcoded
+	'''
 	from scipy import stats
 	XX = w['XX']
 	xn, yn = XX.shape
@@ -1344,19 +1367,48 @@ def helper_histogram2(w):  #Needs equally spaced axes
 	w['XX'] = isteps
 	w['ext'] = [w['ext'][0],w['ext'][1],histrange[0],histrange[1]]
 
-def helper_minsubtract(w): #Subtract smallest value from data
+def helper_minsubtract(w): 
+	'''
+	Subtracts smallest value from data XX
+	
+	Arguments:
+	
+	Warning:
+	'''
 	w['XX'] = w['XX'] - np.min(w['XX'])
 
 def helper_factor(w): #Multiply data with a factor
+	'''
+	Multiplies data with a factor
+	
+	Arguments:
+	factor(float) - factor used to multiply with data
+	
+	Warning:
+	'''
 	w['XX'] = w['XX']*float(w['factor_factor'])
 
-def helper_abs(w): #ABSOLUTELY
+def helper_abs(w):
+	'''
+	Performes absolute on data XX
+	
+	Arguments:
+	
+	Warning:
+	'''
 	w['XX'] = np.abs(w['XX'])
 	#w['cbar_trans'] = ['abs'] + w['cbar_trans']
 	w['cbar_quantity'] = '|' +w['cbar_quantity']+'|'
 	w['cbar_unit'] = w['cbar_unit']
 
 def helper_flipaxes(w):
+	'''
+	Flips x and y axis on colorplots
+	
+	Arguments:
+	
+	Warning:
+	'''
 	w['XX'] = np.transpose( w['XX'])
 	w['ext'] = (w['ext'][2],w['ext'][3],w['ext'][0],w['ext'][1])
 	
@@ -1367,10 +1419,32 @@ def helper_flipyaxis(w):
 	w['ext'] = (w['ext'][0],w['ext'][1],w['ext'][3],w['ext'][2])
 
 def helper_flipxaxis(w):
+	'''
+	Flips x axis on colorplots
+	
+	Arguments:
+	
+	Warning:
+	'''
 	w['XX'] = np.flipud( w['XX'])
 	w['ext'] = (w['ext'][1],w['ext'][0],w['ext'][2],w['ext'][3])
 
 def helper_crosscorr(w):
+	'''
+	Performs cross-correlation
+	
+	Arguments:
+	toFirstColumn(bool) - If True, perform cross-correlation with reference to first column, otherwise to previous column
+	peakmin(float) - Lower limit on y-axis used in cross-correlation
+	peakmax(float) - Upper limit on y-axis used in cross-correlation
+
+	Style returns: 
+	- Returns data in XX
+
+	Warning:
+	- Old style, not checked for cross compatibility with styles/units
+	- Precise function and output unclear (written a long time ago)
+	'''
 	A = w['XX']
 	first = (w['crosscorr_toFirstColumn'])
 	B = A.copy()
@@ -1405,7 +1479,19 @@ def helper_crosscorr(w):
 	w['offsets'] = 	offsets
 	w['XX'] = A
 
-def helper_deint_cross(w):  #Needs equally spaced axes
+def helper_deint_cross(w):
+	'''
+	Performs cross-correlation on deinterlaced colorplot
+	
+	Arguments:
+
+	Style returns: 
+	- Returns data in XX
+
+	Warning:
+	- Old style, not checked for cross compatibility with styles/units
+	- Precise function and output unclear (written a long time ago)
+	'''
 	A = w['XX']
 
 	B = A.copy() 
@@ -1426,8 +1512,19 @@ def helper_deint_cross(w):  #Needs equally spaced axes
 	w['XX'] = A
 
 def helper_ic(w):  #Needs equally spaced axes
-	#For meander + SC measurements: split file at zero bias and use 0 to finite sweep direction values for
-	# both pos and neg bias. Next stick them together again.
+    '''
+	Only for measurement with Josephson currents: deinterlaces and only takes the sweeps from zero to |finite|  current,
+	simulating as if the current was only swept from zero to finite values, making only I_switching visible. 
+
+	Arguments:
+
+	Style returns: 
+	- Returns data in XX
+
+	Warning:
+	- Only works for specific measurements as described in function
+	- Assumes first sweep is from positive to negative
+    '''
     data = w['XX']
     helper_deinterlace(w)
     X0 = w['deinterXXodd']
@@ -1453,17 +1550,28 @@ def helper_ic(w):  #Needs equally spaced axes
     w['XX']=np.hstack((top,bottom))
 
 def helper_iretrap(w):  #Needs equally spaced axes
-	#For meander + SC measurements: split file at zero bias and use finite to 0 sweep direction values (different 
-	# from helper_ic) values for both pos and neg bias. Next stick them together again.
+    '''
+	Only for measurement with Josephson currents: deinterlaces and only takes the sweeps from |finite| for zero current,
+	simulating as if the current was only swept from finite to zero values, making only I_retrap. 
+
+	Arguments:
+
+	Style returns: 
+	- Returns data in XX
+
+	Warning:
+	- Only works for specific measurements as described in function
+	- Assumes first sweep is from positive to negative
+    '''
     data = w['XX']
     helper_deinterlace(w)
     X0 = w['deinterXXodd']
     X1 = w['deinterXXeven']
     xn,yn = data.shape
     ynr = int(np.round((yn/2)))
-    #pak de onderkant van X0
+    #take lower half of X0
     bottom = X0[:,ynr:]
-    #pak de bovenkant van X1
+    #take upper half of X1
 
     # even/odd statements work on even deinterlacing (X1) since this is the largest
     if (yn % 2 == 0):
@@ -1479,8 +1587,30 @@ def helper_iretrap(w):  #Needs equally spaced axes
     w['XX']=np.hstack((top,bottom))
 
 def helper_icvsx(w):  #Needs equally spaced axes
-	#Finds switching current or retrapping current by peak fitting. Preparation of data required by various other styles.
-	# Correct use is complicated and requires lots of tuning (see comments). Styles to use before: 
+	'''
+	Finds switching current and retrapping current by peak fitting. Preparation of data required by various other styles.
+	Correct use is complicated and requires lots of tuning (see comments). Styles to use before: 
+
+	Arguments:
+	useonlythreshold(bool) - If True, the switching current is determined by a threshold defined by the 
+							 'ppt'. If False, a more complex peak fitting method is used.
+	pixelnoiserange(int) - Only used if 'useonlythreshold=True', represents noise in superconducting state in units of 
+						   datapoints on current source axis. Used to filter out 
+	ppt(float) - Ratio between normal state resistance and superconducting state resistance where determination of Ic is
+				 determined.
+	stepoffset(float) - Offset in source current with respect to center of axis.
+	strictzero(bool) - If True, absolute 0 is used a reference for the lower bound of the ppt reference
+	plateaulim(float) - Maximum absolute value of normal state conductance, prevents outliers
+	icvsx_gapmax(float) - Only used if strictzero=False. Sets upper bound for conductance at six datapoints around zero bias. 
+						  If conductance is higher, it is set to this value for the thresholding.
+
+	Style returns: 
+	- Returns data in XX
+
+	Warning:
+	- Only works for specific measurements as described in function
+	'''
+	#
 	import sys
 	from IPython.display import display
 	import peakutils
@@ -1490,7 +1620,7 @@ def helper_icvsx(w):  #Needs equally spaced axes
 	stepoffset = w['icvsx_stepoffset'] #offset value in Is
 	strictzero = strtobool(w['icvsx_strictzero']) #if True, absolute 0 is taken as a reference for the peaktoplateauthreshold
 	limhigh = float(w['icvsx_plateaulim']) #max abs value of normal conductance (of lower, overrides value from data)
-	limmin = float(w['icvsx_gapmax']) #'deadzone' for low bias
+	limmin = float(w['icvsx_gapmax']) # 'deadzone' for low bias
 	print(useonlythreshold,pixelnoiserange,peaktoplateauthreshold,stepoffset,strictzero)
 	
 	# def reject_outliers(data, m = 2.):
@@ -1675,6 +1805,16 @@ def helper_icvsx(w):  #Needs equally spaced axes
 	return ic
 
 def helper_normalise(w):
+	'''
+	Normalizes data with respect to a datapoint in the data (XX)
+
+	Arguments:
+	axis(str) - Can be 'x' or 'y'
+	index(int) - The index of the value in the specified axis where to which the data should be normalised.
+
+	Style returns: 
+	- Returns data in XX
+	'''
 	axis = w['normalise_axis']
 	index = int(w['normalise_index'])
 	normalised=np.zeros(w['XX'].shape)
@@ -1685,6 +1825,7 @@ def helper_normalise(w):
 		for i in range(0,w['XX'].shape[0]):
 			normalised[i,:]=w['XX'][i,:]/w['XX'][index,:]
 	w['XX'] = normalised
+
 def helper_massage(w):
 	# func = w['massage_func']
 	# func(w)

@@ -76,7 +76,7 @@ class tessierView(object):
                 os.mkdir(thumbnaildir)
             except:
                 raise Exception('Couldn\'t create thumbnail directory')
-        
+
     def on(self):   
         print('You are now watching through the glasses of ideology')
         display(VimeoVideo('106036638'))

@@ -181,7 +181,6 @@ class Linedraw:
 
 	def on_press(self, event):
 		'on button press we will see if the mouse is over us and store some data'
-
 		contains, attrd = self.fig.contains(event)
 		if not contains: return
 		if(event.xdata==None): return
@@ -246,7 +245,6 @@ class Linecut:
 		self.altpressed=False
 		self.gui_cutline =  None
 
-
 	def line_select_callback(eclick, erelease):
 		'eclick and erelease are the press and release events'
 		x1, y1 = eclick.xdata, eclick.ydata
@@ -280,7 +278,6 @@ class Linecut:
 			del self.gui_cutline
 		self.gui_cutline = Line2D(coords[0],coords[1],linestyle='-',linewidth=3,color='white')
 		axes.add_line(self.gui_cutline)
-
 		self.fig.canvas.draw()
 
 	def eraseLine(self):
@@ -290,13 +287,15 @@ class Linecut:
 			del self.gui_cutline
 			self.gui_cutline = None
 		self.fig.canvas.draw()
+
 	def makeLinecut(self,event,vertical=True):
-
-
 		#get data from the imshow object
 		im = event.inaxes.images[0]
-		data=im.get_array()
-
+		data = im.get_array()
+		#xlabel = self.fig.ax.get_xlabel()
+		#ylabel = self.fig.ax.get_ylabel()
+		xlabel = 'a'
+		ylabel = 'b'
 		ext = im.get_extent()
 		x = np.linspace(ext[0],ext[1],data.shape[1])
 		y = np.linspace(ext[3],ext[2],data.shape[0]) #images have origin in topleft?
@@ -321,6 +320,9 @@ class Linecut:
 		self.cutAx.plot(xx,z,'o-',fillstyle='none',markersize=2)
 		#self.cutAx.plot(xx,z,markerstyle='o',fillstyle='none',markersize=5)
 		self.cutFig.canvas.draw()
+		self.cutAx.set_xlabel(xlabel)
+		self.cutAx.set_ylabel(ylabel)
+		self.cutFig.tight_layout()
 
 		#erase previous line
 		self.eraseLine()
@@ -344,26 +346,26 @@ class Linecut:
 		self.fig.canvas.mpl_disconnect(self.cidmotion)
 		self.fig.canvas.mpl_disconnect(self.cigkeypress)
 		self.fig.canvas.mpl_disconnect(self.cigkeyrelease)
-
 		self.active = False
 
 	def on_keypress (self,event):
 		if  event.key=='alt':
 			self.altpressed=True
+
 	def on_keyrelease(self,event):
 		if event.key=='alt':
 			self.altpressed=False
+
 	def on_press(self, event):
 		'on button press we will see if the mouse is over us and store some data'
-
 		contains, attrd = self.fig.contains(event)
 		if not contains: return
 		if(event.xdata==None): return
 		self.press = event.xdata, event.ydata
 		a = event.inaxes.images
 		#show a linecut
-
 		self.makeLinecut(event,not self.altpressed)
+		self.cutFig.tight_layout()
 
 	def on_motion(self, event):
 		'on motion we will move the line if the mouse is over us'
@@ -371,13 +373,15 @@ class Linecut:
 		if(event.xdata==None): return
 		xpress, ypress = self.press
 
-		a = event.inaxes.images
+		#a = event.inaxes.images
 
-		for i in a:
-			xmin,xmax,ymin,ymax = i.get_extent()
+		#for i in a:
+		#	xmin,xmax,ymin,ymax = i.get_extent()
 
 		self.makeLinecut(event,not self.altpressed)
+		#self.cutFig.tight_layout()
 		self.fig.canvas.draw()
+
 
 	def on_release(self, event):
 		'on release we reset the press data'
