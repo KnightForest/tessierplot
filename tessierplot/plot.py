@@ -118,7 +118,6 @@ class plotR(object):
 		self.exportData = []
 		self.exportDataMeta = []
 		self.bControls = True #boolean controlling state of plot manipulation buttons
-		self.valueaxes_n = 0
 		#print(self.data._header)
 		#print(self.data.coordkeys)
 		
@@ -134,33 +133,6 @@ class plotR(object):
 		coords = np.array(self.data.coordkeys)
 
 		return len(coords[filter_neg]) < 2
-
-	# def quickplot_processed(self,**kwargs):
-		# coords = np.array(self.data.coordkeys)
-		# filter = self.data.dims < 5
-
-		# uniques_col_str = coords[filter]
-		# try:
-			# if self.isthumbnail:
-				# for k in rcP:
-					# mpl.rcParams[k] = rcP_thumb[k]
-			# else:
-				# for k in rcP:
-					# mpl.rcParams[k] = rcP[k]
-			# if self.is2d():
-				# fig = self.plot2d(uniques_col_str=uniques_col_str,**kwargs)
-			# else:
-				# fig = self.plot3d(uniques_col_str=uniques_col_str,**kwargs)
-				# self.exportToMtx()
-			# if self.isthumbnail:
-				# fig.savefig(self.thumbfile,bbox_inches='tight' )
-				# fig.savefig(self.thumbfile_datadir,bbox_inches='tight' )
-				# plt.close(fig)
-		# except Exception as e:
-			# print('fail in quickplot')
-			# print(e)
-		
-		# return fig
 
 	# Function that calls either plot2d (lines) or plot3d (colorplot) based on number of coordinate axes and uniques
 	def quickplot(self,**kwargs):
@@ -446,8 +418,6 @@ class plotR(object):
 				self.XX = XX
 				self.X = X
 				self.Y = Y
-
-				#determine stepsize for di/dv, inprincipe only y step is used (ie. the diff is also taken in this direction and the measurement swept..)
 				self.exportData.append(XX)
 				try:
 					m={
@@ -525,6 +495,7 @@ class plotR(object):
 				self.xunit = w['xunit']
 				self.ylabel= w['ylabel']
 				self.yunit = w['yunit']
+				self.cbarlabel = cbar_title
 				self.XX_processed = XX
 				self.Y_processed = Y
 				self.X_processed = X
@@ -870,17 +841,15 @@ class plotR(object):
 		topwidget = self.fig.canvas.window()
 		toolbar = topwidget.children()[1]
 		action = toolbar.addWidget(self.fig.drawbutton)
-
 		self.fig.linedraw = self.linedraw
+
 	def toggleLinecut(self):
 		self.linecut=Linecut(self.fig,self)
-
 		self.fig.cutbutton = toggleButton('cut', self.linecut.connect)
 		topwidget = self.fig.canvas.window()
 		toolbar = topwidget.children()[1]
 		action = toolbar.addWidget(self.fig.cutbutton)
-
-		self.fig.linecut = self.linecut
+		#self.fig.linecut = self.linecut
 
 	def toggleFiddle(self):
 		from IPython.core import display
