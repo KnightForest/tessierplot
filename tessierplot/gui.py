@@ -280,7 +280,6 @@ class Linecut:
 			del self.gui_cutline
 		self.gui_cutline = Line2D(coords[0],coords[1],linestyle='-',linewidth=3,color='white')
 		axes.add_line(self.gui_cutline)
-
 		self.fig.canvas.draw()
 
 	def eraseLine(self):
@@ -290,10 +289,11 @@ class Linecut:
 			del self.gui_cutline
 			self.gui_cutline = None
 		self.fig.canvas.draw()
+
 	def makeLinecut(self,event,vertical=True):
 		#get data from the imshow object
 		im = event.inaxes.images[0]
-		data=im.get_array()
+		data = im.get_array()
 		ext = im.get_extent()
 		x = np.linspace(ext[0],ext[1],data.shape[1])
 		y = np.linspace(ext[3],ext[2],data.shape[0]) #images have origin in topleft?
