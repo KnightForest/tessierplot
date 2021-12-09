@@ -222,7 +222,6 @@ class Linedraw:
 			else:
 				y = ypress + 2.*self.slope*dx/2.
 			#self.theslope = event.inaxes.text(x,y,'sdf')
-			self.slope = np.inf
 			self.theslope = event.inaxes.text(x,y,'dy/dx: {:g}\nlength:{:g}'.format(self.slope,self.length))
 
 		self.fig.canvas.draw()
