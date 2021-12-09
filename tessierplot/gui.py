@@ -153,8 +153,8 @@ class Linedraw:
 		'eclick and erelease are the press and release events'
 		x1, y1 = eclick.xdata, eclick.ydata
 		x2, y2 = erelease.xdata, erelease.ydata
-		print("({:3.2f}, {:3.2f}) --> ({:3.2f}, {:3.2f})".format(x1, y1, x2, y2))
-		print(" The button you used were: {:s} {:s}".format(eclick.button, erelease.button))
+		#print("({:3.2f}, {:3.2f}) --> ({:3.2f}, {:3.2f})".format(x1, y1, x2, y2))
+		#print(" The button you used were: {:s} {:s}".format(eclick.button, erelease.button))
 
 	def connect(self):
 		'(dis-)connect to all the events we need'
@@ -216,8 +216,8 @@ class Linedraw:
 				line.set_ydata([ypress,event.ydata])
 
 			else:
-				self.theline = Line2D([xpress,event.xdata],[ypress,event.ydata],linestyle='-',linewidth=5,marker='o',color='white')
-				self.fig.axes[0].add_line(self.theline)
+				self.theline = Line2D([xpress,event.xdata],[ypress,event.ydata],linestyle='-',linewidth=3,marker='o',color='white')
+				event.inaxes.add_line(self.theline) #This needs an additional disconnect somewhere
 
 			if self.theslope is not None:
 				x = xpress + dx/2.
@@ -227,7 +227,7 @@ class Linedraw:
 			else:
 				x = xpress + dx/2.
 				y = ypress + 2.*self.slope*dx/2.
-				self.theslope = self.fig.axes[0].text(x,y,'dy/dx: {:g}\nlength:{:g}'.format(self.slope,self.length))
+				self.theslope = event.inaxes.text(x,y,'dy/dx: {:g}\nlength:{:g}'.format(self.slope,self.length))
 
 		self.fig.canvas.draw()
 
@@ -251,8 +251,8 @@ class Linecut:
 		'eclick and erelease are the press and release events'
 		x1, y1 = eclick.xdata, eclick.ydata
 		x2, y2 = erelease.xdata, erelease.ydata
-		print("({:3.2f}, {:3.2f}) --> ({:3.2f}, {:3.2f})".format(x1, y1, x2, y2))
-		print(" The button you used were: {:s} {:s}".format(eclick.button, erelease.button))
+		#print("({:3.2f}, {:3.2f}) --> ({:3.2f}, {:3.2f})".format(x1, y1, x2, y2))
+		#print(" The button you used were: {:s} {:s}".format(eclick.button, erelease.button))
 
 	def connect(self):
 		'(dis-)connect to all the events we need'
@@ -291,6 +291,7 @@ class Linecut:
 		self.fig.canvas.draw()
 
 	def makeLinecut(self,event,vertical=True):
+		from tkinter import messagebox
 		#get data from the imshow object
 		im = event.inaxes.images[0]
 		data = im.get_array()
@@ -317,12 +318,12 @@ class Linecut:
 		self.cutAx.cla()
 		self.cutAx.plot(xx,z,'o-',fillstyle='none',markersize=2)
 		#self.cutAx.plot(xx,z,markerstyle='o',fillstyle='none',markersize=5)
-		self.cutFig.canvas.draw()
-		xlabel = self.plotr.ax.xaxis.get_label().get_text()
 		ylabel = self.plotr.cbarlabel
-		self.cutAx.set_xlabel(xlabel)
+		self.cutAx.set_xlabel(event.inaxes.get_xlabel())
 		self.cutAx.set_ylabel(ylabel)
 		self.cutFig.tight_layout()
+		self.cutFig.canvas.draw()
+		
 		#erase previous line
 		self.eraseLine()
 
