@@ -317,12 +317,12 @@ class Linecut:
 		if self.cutFig == None:
 			self.cutFig, self.cutAx = plt.subplots()
 			self.cutFig.canvas.mpl_connect('close_event', self.cutFigClosed)
-		self.cutAx.cla()
+		#self.cutAx.cla()
 		self.cutAx.plot(xx,z,'o-',fillstyle='none',markersize=2)
 		#self.cutAx.plot(xx,z,markerstyle='o',fillstyle='none',markersize=5)
 		ylabel = self.plotr.cbarlabel
 		self.cutAx.set_xlabel(event.inaxes.get_xlabel())
-		self.cutAx.set_ylabel(ylabel)
+		self.cutAx.set_ylabel('Data')
 		self.cutFig.tight_layout()
 		self.cutFig.canvas.draw()
 		
