@@ -167,10 +167,7 @@ class Linedraw:
 					'motion_notify_event', self.on_motion)
 			self.LinedrawOn = True
 		else:
-			self.fig.canvas.mpl_disconnect(self.cidpress)
-			self.fig.canvas.mpl_disconnect(self.cidrelease)
-			self.fig.canvas.mpl_disconnect(self.cidmotion)
-			self.LinedrawOn = False
+			self.disconnect()
 
 	def disconnect(self):
 		'disconnect all the events we needed'
@@ -199,35 +196,34 @@ class Linedraw:
 # 		print('xp={:f}, ypress={:f}, event.xdata={:f},event.ydata={:f}, dx={:f}, dy={:f}'.format(xpress,ypress,event.xdata, event.ydata,dx, dy))
 		#self.rect.set_x(x0+dx)
 		#self.rect.set_y(y0+dy)
-
 		a = event.inaxes.images
 
 		for i in a:
 			xmin,xmax,ymin,ymax = i.get_extent()
 			if dx == 0:
-				dx = 0.001 #remove any infinities
-			self.slope = dy/dx
+				self.slope = np.inf #remove any infinities	
+			else:
+				self.slope = dy/dx
 			self.length = np.sqrt(np.power(dx,2)+np.power(dy,2))
 
 
 			if self.theline is not None:
 				line = self.theline
-				line.set_xdata([xpress,event.xdata])
-				line.set_ydata([ypress,event.ydata])
-
-			else:
-				self.theline = Line2D([xpress,event.xdata],[ypress,event.ydata],linestyle='-',linewidth=3,marker='o',color='white')
-				event.inaxes.add_line(self.theline) #This needs an additional disconnect somewhere
+				line.remove()
+			self.theline = Line2D([xpress,event.xdata],[ypress,event.ydata],linestyle='-',linewidth=3,marker='o',color='white')
+			event.inaxes.add_line(self.theline) 
 
 			if self.theslope is not None:
-				x = xpress + dx/2.
-				y = ypress + 2.*self.slope*dx/2.
-				self.theslope.set_text('dy/dx: {:g}\nlength:{:g}'.format(self.slope,self.length))
-				self.theslope.set_position((x,y))
+				slope = self.theslope
+				slope.remove()
+			x = xpress + dx/2.
+			if dx == 0:
+				y = ypress
 			else:
-				x = xpress + dx/2.
 				y = ypress + 2.*self.slope*dx/2.
-				self.theslope = event.inaxes.text(x,y,'dy/dx: {:g}\nlength:{:g}'.format(self.slope,self.length))
+			#self.theslope = event.inaxes.text(x,y,'sdf')
+			self.slope = np.inf
+			self.theslope = event.inaxes.text(x,y,'dy/dx: {:g}\nlength:{:g}'.format(self.slope,self.length))
 
 		self.fig.canvas.draw()
 
@@ -272,7 +268,15 @@ class Linecut:
 			if self.cutFig is not None:
 				plt.close(self.cutFig)
 			self.disconnect()
-			self.active = False
+
+	def disconnect(self):
+		'disconnect all the events we needed'
+		self.fig.canvas.mpl_disconnect(self.cidpress)
+		self.fig.canvas.mpl_disconnect(self.cidrelease)
+		self.fig.canvas.mpl_disconnect(self.cidmotion)
+		self.fig.canvas.mpl_disconnect(self.cigkeypress)
+		self.fig.canvas.mpl_disconnect(self.cigkeyrelease)
+		self.active = False
 
 	def drawLine(self,axes,coords):
 		#draw line in original gui window
@@ -291,7 +295,6 @@ class Linecut:
 		self.fig.canvas.draw()
 
 	def makeLinecut(self,event,vertical=True):
-		from tkinter import messagebox
 		#get data from the imshow object
 		im = event.inaxes.images[0]
 		data = im.get_array()
@@ -338,16 +341,6 @@ class Linecut:
 		#toggle the gui button back
 		self.fig.cutbutton.state=0
 		self.fig.cutbutton.updateIcon()
-
-	def disconnect(self):
-		'disconnect all the events we needed'
-		self.fig.canvas.mpl_disconnect(self.cidpress)
-		self.fig.canvas.mpl_disconnect(self.cidrelease)
-		self.fig.canvas.mpl_disconnect(self.cidmotion)
-		self.fig.canvas.mpl_disconnect(self.cigkeypress)
-		self.fig.canvas.mpl_disconnect(self.cigkeyrelease)
-
-		self.active = False
 
 	def on_keypress (self,event):
 		if  event.key=='alt':

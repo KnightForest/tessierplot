@@ -841,6 +841,8 @@ class plotR(object):
 		topwidget = self.fig.canvas.window()
 		toolbar = topwidget.children()[1]
 		action = toolbar.addWidget(self.fig.drawbutton)
+
+		#attach to the relevant figure to make sure the object does not go out of scope
 		self.fig.linedraw = self.linedraw
 
 	def toggleLinecut(self):
@@ -849,7 +851,9 @@ class plotR(object):
 		topwidget = self.fig.canvas.window()
 		toolbar = topwidget.children()[1]
 		action = toolbar.addWidget(self.fig.cutbutton)
-		#self.fig.linecut = self.linecut
+
+		#attach to the relevant figure to make sure the object does not go out of scope
+		self.fig.linecut = self.linecut
 
 	def toggleFiddle(self):
 		from IPython.core import display
