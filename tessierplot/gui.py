@@ -320,8 +320,11 @@ class Linecut:
 		#self.cutAx.cla()
 		self.cutAx.plot(xx,z,'o-',fillstyle='none',markersize=2)
 		#self.cutAx.plot(xx,z,markerstyle='o',fillstyle='none',markersize=5)
-		ylabel = self.plotr.cbarlabel
-		self.cutAx.set_xlabel(event.inaxes.get_xlabel())
+		#ylabel = self.plotr.cbarlabel
+		if vertical == True:
+			self.cutAx.set_xlabel(event.inaxes.get_ylabel())
+		else:
+			self.cutAx.set_xlabel(event.inaxes.get_xlabel())
 		self.cutAx.set_ylabel('Data')
 		self.cutFig.tight_layout()
 		self.cutFig.canvas.draw()
