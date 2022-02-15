@@ -14,6 +14,7 @@ setup(name='tessierplot',
           'pyperclip',
           'six',
           'pandas',
-          'pywin32'
+          'pywin32',
+          'quantiphy'
       ],
       zip_safe=False)

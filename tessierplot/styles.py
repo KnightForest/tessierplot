@@ -94,16 +94,16 @@ def helper_fixlabels(w):
 	xunit = w['xunit']
 	ylabel = w['ylabel']
 	yunit = w['yunit']
-	cbar_q = (w['cbar_quantity'])
-	cbar_u = (w['cbar_unit'])
-	if cbar_q.find('Current') != -1:
+	data_q = (w['data_quantity'])
+	data_u = (w['data_unit'])
+	if data_q.find('Current') != -1:
 		print('found current')
-		cbar_q = '$I_\mathrm{D}$'
-		cbar_unit = 'nA'
-	if cbar_q.find('Voltage') != -1:
+		data_q = '$I_\mathrm{D}$'
+		data_unit = 'nA'
+	if data_q.find('Voltage') != -1:
 		print('found voltage')
-		cbar_q = '$V_\mathrm{SD}$'
-		cbar_unit = 'mV'
+		data_q = '$V_\mathrm{SD}$'
+		data_unit = 'mV'
 
 	if xlabel.find('mK') != -1:
 		xlabel = '$T$'
@@ -161,11 +161,11 @@ def helper_fixlabels(w):
 		ylabel = 'S21 phase'
 		yunit = '$\phi$'
 
-	if cbar_q == 'VNA_S21_magnitude':
-		cbar_q = 'S21 magn.'
-		cbar_u = 'arb.'
-	if cbar_q == 'VNA_S21_phase':
-		cbar_u = '$\phi$'
+	if data_q == 'VNA_S21_magnitude':
+		data_q = 'S21 magn.'
+		data_u = 'arb.'
+	if data_q == 'VNA_S21_phase':
+		data_u = '$\phi$'
 
 	if xlabel == 'S21 frequency':
 		xlabel = 'S21 freq.'
@@ -181,11 +181,11 @@ def helper_fixlabels(w):
 		ylabel = 'S21 phase'
 		yunit = '$\phi$'
 
-	if cbar_q == 'S21 magnitude':
-		cbar_q = 'S21 magn.'
-		cbar_u = 'arb.'
-	if cbar_q == 'VNA_S21_phase':
-		cbar_u = '$\phi$'
+	if data_q == 'S21 magnitude':
+		data_q = 'S21 magn.'
+		data_u = 'arb.'
+	if data_q == 'VNA_S21_phase':
+		data_u = '$\phi$'
 
 	#Right now units for x and y are discarded and are hardcoded in fixlabels in the label itself. This may not be the best approach
 	#but it's also inconsistent in plot.py between 2d and 3d plots. Running this style now always destroys x and y units as determined by
@@ -194,8 +194,8 @@ def helper_fixlabels(w):
 	w['yunit'] = yunit
 	w['xlabel'] = xlabel
 	w['xunit'] = xunit
-	w['cbar_quantity'] = cbar_q
-	w['cbar_unit'] = cbar_u
+	w['data_quantity'] = data_q
+	w['data_unit'] = data_u
 
 
 def helper_changeaxis(w):
@@ -215,7 +215,7 @@ def helper_changeaxis(w):
 	w['X'] = w['X']*float(w['changeaxis_xfactor'])
 	w['Y'] = w['Y']*float(w['changeaxis_yfactor'])
 	if w['changeaxis_dataunit'] != None:
-		w['cbar_unit'] = w['changeaxis_dataunit']
+		w['data_unit'] = w['changeaxis_dataunit']
 	if w['changeaxis_xunit'] != None:
 		w['xunit'] = w['changeaxis_xunit']
 	if w['changeaxis_yunit'] != None:
@@ -238,12 +238,13 @@ def helper_diff(w):
 	X = w['X']
 	xunit = w['xunit']
 	yunit = w['yunit']
-	cbar_q = w['cbar_quantity']
-	cbar_u = w['cbar_unit']
+	data_q = w['data_quantity']
+	data_u = w['data_unit']
 	condquant = strtobool(w['diff_condquant'])
 	gradient = strtobool(w['diff_gradient'])
 	axis = int(w['diff_axis'])
 	order = int(w['diff_order'])
+	#print(data_q, '---', data_u)
 	if order != 1:
 		condquant = False
 	#Compute conductance quantum!
@@ -257,9 +258,9 @@ def helper_diff(w):
 			if order == 0:
 				pass 
 			elif order == 1:
-				w['cbar_quantity'] = '$\partial$' + cbar_q + '/$\partial$' + w['xlabel']
+				w['data_quantity'] = '$\partial$' + data_q + '/' + '$\partial$' + w['xlabel']
 			else: 
-				w['cbar_quantity'] = '$\partial^{}$'.format(order) + cbar_q + '/$\partial$' + w['xlabel'] + '$^{}$'.format(order)
+				w['data_quantity'] = '$\partial^{}$'.format(order) + data_q + '/$\partial$' + w['xlabel'] + '$^{}$'.format(order)
 			for i in range(0,order):
 				if gradient:
 					XX_t = np.gradient(XX,X)
@@ -269,127 +270,133 @@ def helper_diff(w):
 			if order == 0:
 				pass 
 			elif order == 1:
-				w['cbar_quantity'] = '$\partial$' + cbar_q + '/$\partial$' + w['ylabel']
+				w['data_quantity'] = '$\partial$' + data_q + '/' + '$\partial$' + w['ylabel']
 			else:
-				w['cbar_quantity'] = '$\partial^{}$'.format(order) + cbar_q + '/$\partial$' + w['ylabel'] + '$^{}$'.format(order)
+				w['data_quantity'] = '$\partial^{}$'.format(order) + data_q + '/$\partial$' + w['ylabel'] + '$^{}$'.format(order)
 			for i in range(0,XX.shape[0]):
 				for j in range(0,order):
 					if gradient:
 						XX_t[i,:] = np.gradient(XX[i,:],Y[i,:])	
 					else:
 						XX_t[i,:-1] = np.diff(XX[i,:])/np.diff(Y[i,:])	
-		if cbar_u == 'nA' and order == 1: 
+		if data_u == 'nA' and order == 1: 
 			if condquant == True:
 				if yunit == 'mV':
 					XX_t = (1e-6 / cq) * XX_t
 				elif yunit == 'V':
 					XX_t = (1e-9 / cq) * XX_t
-				w['cbar_unit'] = r'2$e^2$/h'
+				w['data_unit'] = r'2$e^2$/h'
 			else:
 				if yunit == 'mV':
 					XX_t = (1e-6) * XX_t
 				elif yunit == 'V':
 					XX_t = (1e-9) * XX_t
-				w['cbar_unit'] = r'S'
-		elif cbar_u == 'A' and order ==1:
+				w['data_unit'] = r'S'
+		elif data_u == 'A' and order ==1:
 			if condquant == True:
 				if yunit == 'V':
 					XX_t = (1/cq) * XX_t
 				elif yunit == 'mV':
 					XX_t = (1e3/cq) * XX_t
-				w['cbar_unit'] = r'2$e^2$/h'
+				w['data_unit'] = r'2$e^2$/h'
 			else:			
 				if yunit == 'mV':
 					XX_t = (1e3) * XX_t
-				w['cbar_unit'] = r'S'
+				w['data_unit'] = r'S'
 		
-		elif cbar_u == 'mV' and order == 1:
+		elif data_u == 'mV' and order == 1:
 			if condquant == True:
 				if yunit == 'nA':
 					XX_t = 1e6*cq * XX_t
 				if yunit == 'A':
 					XX_t = 1e-3*cq * XX_t
-				w['cbar_unit'] = r'h/2$e^2$'
+				w['data_unit'] = r'h/2$e^2$'
 			else:
 				if yunit == 'nA':
 					XX_t = 1e6 * XX_t
 				if yunit == 'A':
 					XX_t = 1e-3 * XX_t
-				w['cbar_unit'] = r'$\Omega$'
-		elif cbar_u == 'V' and order ==1:
+				w['data_unit'] = r'$\Omega$'
+		elif data_u == 'V' and order ==1:
 			if condquant == True:
 				if yunit == 'nA':
 					XX_t = 1e9*cq * XX_t
-				w['cbar_unit'] = r'h/2$e^2$'
+				w['data_unit'] = r'h/2$e^2$'
 			else:
 				if yunit == 'nA':
 					XX_t = 1e9 * XX_t
-				w['cbar_unit'] = r'$\Omega$'
+				w['data_unit'] = r'$\Omega$'
 		else:
-			w['cbar_unit'] = ''
+			w['data_unit'] = ''
+		#if len(w['data_quantity']) > 16:
+		#	w['data_quantity'] = r'$\partial/\partial$y'
 		XX = XX_t
+
 	if (axis==1 or axis == 10) and XX.ndim !=1: #Diff and smooth in slow axis
 		if order == 0:
 			pass 
 		elif order == 1:
-			w['cbar_quantity'] = '$\partial$' + cbar_q + '/$\partial$' + w['xlabel']
+			w['data_quantity'] = '$\partial$' + data_q + '/$\partial$' + w['xlabel']
 		else:
-			w['cbar_quantity'] = '$\partial^{}$'.format(order) + cbar_q + '/$\partial$' + w['xlabel'] + '$^{}$'.format(order)
+			w['data_quantity'] = '$\partial^{}$'.format(order) + data_q + '/$\partial$' + w['xlabel'] + '$^{}$'.format(order)
 		for i in range(0,XX.shape[1]):
 			for j in range(0,order):
 				if gradient:
 					XX_t[:,i] = np.gradient(XX[:,i],X[:,i])
 				else:
 					XX_t[:-1,i] = np.diff(XX[:,i])/np.diff(X[:,i])	
-		if cbar_u == 'nA' and order == 1: 
+		if data_u == 'nA' and order == 1: 
 			if condquant == True:
 				if xunit == 'mV':
 					XX_t = (1e-6 / cq) * XX_t
 				elif xunit == 'V':
 					XX_t = (1e-9 / cq) * XX_t
-				w['cbar_unit'] = r'2$e^2$/h'
+				w['data_unit'] = r'2$e^2$/h'
 			else:
 				if xunit == 'mV':
 					XX_t = (1e-6) * XX_t
 				elif xunit == 'V':
 					XX_t = (1e-9) * XX_t
-				w['cbar_unit'] = r'S'
-		elif cbar_u == 'A' and order ==1:
+				w['data_unit'] = r'S'
+		elif data_u == 'A' and order ==1:
 			if condquant == True:
 				if xunit == 'V':
 					XX_t = (1/cq) * XX_t
 				elif xunit == 'mV':
 					XX_t = (1e3/cq) * XX_t
-				w['cbar_unit'] = r'2$e^2$/h'
+				w['data_unit'] = r'2$e^2$/h'
 			else:			
 				if xunit == 'mV':
 					XX_t = (1e3) * XX_t
-				w['cbar_unit'] = r'S'
+				w['data_unit'] = r'S'
 		
-		elif cbar_u == 'mV' and order == 1:
+		elif data_u == 'mV' and order == 1:
 			if condquant == True:
 				if xunit == 'nA':
 					XX_t = 1e6*cq * XX_t
 				if xunit == 'A':
 					XX_t = 1e-3*cq * XX_t
-				w['cbar_unit'] = r'h/2$e^2$'
+				w['data_unit'] = r'h/2$e^2$'
 			else:
 				if xunit == 'nA':
 					XX_t = 1e6 * XX_t
 				if xunit == 'A':
 					XX_t = 1e-3 * XX_t
-				w['cbar_unit'] = r'$\Omega$'
-		elif cbar_u == 'V' and order ==1:
+				w['data_unit'] = r'$\Omega$'
+		elif data_u == 'V' and order ==1:
 			if condquant == True:
 				if xunit == 'nA':
 					XX_t = 1e9*cq * XX_t
-				w['cbar_unit'] = r'h/2$e^2$'
+				w['data_unit'] = r'h/2$e^2$'
 			else:
 				if xunit == 'nA':
 					XX_t = 1e9 * XX_t
-				w['cbar_unit'] = r'$\Omega$'
+				w['data_unit'] = r'$\Omega$'
 		else:
-			w['cbar_unit'] = ''
+			w['data_unit'] = ''
+		#if len(w['data_quantity']) > 25:
+		#	w['data_quantity'] = r'$\partial/\partial$x'
+	#print(w['data_quantity'], '---', w['data_unit'])
 	w['XX'] = XX_t
 
 def helper_savgol(w):
@@ -411,107 +418,128 @@ def helper_savgol(w):
 	XX = w['XX']
 	Y = w['Y']
 	X = w['X']
-	cbar_q = w['cbar_quantity'] 
-	cbar_u = w['cbar_unit']
+	data_q = w['data_quantity'] 
+	data_u = w['data_unit']
 	condquant = strtobool(w['savgol_condquant']) # Use units of e^2/h if possible
-	axis = int(w['savgol_axis']) # -1 means fast axis, -2 slow axis differentiation
+	axis = int(w['savgol_axis']) # 0 means fast axis, 1 slow axis differentiation
 	difforder = int(w['savgol_difforder']) # Order of the derivative
 	samples = int(w['savgol_samples']) # Samples for savgol filter
 	order = int(w['savgol_order']) # Order of savgol filter
 	if order != 1:
 		condquant = False
-	#Keep axis selection with 0 or 1 compatibility:
-	if axis == 0 or XX.ndim==1:
-		axis = -1
-	if axis == 1:
-		axis = -2
+
 	#Compute conductance quantum
 	cq = 2*sc.elementary_charge**2/sc.h
 
 	XX_t = XX
-	if axis==-1 or XX.ndim==1: #Diff and smooth on fast axis
+	if axis==0 or XX.ndim==1: #Diff and smooth on fast axis
 		if XX.ndim ==1:
 			if difforder == 0:
 				pass 
 			elif difforder == 1:
-				w['cbar_quantity'] = '$\partial$' + cbar_q + '/$\partial$' + w['xlabel']
+				w['data_quantity'] = '$\partial$' + data_q + '/$\partial$' + w['xlabel']
 			else: 
-				w['cbar_quantity'] = '$\partial^{}$'.format(difforder) + cbar_q + '/$\partial$' + w['xlabel'] + '$^{}$'.format(difforder)
+				w['data_quantity'] = '$\partial^{}$'.format(difforder) + data_q + '/$\partial$' + w['xlabel'] + '$^{}$'.format(difforder)
 			XX_t = signal.savgol_filter(XX, samples, order, deriv=difforder, delta=np.diff(X)[0], mode='constant',cval=np.nan)
 		else:
 			if difforder == 0:
 				pass 
 			elif difforder == 1:
-				w['cbar_quantity'] = '$\partial$' + cbar_q + '/$\partial$' + w['ylabel']
+				w['data_quantity'] = '$\partial$' + data_q + '/$\partial$' + w['ylabel']
 			else:
-				w['cbar_quantity'] = '$\partial^{}$'.format(difforder) + cbar_q + '/$\partial$' + w['ylabel'] + '$^{}$'.format(difforder)
+				w['data_quantity'] = '$\partial^{}$'.format(difforder) + data_q + '/$\partial$' + w['ylabel'] + '$^{}$'.format(difforder)
 			y = np.diff(Y)
 			yd = y[0]
 			XX_t = signal.savgol_filter(XX, samples, order, deriv=difforder, delta=np.diff(Y,axis=axis)[0,0], axis=axis, mode='constant',cval=np.nan)
 
-		if cbar_u == 'nA' and order == 1: 
+		if data_u == 'nA' and order == 1: 
 			if condquant == True:
-				XX_t = (1e-6 / cq) * XX_t
-				w['cbar_unit'] = r'2$e^2$/h'
+				if yunit == 'mV':
+					XX_t = (1e-6 / cq) * XX_t
+				elif yunit == 'V':
+					XX_t = (1e-9 / cq) * XX_t
+				w['data_unit'] = r'2$e^2$/h'
 			else:
-				w['cbar_unit'] = r'$\mu$S'
-		elif cbar_u == 'A' and order ==1:
+				if yunit == 'mV':
+					XX_t = (1e-6) * XX_t
+				elif yunit == 'V':
+					XX_t = (1e-9) * XX_t
+				w['data_unit'] = r'S'
+		elif data_u == 'A' and order ==1:
 			if condquant == True:
-				XX_t = (1/cq) * XX_t
-				w['cbar_unit'] = r'2$e^2$/h'
-			else:
-				w['cbar_unit'] = r'S'
+				if yunit == 'V':
+					XX_t = (1/cq) * XX_t
+				elif yunit == 'mV':
+					XX_t = (1e3/cq) * XX_t
+				w['data_unit'] = r'2$e^2$/h'
+			else:			
+				if yunit == 'mV':
+					XX_t = (1e3) * XX_t
+				w['data_unit'] = r'S'
 		
-		elif cbar_u == 'mV' and order == 1:
+		elif data_u == 'mV' and order == 1:
 			if condquant == True:
-				XX_t = 1e6*cq * XX_t
-				w['cbar_unit'] = r'h/2$e^2$'
+				if yunit == 'nA':
+					XX_t = 1e6*cq * XX_t
+				if yunit == 'A':
+					XX_t = 1e-3*cq * XX_t
+				w['data_unit'] = r'h/2$e^2$'
 			else:
-				w['cbar_unit'] = r'M$\Omega$'
-		elif cbar_u == 'V' and order ==1:
+				if yunit == 'nA':
+					XX_t = 1e6 * XX_t
+				if yunit == 'A':
+					XX_t = 1e-3 * XX_t
+				w['data_unit'] = r'$\Omega$'
+		elif data_u == 'V' and order ==1:
 			if condquant == True:
-				XX_t = cq * XX_t
-				w['cbar_unit'] = r'h/2$e^2$'
+				if yunit == 'nA':
+					XX_t = 1e9*cq * XX_t
+				w['data_unit'] = r'h/2$e^2$'
 			else:
-				w['cbar_unit'] = r'$\Omega$'
+				if yunit == 'nA':
+					XX_t = 1e9 * XX_t
+				w['data_unit'] = r'$\Omega$'
 		else:
-			w['cbar_unit'] = ''
+			w['data_unit'] = ''
+		#if len(w['data_quantity']) > 16:
+		#	w['data_quantity'] = r'$\partial/\partial$y'
+		XX = XX_t
 
-	elif axis==-2: #Diff and smooth in slow axis
+	elif axis==1: #Diff and smooth in slow axis
 		if difforder == 0:
 				pass 
 		elif difforder == 1:
-			w['cbar_quantity'] = '$\partial$' + cbar_q + '/$\partial$' + w['xlabel']
+			w['data_quantity'] = '$\partial$' + data_q + '/$\partial$' + w['xlabel']
 		else:
-			w['cbar_quantity'] = '$\partial^{}$'.format(difforder) + cbar_q + '/$\partial$' + w['xlabel'] + '$^{}$'.format(difforder)
+			w['data_quantity'] = '$\partial^{}$'.format(difforder) + data_q + '/$\partial$' + w['xlabel'] + '$^{}$'.format(difforder)
 		XX_t = signal.savgol_filter(XX, samples, order, deriv=difforder, delta=np.diff(X,axis=axis)[0,0], axis=axis, mode='constant',cval=np.nan)
-		if cbar_u == 'nA' and order == 1: 
+		if data_u == 'nA' and order == 1: 
 			if condquant == True:
 				XX_t = (1e-6 / cq) * XX_t
-				w['cbar_unit'] = r'2$e^2$/h'
+				w['data_unit'] = r'2$e^2$/h'
 			else:
-				w['cbar_unit'] = r'$\mu$S'
-		elif cbar_u == 'A' and order ==1:
+				w['data_unit'] = r'$\mu$S'
+		elif data_u == 'A' and order ==1:
 			if condquant == True:
 				XX_t = (1/cq) * XX_t
-				w['cbar_unit'] = r'2$e^2$/h'
+				w['data_unit'] = r'2$e^2$/h'
 			else:
-				w['cbar_unit'] = r'S'
+				w['data_unit'] = r'S'
 		
-		elif cbar_u == 'mV' and order == 1:
+		elif data_u == 'mV' and order == 1:
 			if condquant == True:
 				XX_t = 1e6*cq * XX_t
-				w['cbar_unit'] = r'h/2$e^2$'
+				w['data_unit'] = r'h/2$e^2$'
 			else:
-				w['cbar_unit'] = r'M$\Omega$'
-		elif cbar_u == 'V' and order ==1:
+				w['data_unit'] = r'M$\Omega$'
+		elif data_u == 'V' and order ==1:
 			if condquant == True:
 				XX_t = cq * XX_t
-				w['cbar_unit'] = r'h/2$e^2$'
+				w['data_unit'] = r'h/2$e^2$'
 			else:
-				w['cbar_unit'] = r'$\Omega$'
+				w['data_unit'] = r'$\Omega$'
 		else:
-			w['cbar_unit'] = ''
+			w['data_unit'] = ''
 	w['XX']=XX_t
 		
 def helper_hardgap(w): #Needs equally spaced axes
@@ -594,9 +622,9 @@ def helper_int(w):
 	ccstrtwo = r'2e$^2$/h' 
 	ccstr = r'e$^2$/h' 
 	modifier = 1
-	if ccstrtwo in w['cbar_unit']:
+	if ccstrtwo in w['data_unit']:
 		modifier = 	 (2*sc.elementary_charge**2/sc.h)
-	elif ccstr in w['cbar_unit']:
+	elif ccstr in w['data_unit']:
 		modifier = (sc.elementary_charge**2/sc.h)
 	if XX.ndim == 1:
 		intarr = np.nancumsum(XX)*np.diff(X,prepend=X[0]-(X[1]-X[0]))
@@ -610,22 +638,22 @@ def helper_int(w):
 		w['XX']=XX*modifier
 		dxunit = w['yunit']
 	if modifier != 1 and dxunit == 'V':
-		w['cbar_unit'] = 'A'
+		w['data_unit'] = 'A'
 	elif modifier != 1 and dxunit == 'A':
-		w['cbar_unit'] = 'int(S dA)'
-	elif w['cbar_unit'] == 'S' and dxunit == 'V':
-		w['cbar_unit'] = 'A'
-	elif w['cbar_unit'] == r'$\mu$S' and dxunit == 'mV':
-		w['cbar_unit'] = 'nA'
-	elif w['cbar_unit'] == r'$\Omega$' and dxunit == 'A':
-		w['cbar_unit'] = 'V'
-	elif w['cbar_unit'] == r'k$\Omega$' and dxunit == 'nA':
-		w['cbar_unit'] = 'mV'
-	elif w['cbar_unit'] == r'M$\Omega$' and dxunit == 'nA':
-		w['cbar_unit'] = r'$\mu$V'
+		w['data_unit'] = 'int(S dA)'
+	elif w['data_unit'] == 'S' and dxunit == 'V':
+		w['data_unit'] = 'A'
+	elif w['data_unit'] == r'$\mu$S' and dxunit == 'mV':
+		w['data_unit'] = 'nA'
+	elif w['data_unit'] == r'$\Omega$' and dxunit == 'A':
+		w['data_unit'] = 'V'
+	elif w['data_unit'] == r'k$\Omega$' and dxunit == 'nA':
+		w['data_unit'] = 'mV'
+	elif w['data_unit'] == r'M$\Omega$' and dxunit == 'nA':
+		w['data_unit'] = r'$\mu$V'
 	else:
-		w['cbar_unit'] = 'int(' + w['cbar_unit'] + ')/d' + w['yunit']
-	w['cbar_quantity'] = ''
+		w['data_unit'] = 'int(' + w['data_unit'] + ')/d' + w['yunit']
+	w['data_quantity'] = ''
 
 def helper_log(w):
 	'''
@@ -634,9 +662,9 @@ def helper_log(w):
 	'''
 
 	w['XX'] = np.log10(np.abs(w['XX']))
-	w['cbar_trans'] = ['log$_{10}$','abs'] + w['cbar_trans']
-	w['cbar_quantity'] = w['cbar_quantity']
-	w['cbar_unit'] = w['cbar_unit']
+	#w['data_trans'] = ['log$_{10}$','abs'] + w['data_trans']
+	w['data_quantity'] = 'log$_{10}$|'+ w['data_quantity'] + '|'
+	w['data_unit'] = 'log$_{10}$|'+ w['data_unit'] + '|'
 	
 def helper_logdb(w):
 	'''
@@ -645,12 +673,12 @@ def helper_logdb(w):
 	'''
 
 	w['XX'] = 20*np.log10(np.abs(w['XX']))
-	if w['cbar_quantity'] == '':
+	if w['data_quantity'] == '':
 		w['yunit'] = 'dB'
 	else:
-		w['cbar_trans'] = ['20log$_{10}$','dB'] + w['cbar_trans']
-		w['cbar_quantity'] = w['cbar_quantity']
-		w['cbar_unit'] = w['cbar_unit']
+		#w['data_trans'] = ['20log$_{10}$','dB'] + w['data_trans']
+		w['data_quantity'] = 'log$_{20}$|'+ w['data_quantity'] + '|'
+		w['data_unit'] = 'log$_{20}$|'+ w['data_unit'] + '|'
 
 def helper_fancylog(w):
 
@@ -1009,26 +1037,26 @@ def helper_ivreverser(w):
 		print('I sourced detected')
 		w['ylabel'] = '$V_\mathrm{SD}$'
 		w['yunit'] = 'mV'
-		w['cbar_quantity'] = '$I_\mathrm{S}$'
-		w['cbar_unit'] = 'nA'
+		w['data_quantity'] = '$I_\mathrm{S}$'
+		w['data_unit'] = 'nA'
 	elif w['yunit'].find('mV') != -1:
 		print('V sourced detected')
 		w['ylabel'] = '$I_\mathrm{D}$'
 		w['yunit'] = 'nA'
-		w['cbar_quantity'] = '$V_\mathrm{SD}$'
-		w['cbar_unit'] = 'mV'
+		w['data_quantity'] = '$V_\mathrm{SD}$'
+		w['data_unit'] = 'mV'
 	elif w['yunit'].find('A') != -1:
 		print('I sourced detected')
 		w['ylabel'] = '$V_\mathrm{SD}$'
 		w['yunit'] = 'V'
-		w['cbar_quantity'] = '$I_\mathrm{S}$'
-		w['cbar_unit'] = 'A'
+		w['data_quantity'] = '$I_\mathrm{S}$'
+		w['data_unit'] = 'A'
 	elif w['yunit'].find('V') != -1:
 		print('V sourced detected')
 		w['ylabel'] = '$I_\mathrm{D}$'
 		w['yunit'] = 'A'
-		w['cbar_quantity'] = '$V_\mathrm{SD}$'
-		w['cbar_unit'] = 'V'
+		w['data_quantity'] = '$V_\mathrm{SD}$'
+		w['data_unit'] = 'V'
 
 def helper_excesscurrent(w):  #Needs equally spaced axes
 	'''
@@ -1117,7 +1145,7 @@ def helper_linecut(w):  #Needs equally spaced axes
 			plt.plot(yaxis,datavals)
 			dataarray[val,:] = datavals
 		xlabel = w['ylabel'] + ' ('+ w['yunit'] + ')'
-		ylabel = w['cbar_quantity'] + ' ('+ w['cbar_unit'] + ')'
+		ylabel = w['data_quantity'] + ' ('+ w['data_unit'] + ')'
 		xaxis = yaxis
 	if axis == 'y':
 		dataarray = np.zeros((len(linecutvalue),xn))
@@ -1127,7 +1155,7 @@ def helper_linecut(w):  #Needs equally spaced axes
 			plt.plot(xaxis,datavals)
 			dataarray[val,:] = datavals
 		xlabel = w['xlabel'] + ' ('+ w['xunit'] + ')'
-		ylabel = w['cbar_quantity'] + ' ('+ w['cbar_unit'] + ')'
+		ylabel = w['data_quantity'] + ' ('+ w['data_unit'] + ')'
 	plt.xlabel(xlabel)
 	plt.ylabel(ylabel)
 	w['buffer']={'labels': [xlabel,ylabel], 'data':dataarray, 'xaxis':xaxis, 'vals':[linecutvalue]} #wrapping for further analysis
@@ -1264,8 +1292,8 @@ def helper_shapiro(w):  #Needs equally spaced axes
 		w['XX'] = w['XX']*2*electron/(planck*rffreq*1000) #Convert XX to energy
 	else:
 		w['XX'] = w['XX']*2*electron/(planck*rffreq) #Convert XX to energy
-	w['cbar_quantity'] = '$V_\mathrm{SD}$'
-	w['cbar_unit'] = '$hf/2e$'
+	w['data_quantity'] = '$V_\mathrm{SD}$'
+	w['data_unit'] = '$hf/2e$'
 	#print rffreq
 	XX = w['XX']
 	xn, yn = XX.shape
@@ -1287,7 +1315,7 @@ def helper_shapiro(w):  #Needs equally spaced axes
 			stepneg[n][i] = yaxis[snegindex]
 		plt.plot(xaxis,steppos[n][:],xaxis,stepneg[n][:])
 	xlabel = w['xlabel'] + ' ('+ w['xunit'] + ')'
-	#ylabel = w['cbar_quantity'] + ' ('+ w['cbar_unit'] + ')'
+	#ylabel = w['data_quantity'] + ' ('+ w['data_unit'] + ')'
 	ylabel = w['ylabel'] + ' ('+ w['yunit'] + ')'
 	plt.xlabel(xlabel)
 	plt.ylabel(ylabel)
@@ -1325,8 +1353,8 @@ def helper_histogram(w): # Needs equally spaced axes
 		hist = np.histogram(XX[i,:],histbins, range=(histrange[0],histrange[1]))	
 		fullhist[i,:] = hist[0][:]*float(w['ext'][3] - w['ext'][2])/(len(self.Y[0,:])-1)
 	w['XX'] = fullhist
-	w['cbar_quantity'] = '$I_\mathrm{bins}$'
-	w['cbar_unit'] = 'nA'
+	w['data_quantity'] = '$I_\mathrm{bins}$'
+	w['data_unit'] = 'nA'
 	w['ylabel'] = '$V_\mathrm{SD}$ (hf/2e)'
 	w['ext'] = [w['ext'][0],w['ext'][1],histrange[0],histrange[1]]
 
@@ -1397,9 +1425,9 @@ def helper_abs(w):
 	Warning:
 	'''
 	w['XX'] = np.abs(w['XX'])
-	#w['cbar_trans'] = ['abs'] + w['cbar_trans']
-	w['cbar_quantity'] = '|' +w['cbar_quantity']+'|'
-	w['cbar_unit'] = w['cbar_unit']
+	#w['data_trans'] = ['abs'] + w['data_trans']
+	w['data_quantity'] = '|' +w['data_quantity']+'|'
+	w['data_unit'] = w['data_unit']
 
 def helper_flipaxes(w):
 	'''
@@ -1951,9 +1979,9 @@ def getEmptyWrap():
 		'X': [],
 		'Y': [],
 		'XX': [], 
-		'cbar_quantity': '',
-		'cbar_unit': 'a.u.',
-		'cbar_trans': [],
+		'data_quantity': '',
+		'data_unit': 'a.u.',
+		'data_trans': [],
 		'xlabel': [],
 		'ylabel': [],
 		'xunit': [],

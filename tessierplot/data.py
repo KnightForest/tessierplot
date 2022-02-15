@@ -34,9 +34,10 @@ class dat_parser(parser):
         names = [i['name'] for n,i in enumerate(self._header) if 'column' in self._header[n]]
 
         self._data = pandas.read_csv(f,
-                                 sep='\t',
+                                 sep='\t+|,',
                                  comment='#',
                                  skiprows=self._headerlength,
+                                 engine ='python',
                                  header=None,
                                  names=names)
         return super(dat_parser,self).parse()
@@ -46,6 +47,45 @@ class dat_parser(parser):
     
     def is_valid(self):
         pass
+
+class qtm_parser(dat_parser):
+    def __init__(self,filename=None,filebuffer=None):
+        super(qtm_parser,self).__init__(filename=filename,filebuffer=filebuffer)
+
+    def parse(self):
+        return super(qtm_parser,self).parse()
+
+    def is_valid(self):
+        pass
+
+    def parseheader(self):
+        filebuffer = self._filebuffer
+        firstline = (filebuffer.readline().decode('utf-8', 'ignore')).rstrip()
+        
+        if not firstline: # for emtpy data files
+            return None,-1
+        headerlength = 3
+        secondline = (filebuffer.readline().decode('utf-8', 'ignore')).rstrip()
+        thirdline = (filebuffer.readline().decode('utf-8', 'ignore')).rstrip()
+        #thirdline = (filebuffer.readline().decode('utf-8', 'ignore'))#.rstrip()
+        setgetlist = list(firstline.split('|')[1])
+        #print(secondline)
+        columnnames = thirdline.split(',')
+        headervalues=[]
+        #units = []
+        headerlength=0
+        for i,val in enumerate(setgetlist):
+            if val == 's':
+                line = [i,columnnames[i],'coordinate','',columnnames[i]]
+                line_x = line_x = zip(['column','name','type', 'unit', 'label'],line)
+                headervalues.append(line_x)
+            if val == 'g':
+                line = [i,columnnames[i],'value','',columnnames[i]]
+                line_x = line_x = zip(['column','name','type', 'unit', 'label'],line)
+                headervalues.append(line_x)
+        headervalues = [dict(x) for x in headervalues]
+
+        return headervalues,headerlength 
 
 class qcodes_parser(dat_parser):
     def __init__(self,filename=None,filebuffer=None):
@@ -316,34 +356,71 @@ class filetype():
     def __init__(self,filepath=None):
         self._parser = None
         self._filepath = filepath
-
-        #is there a snapshot.json file in the directory?
-        #if yes, we can assume it's a qcodes measurement file
-        json_file = self.getjsonfilepath(filepath)
-        set_file = self.getsetfilepath(filepath)
-        if os.path.exists(json_file):
-            self._datparser = qcodes_parser
-        elif os.path.exists(set_file):
-            self._datparser = qtlab_parser
-        else:
-            self._datparser = dat_parser
-        
-        self._FILETYPES = {
-            '.dat': self._datparser, # link the correct parser to .dat files
-            '.dat.gz': factory_gz_parser(self._datparser) # let the gz parser class have the right parent
-        }
+        self._datparser, self._file_Extension = self.selectparser(filepath)
 
     def get_parser(self):
-        ftype = self.get_filetype()
-        for f in self._FILETYPES.keys():
-            if f == ftype:
-                return self._FILETYPES[f]
-        else:
-            raise('No valid filetype')
-
-        return None
+        return self._datparser
 
     @classmethod
+    def selectparser(cls,filepath=''):
+        cls._SUPPORTED_FILETYPES = ['.dat', '.csv', '.gz']
+        cls._SUPPORTED_METATYPES = ['.set', '.txt', '.json']
+        file_Path, file_Extension = os.path.splitext(filepath)
+        # look for supported metadata files
+        exts = []
+        if file_Extension in cls._SUPPORTED_FILETYPES:
+            meta_Extension = []
+            for file in os.listdir(os.path.dirname(filepath)):
+                if os.path.splitext(file)[1] in cls._SUPPORTED_METATYPES:
+                    meta_Extension.append(os.path.splitext(file)[1])
+            if len(meta_Extension) > 1:
+                print('Too many supported metadata files in measurement folder.')
+                meta_Extension = []
+            elif len(meta_Extension) == 0:
+                print('No supported metadata extension found. \nOnly ' + ' '.join(cls._SUPPORTED_METATYPES) + ' are supported.')
+                meta_Extension = ''
+            else:
+                meta_Extension = meta_Extension[0]
+        else:
+            print('Unsupported file extension: ' + file_Extension + '\nOnly ' + ' '.join(cls._SUPPORTED_FILETYPES) + ' are supported.')
+
+        # select correct parser based on metadata extension and data file extension
+        if meta_Extension == '.json':
+            if file_Extension ==  '.gz':
+                file_Path = os.path.splitext(file_Path)[0]
+                parser = factory_gz_parser(qcodes_parser)
+            elif file_Extension != '.dat':
+                print('Wrong file extension for qcodes parser: ' + file_Extension)
+                parser = None
+            else: 
+                parser =  qcodes_parser
+        
+        elif meta_Extension == '.txt':
+            if file_Extension ==  '.gz':
+                file_Path = os.path.splitext(file_Path)[0]
+                parser = factory_gz_parser(qtm_parser)
+            elif file_Extension != '.csv':
+                print('Wrong file extension for qtlab parser: ' + file_Extension)
+                parser =  None
+            else: 
+                parser =  qtm_parser
+        
+        elif meta_Extension == '.set':
+            if file_Extension ==  '.gz':
+                file_Path = os.path.splitext(file_Path)[0]
+                parser = factory_gz_parser(qtlab_parser)
+            elif file_Extension != '.dat':
+                print('Wrong file extension for qtlab parser: ' + file_Extension)
+                parser =  None
+            else: 
+                parser =  qtlab_parser
+        elif file_Extension == '.dat':
+            parser = dat_parser
+        else:
+            print('Error: no parser suitable with combination of data and meta file extensions.')
+            parser = None
+        return parser, file_Extension
+
     def getsetfilepath(cls,filepath=''):
         file_Path, file_Extension = os.path.splitext(filepath)
         if file_Extension ==  '.gz':
@@ -357,27 +434,10 @@ class filetype():
         
         return setfilepath
 
-    def getjsonfilepath(cls,filepath=''):
-        file_Path, file_Extension = os.path.splitext(filepath)
-        if file_Extension ==  '.gz':
-            file_Path = os.path.splitext(file_Path)[0]
-        elif file_Extension != '.dat':
-            print('Wrong file extension')
-        json_f = [f for f in os.listdir(os.path.dirname(filepath)) if f.endswith('.json')]
-        if json_f:
-            json_file = ''.join((os.path.dirname(filepath),'\\',json_f[0]))
-            if not os.path.exists(json_file):
-                json_file = ''
-        else:
-            json_file = ''
-        return json_file    
-    
     def get_filetype(self):
-        for ext in self._FILETYPES.keys():
-            if self._filepath.endswith(ext):
-                return ext
-                
-        return None
+        return self._file_Extension
+
+        return parser, file_Extension
 
 class Data(pandas.DataFrame):
     
@@ -404,7 +464,6 @@ class Data(pandas.DataFrame):
         
         return ftype.get_filetype()
 
-
     @classmethod
     def load_header_only(cls,filepath):
         parser = cls.determine_parser(filepath)
@@ -415,7 +474,6 @@ class Data(pandas.DataFrame):
         header,headerlength = p.parseheader()
         df = Data()
         df._header = header
-
         return df
     
     @classmethod
@@ -508,20 +566,6 @@ class Data(pandas.DataFrame):
             dims = np.hstack( ( dims ,len(col.unique())  ) )
 
         return dims
-
-    # @property
-    # def uniquecoordvals(self):
-    #     #returns an array with the amount of unique values of each coordinate column
-
-    #     dims = np.array([],dtype='int')
-    #     #first determine the columns belong to the axes (not measure) coordinates
-    #     cols = [i for n,i in enumerate(self._header) if ('column' in self._header[n] and i['type'] == 'coordinate')]
-
-    #     for i in cols:
-    #         col = getattr(self.sorted_data,i['name']).unique()
-    #         #dims = np.hstack( ( dims ,(col.unique())  ) )
-
-    #     return col
 
     def make_filter_from_uniques_in_columns(self,columns):
     #generator to make a filter which creates measurement 'sets'

@@ -38,6 +38,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from scipy.signal import argrelmax
 from scipy.interpolate import griddata
+from quantiphy import Quantity
 
 import numpy as np
 import math
@@ -118,6 +119,7 @@ class plotR(object):
 		self.exportData = []
 		self.exportDataMeta = []
 		self.bControls = True #boolean controlling state of plot manipulation buttons
+		self.quantiphy_ignorelist = ['dBm','dB', 'rad', 'rad', 'Deg', 'deg', 'Arb', 'arb.']
 		#print(self.data._header)
 		#print(self.data.coordkeys)
 		
@@ -204,6 +206,7 @@ class plotR(object):
 						supress_plot = False, #Suppression of all plotting functions, only processes data
 						norm = 'nan', #Added for NaN value support
 						axislabeltype = 'label', #Use 'label' or 'name' on axis labels
+						quantiphy = True, #Use quantiphy to convert units and axis labels to manageable quantities
 						**kwargs):
 		#some housekeeping
 		if not self.fig and not ax_destination:
@@ -446,19 +449,19 @@ class plotR(object):
 				if axislabeltype == 'label':
 					xaxislabel = coord_labels[-2] 
 					yaxislabel = coord_labels[-1]
-					cbar_quantity = value_labels[value_axis] 
+					data_quantity = value_labels[value_axis] 
 				elif axislabeltype == 'name':
 					xaxislabel = coord_keys[-2] 
 					yaxislabel = coord_keys[-1]
-					cbar_quantity = value_keys[value_axis] 
+					data_quantity = value_keys[value_axis] 
 				else:
 					raise Exception('Wrong axislabeltype argument, must be \'name\' or \'label\'')
 				xaxisunit = coord_units[-2]
 				yaxisunit = coord_units[-1]
-				cbar_unit = value_units[value_axis]
+				data_unit = value_units[value_axis]
 				#wrap all needed arguments in a datastructure
 				sbuffer = ''
-				cbar_trans = [] #transcendental tracer :P For keeping track of logs and stuff
+				data_trans = [] #transcendental tracer :P For keeping track of logs and stuff
 				w = styles.getPopulatedWrap(style)
 				w2 = {
 						'ext':ext,
@@ -468,9 +471,9 @@ class plotR(object):
 						'x': x,
 						'y': y,
 						'z': z,
-						'cbar_quantity': cbar_quantity, 
-						'cbar_unit': cbar_unit, 
-						'cbar_trans':cbar_trans, 
+						'data_quantity': data_quantity, 
+						'data_unit': data_unit, 
+						#'data_trans':data_trans, 
 						'buffer':sbuffer, 
 						'xlabel':xaxislabel, 
 						'xunit':xaxisunit, 
@@ -485,20 +488,57 @@ class plotR(object):
 				XX = w['XX']
 				Y = w['Y']
 				X = w['X']
-				cbar_trans_formatted = ''.join([''.join(s+'(') for s in w['cbar_trans']])
-				cbar_title = cbar_trans_formatted + w['cbar_quantity'] + ' (' + w['cbar_unit'] + ')'
-				if len(w['cbar_trans']) != 0:
-					cbar_title = cbar_title + ')'
-
+				data_trans_formatted = ''.join([''.join(s+'(') for s in w['data_trans']])
+				#data_title = data_trans_formatted + w['data_quantity'] + ' (' + w['data_unit'] + ')'
+				#if len(w['data_trans']) != 0:
+				#	data_title = data_title + ')'
 				self.stylebuffer = w['buffer'] 
 				self.xlabel = w['xlabel']
 				self.xunit = w['xunit']
 				self.ylabel= w['ylabel']
 				self.yunit = w['yunit']
-				self.cbarlabel = cbar_title
+				self.datalabel = w['data_quantity']
+				self.dataunit = w['data_unit']
 				self.XX_processed = XX
 				self.Y_processed = Y
 				self.X_processed = X
+				self.extent_processed = ext
+				xunit = self.xunit
+				yunit = self.yunit
+				ext = self.extent_processed
+				dataunit = self.dataunit
+
+				# Quantity conversion with the help of Quantiphy
+				if quantiphy == True:
+					if self.xunit != '' and self.xunit not in self.quantiphy_ignorelist:
+						ind1 = np.nanargmax(np.abs(ext[0:2]))
+						extqu1 = Quantity(ext[ind1], self.xunit).format().split(' ')
+						convfactor1 = float(extqu1[0])/ext[ind1]
+						self.quant_xunit = extqu1[1]
+						xunit = self.quant_xunit
+					else:
+						convfactor1 = 1
+					
+					if self.yunit != '' and self.yunit not in self.quantiphy_ignorelist:
+						ind2 = np.nanargmax(np.abs(ext[2:4]))+2
+						extqu2 = Quantity(ext[ind2], self.yunit).format().split(' ')
+						convfactor2 = float(extqu2[0])/ext[ind2]
+						self.quant_yunit = extqu2[1]
+						yunit = self.quant_yunit
+					else:
+						convfactor2 = 1	
+
+					if self.dataunit != '' and self.dataunit not in self.quantiphy_ignorelist:
+						dataind = np.divmod(np.nanargmax(np.abs(self.XX_processed)),  self.XX_processed.shape[1])
+						dataqu = Quantity(self.XX_processed[dataind],self.dataunit).format().split(' ')
+						dataconvfactor = float(dataqu[0])/self.XX_processed[dataind]
+						self.quant_XX_processed = self.XX_processed * dataconvfactor
+						self.quant_dataunit = dataqu[1]
+						dataunit = self.quant_dataunit
+						XX = self.quant_XX_processed
+
+					self.quant_extent_processed = ext = (ext[0]*convfactor1,ext[1]*convfactor1,ext[2]*convfactor2,ext[3]*convfactor2)
+					ext = self.quant_extent_processed
 
 				if w['imshow_norm'] == None: # Support for plotting NaN values in a different color
 					self.imshow_norm = colorbar.MultiPointNormalize()
@@ -551,18 +591,25 @@ class plotR(object):
 					ax.set_ylim(_ylims)
 				#ax.locator_params(nbins=5, axis='y') #Added to hardcode number of x ticks.
 				#ax.locator_params(nbins=7, axis='x')
+				#Tclk = Quantity(10e-9, 'S')
+
 				if 'flipaxes' in style:
-					xaxislabelwithunit = self.ylabel +	' (' + self.yunit + ')'
-					yaxislabelwithunit = self.xlabel +	' (' + self.xunit + ')'
+					xaxislabelwithunit = self.ylabel +	' (' + yunit + ')'
+					yaxislabelwithunit = self.xlabel +	' (' + xunit + ')'
 				else:
-					xaxislabelwithunit = self.xlabel +	' (' + self.xunit + ')'
-					yaxislabelwithunit = self.ylabel +	' (' + self.yunit + ')'
+					xaxislabelwithunit = self.xlabel +	' (' + xunit + ')'
+					yaxislabelwithunit = self.ylabel +	' (' + yunit + ')'
 				ax.set_xlabel(xaxislabelwithunit)
 				ax.set_ylabel(yaxislabelwithunit)
-				
+				cbar_title = self.datalabel + ' (' + dataunit + ')'
+
 				title = ''
 				for h,i in enumerate(uniques_col_str):
-					title = '\n'.join([title, '{:s}: {:g} {:s}'.format(unique_labels[h],getattr(data_slice,i).iloc[0], coord_units_raw[coord_keys_raw.index(i)] )])
+					if quantiphy == True:
+						titlequ = Quantity(getattr(data_slice,i).iloc[0],coord_units_raw[coord_keys_raw.index(i)]).format().split(' ')
+						title = '\n'.join([title, '{:s}: {:s} {:s}'.format(unique_labels[h],titlequ[0], titlequ[1] )])
+					else:
+						title = '\n'.join([title, '{:s}: {:g} {:s}'.format(unique_labels[h],getattr(data_slice,i).iloc[0], coord_units_raw[coord_keys_raw.index(i)] )])
 
 				if 'notitle' not in style:
 					if not self.isthumbnail:
@@ -636,6 +683,7 @@ class plotR(object):
 					legend=False,
 					filter_raw=True, #Do not show plots with 'Raw' string in label
 					axislabeltype = 'label', #Use 'label' or 'name' on axis labels
+					quantiphy = True, #Use quantiphy to convert units and axis labels to manageable quantities
 					**kwargs):
 					
 		if not self.fig and not ax_destination:
@@ -709,19 +757,18 @@ class plotR(object):
 
 				x=data.loc[:,coord_keys[-1]]
 				xx=data.loc[:,value_keys[value_axis]]
-				parser = self.data.determine_parser
 
 				if axislabeltype == 'label' and len(coord_labels_raw) == len(coord_keys_raw):
 					xaxislabel = coord_labels[-1]
 				else: #else defaulting to column name for axis labels
 					xaxislabel = coord_keys[-1] 
 				if axislabeltype == 'label' and len(value_labels) == len(value_keys):
-					cbar_quantity = value_labels[value_axis]
+					data_quantity = value_labels[value_axis]
 				else: #else defaulting to column name for axis labels
-					cbar_quantity = value_keys[value_axis]
+					data_quantity = value_keys[value_axis]
 
 				xaxisunit = coord_units[-1]
-				cbar_unit = value_units[value_axis]
+				data_unit = value_units[value_axis]
 
 				npx = np.array(x)
 				npxx = np.array(xx)
@@ -730,53 +777,75 @@ class plotR(object):
 				self.x = x
 				self.z = xx
 
-				#setting custom xlims and ylims, restricted within extent of data
-				if xlims == None:
-					_xlims = (x.min(),x.max())
-				else: #sets custum xlims only if they restrict the default xaxis
-					xzip = list(zip(xlims,[x.min(),x.max()]))
-					xlimsl = 2*[None]
-					xlimsl[0]=max(xzip[0])
-					xlimsl[1]=min(xzip[1])
-					_xlims=tuple(xlimsl)
-
-				if ylims == None:
-					_ylims = (xx.min(),xx.max())
-				else: #sets custum xyims always (since this is the data axis)
-					_ylims=tuple(ylims)
-
 				title =''
 
-				for i,z in enumerate(uniques_col_str):
-					pass
-					# this crashes sometimes. did not investiagte yet what the problem is. switched off in the meantime
-					#title = '\n'.join([title, '{:s}: {:g}'.format(uniques_axis_designations[i],data[z].iloc[0])])
+				# for i,z in enumerate(uniques_col_str):
+				# 	pass
+				# 	# this crashes sometimes. did not investiagte yet what the problem is. switched off in the meantime
+				# 	title = '\n'.join([title, '{:s}: {:g}'.format(uniques_axis_designations[i],data[z].iloc[0])])
 				wrap = styles.getPopulatedWrap(style)
 				wrap['XX'] = npxx
 				wrap['X']  = npx
 				wrap['Y'] = np.nan #not existing
 				wrap['xlabel'] = xaxislabel
 				wrap['xunit'] = xaxisunit
-				wrap['cbar_quantity'] = cbar_quantity
-				wrap['cbar_unit'] = cbar_unit
+				wrap['data_quantity'] = data_quantity
+				wrap['data_unit'] = data_unit
 				wrap['massage_func'] = massage_func
 				styles.processStyle(style,wrap)
-				xaxislabelwithunit = wrap['xlabel'] + ' (' + wrap['xunit'] + ')'
-				yaxislabelwithunit = wrap['cbar_quantity'] + ' (' + wrap['cbar_unit'] + ')'
 
 				self.stylebuffer = wrap['buffer'] 
-				self.xaxislabel = wrap['xlabel']
-				self.xaxisunit = wrap['xunit']
-				self.yaxislabel= wrap['cbar_quantity']
-				self.yaxisunit = wrap['cbar_unit']
+				self.xlabel = wrap['xlabel']
+				self.xunit = wrap['xunit']
+				self.datalabel= wrap['data_quantity']
+				self.dataunit = wrap['data_unit']
 				self.XX_processed = wrap['XX']
-				self.X = wrap['X']
+				self.X_processed = wrap['X']
+				xunit = self.xunit
+				dataunit = self.dataunit
+				XX = self.XX_processed
+				X = self.X_processed
+
+				# Quantity conversion with the help of Quantiphy
+				if quantiphy == True:
+					if self.xunit != '' and self.xunit not in self.quantiphy_ignorelist:
+						extqu1 = Quantity(np.nanmax(np.abs(self.X_processed)), self.xunit).format().split(' ')
+						convfactor1 = float(extqu1[0])/np.nanmax(np.abs(self.X_processed))
+						self.quant_xunit = extqu1[1]
+						xunit = self.quant_xunit
+						X = self.X*convfactor1
+					
+					if self.dataunit != '' and self.dataunit not in self.quantiphy_ignorelist:
+						dataqu = Quantity(np.nanmax(np.abs(self.XX_processed)),self.dataunit).format().split(' ')
+						dataconvfactor = float(dataqu[0])/np.nanmax(np.abs(self.XX_processed))
+						self.quant_XX_processed = self.XX_processed * dataconvfactor
+						self.quant_dataunit = dataqu[1]
+						dataunit = self.quant_dataunit
+						XX = self.quant_XX_processed
+
 				if supress_plot == False:
+					#setting custom xlims and ylims, restricted within extent of data
+					if xlims == None:
+						_xlims = (X.min(),X.max())
+					else: #sets custum xlims only if they restrict the default xaxis
+						xzip = list(zip(xlims,[X.min(),X.max()]))
+						xlimsl = 2*[None]
+						xlimsl[0]=max(xzip[0])
+						xlimsl[1]=min(xzip[1])
+						_xlims=tuple(xlimsl)
+
+					if ylims == None:
+						_ylims = (XX.min(),XX.max())
+					else: #sets custum xyims always (since this is the data axis)
+						_ylims=tuple(ylims)
+
+					xaxislabelwithunit = wrap['xlabel'] + ' (' + xunit + ')'
+					yaxislabelwithunit = wrap['data_quantity'] + ' (' + dataunit + ')'
 					if ax_destination:
 						ax = ax_destination
 					else:
 						ax = plt.subplot(gs[k])
-					ax.plot(wrap['X'],wrap['XX'],'o-', fillstyle='none', markersize=2,label=title,**kwargs)
+					ax.plot(X,XX,'o-', fillstyle='none', markersize=2,label=title,**kwargs)
 					#self.cutAx.plot(xx,z,'o-',fillstyle='none',markersize=2)
 					if legend:
 						plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,

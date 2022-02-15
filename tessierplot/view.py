@@ -45,7 +45,7 @@ def getthumbdatapath(file):
 
 def gzipit(self): #compresses all .dat files to .gz, deletes .dat files.
     file_Path, file_Extension = os.path.splitext(self)
-    if file_Extension == '.dat':
+    if file_Extension == '.dat' or file_Extension == '.csv':
         print(self)
         gzfile = self + '.gz'
         if os.path.isfile(gzfile)==False:
@@ -60,7 +60,7 @@ def gzipit(self): #compresses all .dat files to .gz, deletes .dat files.
             os.unlink(datfile)
 
 class tessierView(object):
-    def __init__(self, rootdir='./', filemask='.*\.dat(?:\.gz)?$',filterstring='',override=False,headercheck=None,style=[],showfilenames=False):
+    def __init__(self, rootdir='./', filemask='.*\.dat(?:\.gz)?$|.*\.csv(?:\.gz)?$',filterstring='',override=False,headercheck=None,style=[],showfilenames=False):
         self._root = rootdir
         self._filemask = filemask
         self._filterstring = filterstring
@@ -97,8 +97,7 @@ class tessierView(object):
             if ((not os.path.exists(thumbfile)) or override or thumbnailStale):
                 #now make thumbnail because it doesnt exist or if u need to refresh
                 p = ts.plotR(filename,isthumbnail=True,thumbs = [thumbfile,thumbfile_datadir])
-                
-                if len(p.data) > 10: ##just make sure really unfinished measurements are thrown out
+                if len(p.data) > 5: ##just make sure really unfinished measurements are thrown out
                     is2d = p.is2d()
                     if not style:
                         if is2d:
@@ -257,7 +256,6 @@ class tessierView(object):
                             'value_keys': k['value_keys'],
                             'higherdim_coords': k['higherdim_coords'] } for k in self._allthumbs]
         out=u"""
-
         
         <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
         <meta http-equiv="Pragma" content="no-cache"> 
@@ -267,7 +265,6 @@ class tessierView(object):
     
     {% set ncolumns = 4 %}
     {% set vars = {'lastdate': '', 'columncount': 1, 'higherorder': 0,} %}
-
     {% for item in items %}
     
         {% set isnewdate = (vars.lastdate != item.datedir) %}
@@ -282,14 +279,11 @@ class tessierView(object):
         {% if (vars.columncount % ncolumns == 1) %}
             <div class='row'>
         {% endif %}
-
             <div id='{{ item.datapath }}' class='col'>  {# mousehover filename and measurement comment #}
-
                 <div class='name'> {{ item.measname + '\n' + 'Comment: ' + item.comment }} </div>
                 <div class='thumb'>
                         <img src="{{ item.thumbpath }}?{{ nowstring }}"/> 
                 </div>
-
                 <div class='controls'>
                     <button id='{{ item.datapath }}' onClick='toclipboard(this.id)'>Filename to clipboard</button>
                     <br/>
@@ -304,10 +298,12 @@ class tessierView(object):
                         <option value="{{"\\'logdb\\'"|e}}">logdb</option>
                         <option value="{{"\\'mov_avg(n=12)\\'"|e}}">movavg</option>
                         <option value="{{"\\'savgol(samples=7,order=3,difforder=0)\\'"|e}}">Savitzky-Golay_filter</option>
-                        <option value="{{"\\'mov_avg(n=3)\\',\\'diff(condquant=True)\\',\\'mov_avg(n=3)\\'"|e}}">diff_movavg</option>
-                        <option value="{{"\\'mov_avg(n=12)\\',\\'diff(condquant=True)\\',\\'mov_avg(n=12)\\'"|e}}">diff_movavg_smooth</option>
-                        <option value="{{"\\'savgol(condquant=True,samples=7,order=3)\\'"|e}}">Savitzky-Golay_diff</option>
-                        <option value="{{"\\'savgol(condquant=True,samples=7,order=3)\\',\\'log\\'"|e}} ">Savitzky-Golay_diff,log</option>
+                        <option value="{{"\\'mov_avg(n=3)\\',\\'diff(condquant=False)\\',\\'mov_avg(n=3)\\'"|e}}">diff_movavg</option>
+                        <option value="{{"\\'mov_avg(n=3)\\',\\'diff(condquant=True)\\',\\'mov_avg(n=3)\\'"|e}}">diff_movavg_condquant</option>
+                        <option value="{{"\\'mov_avg(n=12)\\',\\'diff(condquant=False)\\',\\'mov_avg(n=12)\\'"|e}}">diff_movavg_smooth</option>
+                        <option value="{{"\\'savgol(condquant=False,samples=7,order=3)\\'"|e}}">Savitzky-Golay_diff</option>
+                        <option value="{{"\\'savgol(condquant=True,samples=7,order=3)\\'"|e}}">Savitzky-Golay_diff_conquant</option>
+                        <option value="{{"\\'savgol(condquant=False,samples=7,order=3)\\',\\'log\\'"|e}} ">Savitzky-Golay_diff,log</option>
                         <option value="{{"\\'movingmeansubtract(window=1)\\'"|e}} ">movmeansubtract</option>
                         <option value="{{"\\'movingmediansubtract(window=1)\\'"|e}} ">movmediansubtract</option>
                         <option value="{{"\\'meansubtract\\',\\'mov_avg(n=3)\\',\\'ivreverser\\',\\'mov_avg(n=3)\\',\\'diff\\'"|e}}">ivreverser,diff</option>
@@ -350,14 +346,12 @@ class tessierView(object):
                         {% if vars.update({'higherorder': 0}) %} {% endif %}
                     {% endif %}
                     <input type="hidden" name="higherorder" value="{{ vars.higherorder }}">
-
                     </form>            
                 </div>
             </div>
         {% if (vars.columncount % ncolumns == 0) %}
             </div>
         {% endif %}
-
         {% if vars.update({'columncount': vars.columncount+1}) %} {% endif %}
         {% if vars.update({'lastdate': item.datedir}) %} {% endif %}
     {% endfor %}    
@@ -465,7 +459,6 @@ class tessierView(object):
                     var n_ind = ''
                 }
                 //window.alert('n_indfinal'+n_ind)
-
                 
                 return n_ind
             }
@@ -520,7 +513,6 @@ class tessierView(object):
                 });
                 }
             };
-
         </script>
         
         <style type="text/css">
