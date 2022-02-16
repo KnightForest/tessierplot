@@ -373,10 +373,10 @@ class filetype():
             for file in os.listdir(os.path.dirname(filepath)):
                 if os.path.splitext(file)[1] in cls._SUPPORTED_METATYPES:
                     meta_Extension.append(os.path.splitext(file)[1])
-            if len(meta_Extension) > 1:
-                print('Too many supported metadata files in measurement folder.')
-                meta_Extension = []
-            elif len(meta_Extension) == 0:
+            #if len(meta_Extension) > 1:
+            #    print('Too many supported metadata files in measurement folder.')
+            #    meta_Extension = []
+            if len(meta_Extension) == 0:
                 print('No supported metadata extension found. \nOnly ' + ' '.join(cls._SUPPORTED_METATYPES) + ' are supported.')
                 meta_Extension = ''
             else:
