@@ -757,7 +757,6 @@ class plotR(object):
 					print('Warning: 2dplot found no coordinate axis, resetting keys. Repeat measurement of same coordinate suspected.')
 					coord_keys,coord_units,coord_labels = self.data.coordkeys_n
 				#value_keys, value_units = self.data.valuekeys
-				print(coord_keys)
 				x=data.loc[:,coord_keys[-1]]
 				xx=data.loc[:,value_keys[value_axis]]
 
