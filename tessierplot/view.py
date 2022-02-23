@@ -398,8 +398,11 @@ class tessierView(object):
                 pycommand(exec);
             }
             function refresh(id) {
+                var style = getStyle(id);
                 id = id.replace(/\\\\/g,"\\\\\\\\");
-                exec ='from tessierplot import view;  a=view.tessierView();a.makethumbnail(\"' + id + '\",override=True)';
+                //window.alert(style);
+                exec ='from tessierplot import view;  a=view.tessierView();a.makethumbnail(\"' + id + '\",override=True,style=%s)';
+                exec=exec.printf(style);
                 pycommand(exec,refresh_callback,id); 
             }
             function refresh_callback(id) {
@@ -477,6 +480,7 @@ class tessierView(object):
                 dir = id.split('/');
                 
                 exec = 'filename \= \"' + id + '\"; {{ plotcommand }}';
+                //window.alert(exec)
                 exec = exec.printf(style,v_ax,n_ind)
                 //window.alert(exec)
                 pycommand(exec);

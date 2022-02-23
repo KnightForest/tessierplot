@@ -318,7 +318,7 @@ class Linecut:
 			self.cutFig, self.cutAx = plt.subplots()
 			self.cutFig.canvas.mpl_connect('close_event', self.cutFigClosed)
 		#self.cutAx.cla()
-		self.cutAx.plot(xx,z,'o-',fillstyle='none',markersize=2)
+		self.cutAx.plot(xx,z,'o-',fillstyle='none',markersize=1)
 		#self.cutAx.plot(xx,z,markerstyle='o',fillstyle='none',markersize=5)
 		#ylabel = self.plotr.cbarlabel
 		if vertical == True:
@@ -373,7 +373,7 @@ class Linecut:
 		for i in a:
 			xmin,xmax,ymin,ymax = i.get_extent()
 
-		self.makeLinecut(event,not self.altpressed)
+		#self.makeLinecut(event,not self.altpressed)
 		self.fig.canvas.draw()
 
 	def on_release(self, event):
