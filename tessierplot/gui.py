@@ -317,6 +317,156 @@ class Linecut:
 		if self.cutFig == None:
 			self.cutFig, self.cutAx = plt.subplots()
 			self.cutFig.canvas.mpl_connect('close_event', self.cutFigClosed)
+		self.cutAx.cla()
+		self.cutAx.plot(xx,z,'o-',fillstyle='none',markersize=1)
+		#self.cutAx.plot(xx,z,markerstyle='o',fillstyle='none',markersize=5)
+		#ylabel = self.plotr.cbarlabel
+		if vertical == True:
+			self.cutAx.set_xlabel(event.inaxes.get_ylabel())
+		else:
+			self.cutAx.set_xlabel(event.inaxes.get_xlabel())
+		self.cutAx.set_ylabel('Data')
+		self.cutFig.tight_layout()
+		self.cutFig.canvas.draw()
+		
+		#erase previous line
+		self.eraseLine()
+
+		#draw the line where the cut is
+		self.drawLine(event.inaxes,cutline_coords)
+
+	def cutFigClosed(self,event):
+		#remove the gui line
+		self.eraseLine()
+		self.disconnect()
+		self.cutFig = None
+		#toggle the gui button back
+		self.fig.cutbutton.state=0
+		self.fig.cutbutton.updateIcon()
+
+	def on_keypress (self,event):
+		if  event.key=='alt':
+			self.altpressed=True
+	def on_keyrelease(self,event):
+		if event.key=='alt':
+			self.altpressed=False
+	def on_press(self, event):
+		'on button press we will see if the mouse is over us and store some data'
+
+		contains, attrd = self.fig.contains(event)
+		if not contains: return
+		if(event.xdata==None): return
+		self.press = event.xdata, event.ydata
+		a = event.inaxes.images
+		#show a linecut
+
+		self.makeLinecut(event,not self.altpressed)
+
+	def on_motion(self, event):
+		'on motion we will move the line if the mouse is over us'
+		if self.press is None: return
+		if(event.xdata==None): return
+		xpress, ypress = self.press
+
+		a = event.inaxes.images
+
+		for i in a:
+			xmin,xmax,ymin,ymax = i.get_extent()
+
+		#self.makeLinecut(event,not self.altpressed)
+		self.fig.canvas.draw()
+
+	def on_release(self, event):
+		'on release we reset the press data'
+		self.press = None
+
+class Waterfall:
+	def __init__(self,fig,plotr):
+		self.fig = fig
+		self.plotr= plotr
+		self.press = None
+		self.cutFig = None
+		self.cutAx = None
+		self.active = False
+		self.altpressed=False
+		self.gui_cutline =  None
+
+
+	def line_select_callback(eclick, erelease):
+		'eclick and erelease are the press and release events'
+		x1, y1 = eclick.xdata, eclick.ydata
+		x2, y2 = erelease.xdata, erelease.ydata
+		#print("({:3.2f}, {:3.2f}) --> ({:3.2f}, {:3.2f})".format(x1, y1, x2, y2))
+		#print(" The button you used were: {:s} {:s}".format(eclick.button, erelease.button))
+
+	def connect(self):
+		'(dis-)connect to all the events we need'
+		if(not self.active):
+			self.cidpress = self.fig.canvas.mpl_connect(
+					'button_press_event', self.on_press)
+			self.cidrelease = self.fig.canvas.mpl_connect(
+					'button_release_event', self.on_release)
+			self.cidmotion = self.fig.canvas.mpl_connect(
+					'motion_notify_event', self.on_motion)
+			self.cigkeypress = self.fig.canvas.mpl_connect(
+					'key_press_event', self.on_keypress)
+			self.cigkeyrelease = self.fig.canvas.mpl_connect(
+					'key_release_event', self.on_keyrelease)
+			self.active = True
+		else:
+			if self.cutFig is not None:
+				plt.close(self.cutFig)
+			self.disconnect()
+
+	def disconnect(self):
+		'disconnect all the events we needed'
+		self.fig.canvas.mpl_disconnect(self.cidpress)
+		self.fig.canvas.mpl_disconnect(self.cidrelease)
+		self.fig.canvas.mpl_disconnect(self.cidmotion)
+		self.fig.canvas.mpl_disconnect(self.cigkeypress)
+		self.fig.canvas.mpl_disconnect(self.cigkeyrelease)
+		self.active = False
+
+	def drawLine(self,axes,coords):
+		#draw line in original gui window
+		if self.gui_cutline is not None:
+			del self.gui_cutline
+		self.gui_cutline = Line2D(coords[0],coords[1],linestyle='-',linewidth=3,color='white')
+		axes.add_line(self.gui_cutline)
+		self.fig.canvas.draw()
+
+	def eraseLine(self):
+		#make sure there are no more references to the line
+		if self.gui_cutline is not None:
+			self.gui_cutline.remove()
+			del self.gui_cutline
+			self.gui_cutline = None
+		self.fig.canvas.draw()
+
+	def makeLinecut(self,event,vertical=True):
+		#get data from the imshow object
+		im = event.inaxes.images[0]
+		data = im.get_array()
+		ext = im.get_extent()
+		x = np.linspace(ext[0],ext[1],data.shape[1])
+		y = np.linspace(ext[3],ext[2],data.shape[0]) #images have origin in topleft?
+		#determine column from mouse data and fig
+		#determine if horizontal or vertical
+		if vertical:
+			xx = y
+			idx = (np.abs( x -  event.xdata)).argmin()
+			z = data[:,idx]
+			cutline_coords = ([event.xdata,event.xdata],[ext[3],ext[2]])
+		else:
+			xx = x
+			idx = (np.abs( y -  event.ydata)).argmin()
+			z = data[idx,:]
+			cutline_coords = ([x[0],x[-1]],[event.ydata,event.ydata])
+
+		#determine if there's a plot object
+		if self.cutFig == None:
+			self.cutFig, self.cutAx = plt.subplots()
+			self.cutFig.canvas.mpl_connect('close_event', self.cutFigClosed)
 		#self.cutAx.cla()
 		self.cutAx.plot(xx,z,'o-',fillstyle='none',markersize=1)
 		#self.cutAx.plot(xx,z,markerstyle='o',fillstyle='none',markersize=5)

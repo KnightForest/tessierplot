@@ -15,6 +15,10 @@ setup(name='tessierplot',
           'six',
           'pandas',
           'pywin32',
-          'quantiphy'
+          'quantiphy',
+          'scipy',
+          'peakutils',
+          'numpy',
+          'pyqt'
       ],
       zip_safe=False)
