@@ -267,6 +267,7 @@ class Linecut:
 			if self.cutFig is not None:
 				plt.close(self.cutFig)
 			self.disconnect()
+			self.active = False
 
 	def disconnect(self):
 		'disconnect all the events we needed'
@@ -373,7 +374,7 @@ class Linecut:
 		for i in a:
 			xmin,xmax,ymin,ymax = i.get_extent()
 
-		#self.makeLinecut(event,not self.altpressed)
+		self.makeLinecut(event,not self.altpressed)
 		self.fig.canvas.draw()
 
 	def on_release(self, event):
@@ -417,6 +418,7 @@ class Waterfall:
 			if self.cutFig is not None:
 				plt.close(self.cutFig)
 			self.disconnect()
+			self.active = False
 
 	def disconnect(self):
 		'disconnect all the events we needed'
