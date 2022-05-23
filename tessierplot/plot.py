@@ -119,7 +119,7 @@ class plotR(object):
 		self.exportData = []
 		self.exportDataMeta = []
 		self.bControls = True #boolean controlling state of plot manipulation buttons
-		self.quantiphy_ignorelist = ['dBm','dB', 'rad', 'rad', 'Deg', 'deg', 'Arb', 'arb.']
+		self.quantiphy_ignorelist = ['dBm','dB', 'rad', 'rad', 'Deg', 'deg', 'Arb', 'arb.', 'nA', 'mV']
 		#print(self.data._header)
 		#print(self.data.coordkeys)
 		
@@ -373,7 +373,7 @@ class plotR(object):
 
 				if ylims == None:
 					_ylims = (ext[2],ext[3])
-				else: #sets custum xyims only if they restrict the default yaxis
+				else: #sets custom xyims only if they restrict the default yaxis
 					yzip = list(zip(ylims,[ext[2],ext[3]]))
 					ylimsl = 2*[None]
 					ylimsl[0]=max(yzip[0])
@@ -665,7 +665,7 @@ class plotR(object):
 			self.toggleFiddle()
 			self.toggleLinedraw()
 			self.toggleLinecut()
-	
+			self.toggleWaterfall()
 		return self.fig
 
 	def plot2d(self,massage_func=None,
@@ -925,6 +925,16 @@ class plotR(object):
 
 		#attach to the relevant figure to make sure the object does not go out of scope
 		self.fig.linecut = self.linecut
+
+	def toggleWaterfall(self):
+		self.waterfall=Waterfall(self.fig,self)
+		self.fig.waterfallbutton = toggleButton('waterfall', self.waterfall.connect)
+		topwidget = self.fig.canvas.window()
+		toolbar = topwidget.children()[1]
+		action = toolbar.addWidget(self.fig.waterfallbutton)
+
+		#attach to the relevant figure to make sure the object does not go out of scope
+		self.fig.waterfall = self.waterfall
 
 	def toggleFiddle(self):
 		from IPython.core import display
