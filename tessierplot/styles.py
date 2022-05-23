@@ -1824,7 +1824,7 @@ def helper_icvsx(w):  #Needs equally spaced axes
 
 	fig = plt.figure()
 	xlabel = w['xlabel'] + ' ('+ w['xunit'] + ')'
-	ylabel = '$I_\mathrm{C}$ (nA)'
+	ylabel = '$I_\mathrm{C}$' + ' ('+ w['yunit'] + ')'
 	plt.xlabel(xlabel)
 	plt.ylabel(ylabel)
 	plt.plot(xaxis,ic[0,:],xaxis,ic[1,:])#,ic[0,:],ic[2,:])
