@@ -901,7 +901,7 @@ def helper_vbiascorrector(w): #Needs equally spaced axes
 	Assumes data has units of current (A).
 	
 	Arguments:
-	rseries (float) - value of series resistor (Ohm)
+	seriesr (float) - value of series resistor (Ohm)
 	gridresolutionfactor (int) - factor with which the original number of datapoints is multiplied when creating the new interpolation grid
 
 	Warnings:

@@ -19,7 +19,7 @@ class SuperColorbar(ColorbarBase):
 
         self.mappable = mappable
         kwargs['cmap'] = cmap = mappable.cmap
-        kwargs['norm'] = norm = mappable.norm
+        #kwargs['norm'] = norm = mappable.norm
         self.callbacksSM = cbook.CallbackRegistry()
         self._update_dict = {'array': False}
 
@@ -72,7 +72,7 @@ class SuperColorbar(ColorbarBase):
                 self.update_mappable()
     def get_pos(self,event):
         #determine either horizontal or vertical mode
-        if self.orientation is 'horizontal':
+        if self.orientation == 'horizontal':
             press = event.xdata
         else:
             press = event.ydata
