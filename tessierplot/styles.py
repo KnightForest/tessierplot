@@ -901,7 +901,7 @@ def helper_vbiascorrector(w): #Needs equally spaced axes
 	Assumes data has units of current (A).
 	
 	Arguments:
-	rseries (float) - value of series resistor (Ohm)
+	seriesr (float) - value of series resistor (Ohm)
 	gridresolutionfactor (int) - factor with which the original number of datapoints is multiplied when creating the new interpolation grid
 
 	Warnings:
@@ -1138,7 +1138,7 @@ def helper_linecut(w):  #Needs equally spaced axes
 	axis = w['linecut_axis'] #Specified axis either 'x' or 'y'
 	fig = plt.figure()
 	if axis == 'x':
-		dataarray = np.zeros(len(linecutvalue),yn)
+		dataarray = np.zeros((len(linecutvalue),yn))
 		for val in range(len(linecutvalue)):
 			xindex = np.abs(xaxis - (linecutvalue[val])).argmin()
 			datavals = XX[xindex,:]

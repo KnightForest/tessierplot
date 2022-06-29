@@ -21,10 +21,10 @@ else:
 import IPython #Importing IPython modules
 ipy=IPython.get_ipython()
 if isqt5:
-	ipy.magic("pylab qt5")
+	ipy.run_line_magic('matplotlib', 'qt5')
 	qtaggregator = 'Qt5Agg'
 elif isqt4:
-	ipy.magic("pylab qt")
+	ipy.run_line_magic('matplotlib', 'qt')
 	qtaggregator = 'Qt4Agg'
 else:
 	print('no backend found.')
@@ -120,7 +120,7 @@ class plotR(object):
 		self.exportData = []
 		self.exportDataMeta = []
 		self.bControls = True #boolean controlling state of plot manipulation buttons
-		self.quantiphy_ignorelist = ['dBm','dB', 'rad', 'rad', 'Deg', 'deg', 'Arb', 'arb.']
+		self.quantiphy_ignorelist = ['dBm','dB', 'rad', 'rad', 'Deg', 'deg', 'Arb', 'arb.', 'nA', 'mV']
 		#print(self.data._header)
 		#print(self.data.coordkeys)
 		
@@ -377,24 +377,6 @@ class plotR(object):
 				ext = (xmin,xmax,ymin,ymax)
 				self.extent = ext
 				
-				#setting custom xlims and ylims, restricted within extent of data
-				if xlims == None:
-					_xlims = (ext[0],ext[1])
-				else: #sets custum xlims only if they restrict the default xaxis
-					xzip = list(zip(xlims,[ext[0],ext[1]]))
-					xlimsl = 2*[None]
-					xlimsl[0]=max(xzip[0])
-					xlimsl[1]=min(xzip[1])
-					_xlims=tuple(xlimsl)
-
-				if ylims == None:
-					_ylims = (ext[2],ext[3])
-				else: #sets custum xyims only if they restrict the default yaxis
-					yzip = list(zip(ylims,[ext[2],ext[3]]))
-					ylimsl = 2*[None]
-					ylimsl[0]=max(yzip[0])
-					ylimsl[1]=min(yzip[1])
-					_ylims=tuple(ylimsl)
 
 				#Gridding and interpolating unevenly spaced data
 				extx = abs(ext[1]-ext[0])
@@ -447,21 +429,7 @@ class plotR(object):
 				self.X = X
 				self.Y = Y
 				self.exportData.append(XX)
-				try:
-					m={
-						'xu':xu,
-						'yu':yu,
-						'xlims':_xlims,
-						'ylims':_ylims,
-						'zlims':(0,0),
-						'xname':coord_keys[-2],
-						'yname':coord_keys[-1],
-						'zname':'unused',
-						'datasetname':self.name}
-					self.exportDataMeta = np.append(self.exportDataMeta,m)
-				except Exception as e:
-					print(e)
-					pass
+
 				if ax_destination is None:
 					ax = plt.subplot(gs[cnt])
 				else:
@@ -571,6 +539,40 @@ class plotR(object):
 					self.imshow_norm = w['imshow_norm']
 				if norm == 'nan':
 					self.imshow_norm = None
+				#setting custom xlims and ylims, restricted within extent of data
+				if xlims == None:
+					_xlims = (ext[0],ext[1])
+				else: #sets custum xlims only if they restrict the default xaxis
+					xzip = list(zip(xlims,[ext[0],ext[1]]))
+					xlimsl = 2*[None]
+					xlimsl[0]=max(xzip[0])
+					xlimsl[1]=min(xzip[1])
+					_xlims=tuple(xlimsl)
+
+				if ylims == None:
+					_ylims = (ext[2],ext[3])
+				else: #sets custom xyims only if they restrict the default yaxis
+					yzip = list(zip(ylims,[ext[2],ext[3]]))
+					ylimsl = 2*[None]
+					ylimsl[0]=max(yzip[0])
+					ylimsl[1]=min(yzip[1])
+					_ylims=tuple(ylimsl)
+
+				try:
+					m={
+						'xu':xu,
+						'yu':yu,
+						'xlims':_xlims,
+						'ylims':_ylims,
+						'zlims':(0,0),
+						'xname':coord_keys[-2],
+						'yname':coord_keys[-1],
+						'zname':'unused',
+						'datasetname':self.name}
+					self.exportDataMeta = np.append(self.exportDataMeta,m)
+				except Exception as e:
+					print(e)
+					pass
 
 				# This deinterlace needs to be reworked. There are no colorbars for instance..
 				if 'deinterlace' in style:
@@ -662,11 +664,11 @@ class plotR(object):
 						divider = make_axes_locatable(ax)
 						if cbar_orientation == 'horizontal': # Added some hardcode config for colorbar, more pretty out of the box
 							cax = divider.append_axes("top", size="5%", pad=0.05)
-							cax.set_aspect(0.07)
+							cax.set_box_aspect(0.07)
 							cax.set_anchor('E')
 						else:
 							cax = divider.append_axes("right", size="2.5%", pad=0.05)
-						pos = list(ax.get_position().bounds)
+						#pos = list(ax.get_position().bounds)
 					if hasattr(self, 'im'):
 						self.cbar = colorbar.create_colorbar(cax, self.im, orientation=cbar_orientation)
 						cbar = self.cbar
@@ -694,6 +696,8 @@ class plotR(object):
 			self.toggleFiddle()
 			self.toggleLinedraw()
 			self.toggleLinecut()
+			self.toggleWaterfall()
+		
 		plt.tight_layout()
 		return self.fig
 
@@ -782,8 +786,10 @@ class plotR(object):
 				us=uniques_col_str
 				coord_keys = [key for key in coord_keys if key not in uniques_col_str]
 				#now find out if there are multiple value axes
+				if not coord_keys:
+					print('Warning: 2dplot found no coordinate axis, resetting keys. Repeat measurement of same coordinate suspected.')
+					coord_keys,coord_units,coord_labels = self.data.coordkeys_n
 				#value_keys, value_units = self.data.valuekeys
-
 				x=data.loc[:,coord_keys[-1]]
 				xx=data.loc[:,value_keys[value_axis]]
 
@@ -952,6 +958,16 @@ class plotR(object):
 
 		#attach to the relevant figure to make sure the object does not go out of scope
 		self.fig.linecut = self.linecut
+
+	def toggleWaterfall(self):
+		self.waterfall=Waterfall(self.fig,self)
+		self.fig.waterfallbutton = toggleButton('waterfall', self.waterfall.connect)
+		topwidget = self.fig.canvas.window()
+		toolbar = topwidget.children()[1]
+		action = toolbar.addWidget(self.fig.waterfallbutton)
+
+		#attach to the relevant figure to make sure the object does not go out of scope
+		self.fig.waterfall = self.waterfall
 
 	def toggleFiddle(self):
 		from IPython.core import display
