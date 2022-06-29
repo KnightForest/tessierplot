@@ -46,6 +46,7 @@ import re
 import matplotlib.ticker as ticker
 import pandas as pd
 import copy
+from textwrap import wrap
 
 #all tessier related imports
 from .gui import *
@@ -148,8 +149,8 @@ class plotR(object):
 					fig = self.plot2d(uniques_col_str=uniques_col_str,**kwargs)
 				else:
 					fig = self.plot3d(uniques_col_str=uniques_col_str,cbar_orientation='vertical',**kwargs)
-				fig.savefig(self.thumbfile,bbox_inches='tight' )
-				fig.savefig(self.thumbfile_datadir,bbox_inches='tight' )
+				fig.savefig(self.thumbfile,bbox_inches='tight', dpi=100 )
+				fig.savefig(self.thumbfile_datadir,bbox_inches='tight', dpi=100 )
 				plt.close(fig)
 			else:
 				if self.is2d():
@@ -310,10 +311,16 @@ class plotR(object):
 				xu = np.size(data_slice[coord_keys[-2]].unique())
 				yu = np.size(data_slice[coord_keys[-1]].unique())
 				lenz = np.size(data_slice[value_keys[value_axis]])
+
 				print('xu: {:d}, yu: {:d}, lenz: {:d}'.format(xu,yu,lenz))
 				
+				if xu*yu < lenz: #Condition for non-unique set values in axes
+					data_slice = data_slice.drop_duplicates(subset=[coord_keys[-2], coord_keys[-1]],keep='last')
+					print('Warning: Duplicate setpoints, only last datapoint of duplicate is parsed and plotted.')
+					lenz = np.size(data_slice[value_keys[value_axis]])
+					print('xu: {:d}, yu: {:d}, lenz: {:d} after removing duplicates'.format(xu,yu,lenz))
 
-				if xu*yu > lenz: #Condition for unfinished measurement sweep
+				elif xu*yu > lenz: #Condition for unfinished measurement sweep
 					
 					missingpoints = xu*yu-lenz		
 					xarr=np.full((missingpoints),data_slice[coord_keys[-2]].iloc[-1])
@@ -331,8 +338,8 @@ class plotR(object):
 					concatdf = pd.DataFrame({coord_keys[-2]: xarr,
 									   coord_keys[-1]: yarr,
 									   value_keys[value_axis]: zarr})
-					newdf = [data_slice,concatdf]
-					data_slice = pd.concat(newdf, ignore_index=True)
+					#newdf = 
+					data_slice = pd.concat([data_slice,concatdf], ignore_index=True)
 					lenz = np.size(data_slice[value_keys[value_axis]])
 					print('xu: {:d}, yu: {:d}, lenz: {:d} after adding nan for incomplete sweep'.format(xu,yu,lenz))
 
@@ -358,7 +365,16 @@ class plotR(object):
 				self.x = x
 				self.y = y
 				self.z = z
-				ext = (x.min(),x.max(),y.min(),y.max())
+
+				#small hack to ensure 2d data can be plotted in as a color plot
+				xmin,xmax,ymin,ymax = x.min(),x.max(),y.min(),y.max()
+				if xmin == xmax:
+					xmin = xmax - xmax/1e9
+					xmax = xmax + xmax/1e9
+				if ymin==ymax:
+					ymin = ymax - ymax/1e9
+					ymax = ymax + ymax/1e9
+				ext = (xmin,xmax,ymin,ymax)
 				self.extent = ext
 				
 				#setting custom xlims and ylims, restricted within extent of data
@@ -383,8 +399,7 @@ class plotR(object):
 				#Gridding and interpolating unevenly spaced data
 				extx = abs(ext[1]-ext[0])
 				xdx = np.diff(X, axis=0)
-				xdxshape = xdx.shape
-				if len(xdx) != 0:
+				if xdx.size != 0:
 					minxstep = np.nanmin(abs(xdx[xdx > 1e-19])) # removing rounding errors from diff
 					minxsteps = int(round(extx/minxstep,0))+1
 				else:
@@ -392,17 +407,27 @@ class plotR(object):
 				
 				exty = abs(ext[3]-ext[2])
 				ydy = np.diff(Y, axis=1)#.astype(float)
-				ydyshape = ydy.shape
-				minystep = np.nanmin(abs(ydy[ydy > 1e-19])) # removing rounding errors from diff
-				minysteps = int(round(exty/minystep,0))+1
+
+				if ydy.size != 0:
+					minystep = np.nanmin(abs(ydy[ydy > 1e-19])) # removing rounding errors from diff
+					minysteps = int(round(exty/minystep,0))+1
+				else:
+					minysteps = yu
+
 				if minysteps > 100*yu: #limiting the interpolation stepsize
 					minysteps = 100*yu
 				if minxsteps > xu or minysteps > yu:
-					print('Unevenly spaced data detected, cubic interpolation will be performed. \n New dimension:', 1*minxsteps,1*minysteps)
+					print('Unevenly spaced data detected, cubic interpolation will be performed. \nNew dimension:', 1*minxsteps,1*minysteps)
 					# grid_x, grid_y and points are divided by their respective stepsize in x and y to get a properly weighted interpolation
 					grid_x, grid_y = np.mgrid[ext[0]:ext[1]:minxsteps*1j, ext[2]:ext[3]:minysteps*1j]
-					gridxstep = np.abs(grid_x[1,0]-grid_x[0,0])
-					gridystep = np.abs(grid_y[0,1]-grid_y[0,0])
+					if minxsteps > 1:
+						gridxstep = np.abs(grid_x[1,0]-grid_x[0,0])
+					else:
+						gridxstep = 1
+					if minysteps > 1:
+						gridystep = np.abs(grid_y[0,1]-grid_y[0,0])
+					else:
+						gridystep = 1
 					grid_x /= gridxstep
 					grid_y /= gridystep
 					points = np.transpose(np.array([x/gridxstep,y/gridystep]))
@@ -508,7 +533,7 @@ class plotR(object):
 				ext = self.extent_processed
 				dataunit = self.dataunit
 
-				# Quantity conversion with the help of Quantiphy
+				# Quantity conversion with the help of Quantiphy, still bugged and does not recognize if units are already scaled...
 				if quantiphy == True:
 					if self.xunit != '' and self.xunit not in self.quantiphy_ignorelist:
 						ind1 = np.nanargmax(np.abs(ext[0:2]))
@@ -593,16 +618,21 @@ class plotR(object):
 				#ax.locator_params(nbins=7, axis='x')
 				#Tclk = Quantity(10e-9, 'S')
 
+
 				if 'flipaxes' in style:
 					xaxislabelwithunit = self.ylabel +	' (' + yunit + ')'
 					yaxislabelwithunit = self.xlabel +	' (' + xunit + ')'
 				else:
 					xaxislabelwithunit = self.xlabel +	' (' + xunit + ')'
 					yaxislabelwithunit = self.ylabel +	' (' + yunit + ')'
-				ax.set_xlabel(xaxislabelwithunit)
-				ax.set_ylabel(yaxislabelwithunit)
 				cbar_title = self.datalabel + ' (' + dataunit + ')'
 
+				#xaxislabelwithunit = [ '\n'.join(wrap(l, 15)) for l in xaxislabelwithunit]
+				#yaxislabelwithunit = [ '\n'.join(wrap(l, 15)) for l in yaxislabelwithunit]
+				#cbar_title = [ '\n'.join(wrap(l, 15)) for l in cbar_title]
+				
+				ax.set_xlabel(xaxislabelwithunit)
+				ax.set_ylabel(yaxislabelwithunit)
 				title = ''
 				for h,i in enumerate(uniques_col_str):
 					if quantiphy == True:
@@ -640,7 +670,6 @@ class plotR(object):
 					if hasattr(self, 'im'):
 						self.cbar = colorbar.create_colorbar(cax, self.im, orientation=cbar_orientation)
 						cbar = self.cbar
-
 						if cbar_orientation == 'horizontal': #Added some hardcode config for colorbar, more pretty out of the box
 							tick_locator = ticker.MaxNLocator(nbins=3)
 							cbar.locator = tick_locator
@@ -655,7 +684,7 @@ class plotR(object):
 						self.cbar = cbar
 						cbar.update_ticks()
 						if supress_plot == False:
-							plt.tight_layout()
+							
 							plt.show()
 				self.ax = ax
 				cnt+=1 #counter for subplots
@@ -665,7 +694,7 @@ class plotR(object):
 			self.toggleFiddle()
 			self.toggleLinedraw()
 			self.toggleLinecut()
-	
+		plt.tight_layout()
 		return self.fig
 
 	def plot2d(self,massage_func=None,
