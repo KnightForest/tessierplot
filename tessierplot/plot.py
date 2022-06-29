@@ -664,7 +664,11 @@ class plotR(object):
 						divider = make_axes_locatable(ax)
 						if cbar_orientation == 'horizontal': # Added some hardcode config for colorbar, more pretty out of the box
 							cax = divider.append_axes("top", size="5%", pad=0.05)
-							cax.set_box_aspect(0.07)
+							# Dirty solution to accomodate breaking change in matplotlib 3.4/3.5
+							try:
+								cax.set_box_aspect(0.07)
+							except:
+								cax.set_aspect(0.07)
 							cax.set_anchor('E')
 						else:
 							cax = divider.append_axes("right", size="2.5%", pad=0.05)
@@ -697,7 +701,6 @@ class plotR(object):
 			self.toggleLinedraw()
 			self.toggleLinecut()
 			self.toggleWaterfall()
-		
 		plt.tight_layout()
 		return self.fig
 

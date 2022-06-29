@@ -18,7 +18,6 @@ setup(name='tessierplot',
           'quantiphy',
           'scipy',
           'peakutils',
-          'numpy',
-          'pyqt'
+          'numpy'
       ],
       zip_safe=False)
