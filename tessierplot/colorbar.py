@@ -19,11 +19,10 @@ class SuperColorbar(ColorbarBase):
 
         self.mappable = mappable
         kwargs['cmap'] = cmap = mappable.cmap
-        #kwargs['norm'] = norm = mappable.norm
+        kwargs['norm'] = norm = mappable.norm
         self.callbacksSM = cbook.CallbackRegistry()
         self._update_dict = {'array': False}
 
-        
         self.cidpress = self.fig.canvas.mpl_connect(
             'button_press_event', self.on_press)
         self.cidrelease = self.fig.canvas.mpl_connect(
@@ -158,7 +157,6 @@ class MultiPointNormalize(colors.Normalize):
         points.sort()
         x = np.hstack((self.vmin, points,self.vmax))
         y = np.linspace(0, 1, len(points)+2)
-
         return np.ma.masked_array(np.interp(value, x, y))
 
 if __name__ == "__main__":

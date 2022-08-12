@@ -120,7 +120,18 @@ class plotR(object):
 		self.exportData = []
 		self.exportDataMeta = []
 		self.bControls = True #boolean controlling state of plot manipulation buttons
-		self.quantiphy_ignorelist = ['dBm','dB', 'rad', 'rad', 'Deg', 'deg', 'Arb', 'arb.', 'nA', 'mV']
+		self.quantiphy_ignorelist = ['dBm',
+									 'dB', 
+									 'rad', 
+									 'rad', 
+									 'Deg', 
+									 'deg', 
+									 'Arb', 
+									 'arb.', 
+									 'nA', 
+									 'mV',
+									 r'2$e^2$/h',
+									 r'h/2$e^2$']
 		#print(self.data._header)
 		#print(self.data.coordkeys)
 		
@@ -522,9 +533,11 @@ class plotR(object):
 						convfactor2 = 1	
 
 					if self.dataunit != '' and self.dataunit not in self.quantiphy_ignorelist:
-						dataind = np.divmod(np.nanargmax(np.abs(self.XX_processed)),  self.XX_processed.shape[1])
-						dataqu = Quantity(self.XX_processed[dataind],self.dataunit).format().split(' ')
-						dataconvfactor = float(dataqu[0])/self.XX_processed[dataind]
+						#dataind = np.divmod(np.nanargmax(np.abs(self.XX_processed)),  self.XX_processed.shape[1])
+						#dataqu = Quantity(self.XX_processed[dataind],self.dataunit).format().split(' ')
+						#dataconvfactor = float(dataqu[0])/self.XX_processed[dataind]
+						dataqu = Quantity(np.nanmax(np.abs(self.autoColorScale(XX.flatten()))),self.dataunit).format().split(' ')
+						dataconvfactor = float(dataqu[0])/(np.nanmax(np.abs(self.autoColorScale(XX.flatten()))))
 						self.quant_XX_processed = self.XX_processed * dataconvfactor
 						self.quant_dataunit = dataqu[1]
 						dataunit = self.quant_dataunit
@@ -690,7 +703,6 @@ class plotR(object):
 						self.cbar = cbar
 						cbar.update_ticks()
 						if supress_plot == False:
-							
 							plt.show()
 				self.ax = ax
 				cnt+=1 #counter for subplots
