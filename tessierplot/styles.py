@@ -1123,8 +1123,10 @@ def helper_linecut(w):  #Needs equally spaced axes
 			* in 'xaxis': xaxis -> original x-axis
 			* in 'vals': linecutvalue -> values at which linecuts were taken
 	'''	
-
+	from tessierplot.plot import _quantiphy_ignorelist
+	from quantiphy import Quantity
 	XX = w['XX']
+	qphy  = strtobool(w['linecut_quantiphy'])
 	xn, yn = XX.shape
 	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
 	yaxis = np.linspace(w['ext'][2],w['ext'][3],w['XX'].shape[1])
@@ -1142,24 +1144,40 @@ def helper_linecut(w):  #Needs equally spaced axes
 		for val in range(len(linecutvalue)):
 			xindex = np.abs(xaxis - (linecutvalue[val])).argmin()
 			datavals = XX[xindex,:]
-			plt.plot(yaxis,datavals)
 			dataarray[val,:] = datavals
-		xlabel = w['ylabel'] + ' ('+ w['yunit'] + ')'
-		ylabel = w['data_quantity'] + ' ('+ w['data_unit'] + ')'
-		xaxis = yaxis
+		xnew=yaxis
+		newxq = w['ylabel']
+		newxunit = w['yunit']
 	if axis == 'y':
 		dataarray = np.zeros((len(linecutvalue),xn))
 		for val in range(len(linecutvalue)):
 			yindex = np.abs(yaxis - (linecutvalue[val])).argmin()
 			datavals = XX[:,yindex]
-			plt.plot(xaxis,datavals)
 			dataarray[val,:] = datavals
-		xlabel = w['xlabel'] + ' ('+ w['xunit'] + ')'
-		ylabel = w['data_quantity'] + ' ('+ w['data_unit'] + ')'
+		xnew=xaxis
+		newxq = w['xlabel']
+		newxunit = w['xunit']
+	newdataq = w['data_quantity']
+	newdatau = w['data_unit']
+	if qphy == True:
+		if newxunit != '' and newxunit not in _quantiphy_ignorelist:
+			extqu1 = Quantity(np.nanmax(np.abs(xnew)), newxunit).format().split(' ')
+			convfactor1 = float(extqu1[0])/np.nanmax(np.abs(xnew))
+			newxunit = extqu1[1]
+			xnew = xnew*convfactor1
+		
+		if newdatau != '' and newdatau not in _quantiphy_ignorelist:
+			dataqu = Quantity(np.nanmax(np.abs(dataarray)),newdatau).format().split(' ')
+			dataconvfactor = float(dataqu[0])/np.nanmax(np.abs(dataarray))
+			dataarray = dataarray * dataconvfactor
+			newdatau = dataqu[1]
+	xlabel = newxq + ' ('+ newxunit + ')'
+	datalabel = newdataq + ' ('+ newdatau + ')'
+	for val in range(len(linecutvalue)):
+		plt.plot(xnew,dataarray[val,:])
 	plt.xlabel(xlabel)
-	plt.ylabel(ylabel)
-	w['buffer']={'labels': [xlabel,ylabel], 'data':dataarray, 'xaxis':xaxis, 'vals':[linecutvalue]} #wrapping for further analysis
-
+	plt.ylabel(datalabel)
+	w['buffer']={'labels': [xlabel,datalabel], 'data':dataarray, 'xaxis':xnew, 'vals':[linecutvalue]} #wrapping for further analysis
 
 def helper_resistance(w):  #Needs equally spaced axes
 	'''
@@ -1939,7 +1957,7 @@ STYLE_SPECS = {
 	'int': {'param_order': []},
 	'iretrap': {'param_order': []},
 	'ivreverser':{'gridresolutionfactor': 10, 'twodim': False, 'interpmethod': 'cubic', 'param_order': ['gridresolutionfactor','twodim','interpmethod']},
-	'linecut': {'linecutvalue': 1,'axis': None,'param_order': ['linecutvalue','axis']},
+	'linecut': {'linecutvalue': 1,'axis': None, 'quantiphy' : True, 'param_order': ['linecutvalue','axis', 'quantiphy']},
 	'log': {'param_order': []},
 	'logdb': {'param_order': []},
 	'massage': {'param_order': []},
@@ -1960,14 +1978,6 @@ STYLE_SPECS = {
 	'vbiascorrector':{'voffset': 0,'seriesr': 0, 'gridresolutionfactor': 2, 'param_order': ['voffset','seriesr','gridresolutionfactor']},
 }
 
-	#linecutvalue = w['linecut_value']
-	#axis = w['linecut_axis']
-
-	# useonlythreshold = 1
-	# pixelnoiserange = 10
-	# peaktoplateauthreshold = 0.5 # threshold
-	# stepoffset = 0
-	# strictzero = True
 #Backward compatibility
 styles = STYLE_FUNCS
 
