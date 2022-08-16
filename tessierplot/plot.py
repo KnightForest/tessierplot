@@ -70,6 +70,19 @@ _fontsize_plot_title_thumb = 9
 _fontsize_axis_labels_thumb = 9
 _fontsize_axis_tick_labels_thumb = 9
 
+_quantiphy_ignorelist = ['dBm',
+						 'dB', 
+						 'rad', 
+						 'rad', 
+						 'Deg', 
+						 'deg', 
+						 'Arb', 
+						 'arb.', 
+						 'nA', 
+						 'mV',
+						 r'2$e^2$/h',
+						 r'h/2$e^2$']
+
 # Settings for 'normal' plots
 rcP = {	 'figure.figsize': (_plot_width, _plot_height), #(width in inch, height in inch)
 		'axes.labelsize':  _fontsize_axis_labels,
@@ -120,7 +133,7 @@ class plotR(object):
 		self.exportData = []
 		self.exportDataMeta = []
 		self.bControls = True #boolean controlling state of plot manipulation buttons
-		self.quantiphy_ignorelist = ['dBm','dB', 'rad', 'rad', 'Deg', 'deg', 'Arb', 'arb.', 'nA', 'mV']
+
 		#print(self.data._header)
 		#print(self.data.coordkeys)
 		
@@ -503,7 +516,7 @@ class plotR(object):
 
 				# Quantity conversion with the help of Quantiphy, still bugged and does not recognize if units are already scaled...
 				if quantiphy == True:
-					if self.xunit != '' and self.xunit not in self.quantiphy_ignorelist:
+					if self.xunit != '' and self.xunit not in _quantiphy_ignorelist:
 						ind1 = np.nanargmax(np.abs(ext[0:2]))
 						extqu1 = Quantity(ext[ind1], self.xunit).format().split(' ')
 						convfactor1 = float(extqu1[0])/ext[ind1]
@@ -512,7 +525,7 @@ class plotR(object):
 					else:
 						convfactor1 = 1
 					
-					if self.yunit != '' and self.yunit not in self.quantiphy_ignorelist:
+					if self.yunit != '' and self.yunit not in _quantiphy_ignorelist:
 						ind2 = np.nanargmax(np.abs(ext[2:4]))+2
 						extqu2 = Quantity(ext[ind2], self.yunit).format().split(' ')
 						convfactor2 = float(extqu2[0])/ext[ind2]
@@ -521,10 +534,12 @@ class plotR(object):
 					else:
 						convfactor2 = 1	
 
-					if self.dataunit != '' and self.dataunit not in self.quantiphy_ignorelist:
-						dataind = np.divmod(np.nanargmax(np.abs(self.XX_processed)),  self.XX_processed.shape[1])
-						dataqu = Quantity(self.XX_processed[dataind],self.dataunit).format().split(' ')
-						dataconvfactor = float(dataqu[0])/self.XX_processed[dataind]
+					if self.dataunit != '' and self.dataunit not in _quantiphy_ignorelist:
+						#dataind = np.divmod(np.nanargmax(np.abs(self.XX_processed)),  self.XX_processed.shape[1])
+						#dataqu = Quantity(self.XX_processed[dataind],self.dataunit).format().split(' ')
+						#dataconvfactor = float(dataqu[0])/self.XX_processed[dataind]
+						dataqu = Quantity(np.nanmax(np.abs(self.autoColorScale(XX.flatten()))),self.dataunit).format().split(' ')
+						dataconvfactor = float(dataqu[0])/(np.nanmax(np.abs(self.autoColorScale(XX.flatten()))))
 						self.quant_XX_processed = self.XX_processed * dataconvfactor
 						self.quant_dataunit = dataqu[1]
 						dataunit = self.quant_dataunit
@@ -664,7 +679,11 @@ class plotR(object):
 						divider = make_axes_locatable(ax)
 						if cbar_orientation == 'horizontal': # Added some hardcode config for colorbar, more pretty out of the box
 							cax = divider.append_axes("top", size="5%", pad=0.05)
-							cax.set_box_aspect(0.07)
+							# Dirty solution to accomodate breaking change in matplotlib 3.4/3.5
+							try:
+								cax.set_box_aspect(0.07)
+							except:
+								cax.set_aspect(0.07)
 							cax.set_anchor('E')
 						else:
 							cax = divider.append_axes("right", size="2.5%", pad=0.05)
@@ -686,7 +705,6 @@ class plotR(object):
 						self.cbar = cbar
 						cbar.update_ticks()
 						if supress_plot == False:
-							
 							plt.show()
 				self.ax = ax
 				cnt+=1 #counter for subplots
@@ -697,7 +715,6 @@ class plotR(object):
 			self.toggleLinedraw()
 			self.toggleLinecut()
 			self.toggleWaterfall()
-		
 		plt.tight_layout()
 		return self.fig
 
@@ -843,14 +860,14 @@ class plotR(object):
 
 				# Quantity conversion with the help of Quantiphy
 				if quantiphy == True:
-					if self.xunit != '' and self.xunit not in self.quantiphy_ignorelist:
+					if self.xunit != '' and self.xunit not in _quantiphy_ignorelist:
 						extqu1 = Quantity(np.nanmax(np.abs(self.X_processed)), self.xunit).format().split(' ')
 						convfactor1 = float(extqu1[0])/np.nanmax(np.abs(self.X_processed))
 						self.quant_xunit = extqu1[1]
 						xunit = self.quant_xunit
 						X = self.X*convfactor1
 					
-					if self.dataunit != '' and self.dataunit not in self.quantiphy_ignorelist:
+					if self.dataunit != '' and self.dataunit not in _quantiphy_ignorelist:
 						dataqu = Quantity(np.nanmax(np.abs(self.XX_processed)),self.dataunit).format().split(' ')
 						dataconvfactor = float(dataqu[0])/np.nanmax(np.abs(self.XX_processed))
 						self.quant_XX_processed = self.XX_processed * dataconvfactor
