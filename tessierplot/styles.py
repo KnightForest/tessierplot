@@ -440,7 +440,7 @@ def helper_savgol(w):
 				w['data_quantity'] = '$\partial$' + data_q + '/$\partial$' + w['xlabel']
 			else: 
 				w['data_quantity'] = '$\partial^{}$'.format(difforder) + data_q + '/$\partial$' + w['xlabel'] + '$^{}$'.format(difforder)
-			XX_t = signal.savgol_filter(XX, samples, order, deriv=difforder, delta=np.diff(X)[0], mode='constant',cval=np.nan)
+			XX_t = signal.savgol_filter(XX, samples, order, deriv=difforder, delta=np.diff(X)[0], mode='constant')
 		else:
 			if difforder == 0:
 				pass 
@@ -450,7 +450,7 @@ def helper_savgol(w):
 				w['data_quantity'] = '$\partial^{}$'.format(difforder) + data_q + '/$\partial$' + w['ylabel'] + '$^{}$'.format(difforder)
 			y = np.diff(Y)
 			yd = y[0]
-			XX_t = signal.savgol_filter(XX, samples, order, deriv=difforder, delta=np.diff(Y,axis=axis)[0,0], axis=axis, mode='constant',cval=np.nan)
+			XX_t = signal.savgol_filter(XX, samples, order, deriv=difforder, delta=np.diff(Y,axis=axis)[0,0], axis=axis, mode='constant')
 
 		if data_u == 'nA' and order == 1: 
 			if condquant == True:
@@ -1953,7 +1953,7 @@ STYLE_SPECS = {
 	'offsetslopesubtract': {'slope': 0, 'offset': 0, 'param_order': ['slope', 'offset']},
 	'resistance': {'linecutvalue': 0, 'dolinearfit': False, 'fitregion': 1, 'param_order': ['linecutvalue','dolinearfit','fitregion']},
 	'rshunt': {'r':1e-10,'gridresolutionfactor': 2, 'param_order': ['r','gridresolutionfactor']},
-	'savgol': {'condquant': False, 'axis': -1, 'difforder':1, 'samples': 7, 'order': 3, 'param_order': ['condquant','axis','difforder','samples','order']},
+	'savgol': {'condquant': False, 'axis': 0, 'difforder':1, 'samples': 7, 'order': 3, 'param_order': ['condquant','axis','difforder','samples','order']},
 	'sgtwodidv': {'samples': 21, 'order': 3, 'param_order': ['samples', 'order']},
 	'shapiro': {'rffreq': 2.15e9, 'nsteps': 1, 'millivolts': 1, 'param_order': ['rffreq','nsteps','millivolts']},
 	'unwrap': {'param_order': []},
