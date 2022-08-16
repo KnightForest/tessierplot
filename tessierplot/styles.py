@@ -211,15 +211,22 @@ def helper_changeaxis(w):
 			float(w['changeaxis_yfactor'])*w['ext'][2]+w['changeaxis_yoffset'],
 			float(w['changeaxis_yfactor'])*w['ext'][3]+w['changeaxis_yoffset'])
 	w['ext'] = newext
+	w['XX'] = w['XX']+float(w['changeaxis_dataoffset'])
 	w['XX'] = w['XX']*float(w['changeaxis_datafactor'])
 	w['X'] = w['X']*float(w['changeaxis_xfactor'])
 	w['Y'] = w['Y']*float(w['changeaxis_yfactor'])
 	if w['changeaxis_dataunit'] != None:
 		w['data_unit'] = w['changeaxis_dataunit']
+	if w['changeaxis_dataquantity'] != None:
+		w['data_quantity'] = w['changeaxis_dataquantity']
 	if w['changeaxis_xunit'] != None:
 		w['xunit'] = w['changeaxis_xunit']
+	if w['changeaxis_xlabel'] != None:
+		w['xlabel'] = w['changeaxis_xlabel']
 	if w['changeaxis_yunit'] != None:
 		w['yunit'] = w['changeaxis_yunit']
+	if w['changeaxis_ylabel'] != None:
+		w['ylabel'] = w['changeaxis_ylabel']
 
 def helper_diff(w):
 	'''
@@ -1934,7 +1941,7 @@ as non-keyword arguments.
 '''
 STYLE_SPECS = {
 	'abs': {'param_order': []},
-	'changeaxis': {'xfactor': 1, 'yfactor': 1, 'xoffset': 0, 'yoffset': 0,'datafactor': 1, 'dataunit': None, 'xunit': None, 'yunit': None, 'param_order': ['xfactor','yfactor','xoffset','yoffset','xunit','yunit', 'datafactor', 'dataunit']},
+	'changeaxis': {'xfactor': 1,'xoffset':0,'xlabel':None,'xunit':None, 'yfactor':1,'yoffset':0,'ylabel':None,'yunit':None, 'datafactor':1,'dataoffset':0,'dataquantity':None,'dataunit':None, 'param_order': ['xfactor','xoffset','xlabel','xunit', 'yfactor','yoffset','ylabel','yunit', 'datafactor','dataoffset','dataquantity','dataunit']},
 	'crosscorr': {'peakmin':None,'peakmax':None,'toFirstColumn':True,'param_order': ['peakmin','peakmax','toFirstColumn']},
 	'dbmtovolt': {'rfamp': False, 'attenuation': 0, 'gridresolutionfactor': 2, 'param_order': ['rfamp','attenuation','gridresolutionfactor']},
 	'deint_cross': {'param_order': []},
