@@ -303,8 +303,8 @@ class tessierView(object):
                         <option value="{{"\\'mov_avg(n=3)\\',\\'diff(condquant=True)\\',\\'mov_avg(n=3)\\'"|e}}">diff_movavg_condquant</option>
                         <option value="{{"\\'mov_avg(n=12)\\',\\'diff(condquant=False)\\',\\'mov_avg(n=12)\\'"|e}}">diff_movavg_smooth</option>
                         <option value="{{"\\'savgol(condquant=False,samples=7,order=3)\\'"|e}}">Savitzky-Golay_diff</option>
-                        <option value="{{"\\'savgol(condquant=True,samples=7,order=3)\\'"|e}}">Savitzky-Golay_diff_conquant</option>
-                        <option value="{{"\\'savgol(condquant=False,samples=7,order=3)\\',\\'log\\'"|e}} ">Savitzky-Golay_diff,log</option>
+                        <option value="{{"\\'savgol(condquant=True,samples=7,order=3,difforder=1)\\'"|e}}">Savitzky-Golay_diff_conquant</option>
+                        <option value="{{"\\'savgol(condquant=False,samples=7,order=3,difforder=1)\\',\\'log\\'"|e}} ">Savitzky-Golay_diff,log</option>
                         <option value="{{"\\'movingmeansubtract(window=1)\\'"|e}} ">movmeansubtract</option>
                         <option value="{{"\\'movingmediansubtract(window=1)\\'"|e}} ">movmediansubtract</option>
                         <option value="{{"\\'meansubtract\\',\\'mov_avg(n=3)\\',\\'ivreverser\\',\\'mov_avg(n=3)\\',\\'diff\\'"|e}}">ivreverser,diff</option>

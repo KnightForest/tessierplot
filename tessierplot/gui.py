@@ -131,7 +131,6 @@ class Fiddle:
 
 			if (newvmax > newvmin):
 				i.set_clim(vmax=newvmax, vmin=newvmin)
-
 		self.fig.canvas.draw()
 
 

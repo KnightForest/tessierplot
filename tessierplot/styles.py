@@ -211,15 +211,22 @@ def helper_changeaxis(w):
 			float(w['changeaxis_yfactor'])*w['ext'][2]+w['changeaxis_yoffset'],
 			float(w['changeaxis_yfactor'])*w['ext'][3]+w['changeaxis_yoffset'])
 	w['ext'] = newext
+	w['XX'] = w['XX']+float(w['changeaxis_dataoffset'])
 	w['XX'] = w['XX']*float(w['changeaxis_datafactor'])
 	w['X'] = w['X']*float(w['changeaxis_xfactor'])
 	w['Y'] = w['Y']*float(w['changeaxis_yfactor'])
 	if w['changeaxis_dataunit'] != None:
 		w['data_unit'] = w['changeaxis_dataunit']
+	if w['changeaxis_dataquantity'] != None:
+		w['data_quantity'] = w['changeaxis_dataquantity']
 	if w['changeaxis_xunit'] != None:
 		w['xunit'] = w['changeaxis_xunit']
+	if w['changeaxis_xlabel'] != None:
+		w['xlabel'] = w['changeaxis_xlabel']
 	if w['changeaxis_yunit'] != None:
 		w['yunit'] = w['changeaxis_yunit']
+	if w['changeaxis_ylabel'] != None:
+		w['ylabel'] = w['changeaxis_ylabel']
 
 def helper_diff(w):
 	'''
@@ -440,7 +447,7 @@ def helper_savgol(w):
 				w['data_quantity'] = '$\partial$' + data_q + '/$\partial$' + w['xlabel']
 			else: 
 				w['data_quantity'] = '$\partial^{}$'.format(difforder) + data_q + '/$\partial$' + w['xlabel'] + '$^{}$'.format(difforder)
-			XX_t = signal.savgol_filter(XX, samples, order, deriv=difforder, delta=np.diff(X)[0], mode='constant',cval=np.nan)
+			XX_t = signal.savgol_filter(XX, samples, order, deriv=difforder, delta=np.diff(X)[0], mode='constant')
 		else:
 			if difforder == 0:
 				pass 
@@ -450,7 +457,7 @@ def helper_savgol(w):
 				w['data_quantity'] = '$\partial^{}$'.format(difforder) + data_q + '/$\partial$' + w['ylabel'] + '$^{}$'.format(difforder)
 			y = np.diff(Y)
 			yd = y[0]
-			XX_t = signal.savgol_filter(XX, samples, order, deriv=difforder, delta=np.diff(Y,axis=axis)[0,0], axis=axis, mode='constant',cval=np.nan)
+			XX_t = signal.savgol_filter(XX, samples, order, deriv=difforder, delta=np.diff(Y,axis=axis)[0,0], axis=axis, mode='constant')
 
 		if data_u == 'nA' and order == 1: 
 			if condquant == True:
@@ -1123,8 +1130,10 @@ def helper_linecut(w):  #Needs equally spaced axes
 			* in 'xaxis': xaxis -> original x-axis
 			* in 'vals': linecutvalue -> values at which linecuts were taken
 	'''	
-
+	from tessierplot.plot import _quantiphy_ignorelist
+	from quantiphy import Quantity
 	XX = w['XX']
+	qphy  = strtobool(w['linecut_quantiphy'])
 	xn, yn = XX.shape
 	xaxis = np.linspace(w['ext'][0],w['ext'][1],w['XX'].shape[0])
 	yaxis = np.linspace(w['ext'][2],w['ext'][3],w['XX'].shape[1])
@@ -1142,24 +1151,40 @@ def helper_linecut(w):  #Needs equally spaced axes
 		for val in range(len(linecutvalue)):
 			xindex = np.abs(xaxis - (linecutvalue[val])).argmin()
 			datavals = XX[xindex,:]
-			plt.plot(yaxis,datavals)
 			dataarray[val,:] = datavals
-		xlabel = w['ylabel'] + ' ('+ w['yunit'] + ')'
-		ylabel = w['data_quantity'] + ' ('+ w['data_unit'] + ')'
-		xaxis = yaxis
+		xnew=yaxis
+		newxq = w['ylabel']
+		newxunit = w['yunit']
 	if axis == 'y':
 		dataarray = np.zeros((len(linecutvalue),xn))
 		for val in range(len(linecutvalue)):
 			yindex = np.abs(yaxis - (linecutvalue[val])).argmin()
 			datavals = XX[:,yindex]
-			plt.plot(xaxis,datavals)
 			dataarray[val,:] = datavals
-		xlabel = w['xlabel'] + ' ('+ w['xunit'] + ')'
-		ylabel = w['data_quantity'] + ' ('+ w['data_unit'] + ')'
+		xnew=xaxis
+		newxq = w['xlabel']
+		newxunit = w['xunit']
+	newdataq = w['data_quantity']
+	newdatau = w['data_unit']
+	if qphy == True:
+		if newxunit != '' and newxunit not in _quantiphy_ignorelist:
+			extqu1 = Quantity(np.nanmax(np.abs(xnew)), newxunit).format().split(' ')
+			convfactor1 = float(extqu1[0])/np.nanmax(np.abs(xnew))
+			newxunit = extqu1[1]
+			xnew = xnew*convfactor1
+		
+		if newdatau != '' and newdatau not in _quantiphy_ignorelist:
+			dataqu = Quantity(np.nanmax(np.abs(dataarray)),newdatau).format().split(' ')
+			dataconvfactor = float(dataqu[0])/np.nanmax(np.abs(dataarray))
+			dataarray = dataarray * dataconvfactor
+			newdatau = dataqu[1]
+	xlabel = newxq + ' ('+ newxunit + ')'
+	datalabel = newdataq + ' ('+ newdatau + ')'
+	for val in range(len(linecutvalue)):
+		plt.plot(xnew,dataarray[val,:])
 	plt.xlabel(xlabel)
-	plt.ylabel(ylabel)
-	w['buffer']={'labels': [xlabel,ylabel], 'data':dataarray, 'xaxis':xaxis, 'vals':[linecutvalue]} #wrapping for further analysis
-
+	plt.ylabel(datalabel)
+	w['buffer']={'labels': [xlabel,datalabel], 'data':dataarray, 'xaxis':xnew, 'vals':[linecutvalue]} #wrapping for further analysis
 
 def helper_resistance(w):  #Needs equally spaced axes
 	'''
@@ -1916,7 +1941,7 @@ as non-keyword arguments.
 '''
 STYLE_SPECS = {
 	'abs': {'param_order': []},
-	'changeaxis': {'xfactor': 1, 'yfactor': 1, 'xoffset': 0, 'yoffset': 0,'datafactor': 1, 'dataunit': None, 'xunit': None, 'yunit': None, 'param_order': ['xfactor','yfactor','xoffset','yoffset','xunit','yunit', 'datafactor', 'dataunit']},
+	'changeaxis': {'xfactor': 1,'xoffset':0,'xlabel':None,'xunit':None, 'yfactor':1,'yoffset':0,'ylabel':None,'yunit':None, 'datafactor':1,'dataoffset':0,'dataquantity':None,'dataunit':None, 'param_order': ['xfactor','xoffset','xlabel','xunit', 'yfactor','yoffset','ylabel','yunit', 'datafactor','dataoffset','dataquantity','dataunit']},
 	'crosscorr': {'peakmin':None,'peakmax':None,'toFirstColumn':True,'param_order': ['peakmin','peakmax','toFirstColumn']},
 	'dbmtovolt': {'rfamp': False, 'attenuation': 0, 'gridresolutionfactor': 2, 'param_order': ['rfamp','attenuation','gridresolutionfactor']},
 	'deint_cross': {'param_order': []},
@@ -1939,7 +1964,7 @@ STYLE_SPECS = {
 	'int': {'param_order': []},
 	'iretrap': {'param_order': []},
 	'ivreverser':{'gridresolutionfactor': 10, 'twodim': False, 'interpmethod': 'cubic', 'param_order': ['gridresolutionfactor','twodim','interpmethod']},
-	'linecut': {'linecutvalue': 1,'axis': None,'param_order': ['linecutvalue','axis']},
+	'linecut': {'linecutvalue': 1,'axis': None, 'quantiphy' : True, 'param_order': ['linecutvalue','axis', 'quantiphy']},
 	'log': {'param_order': []},
 	'logdb': {'param_order': []},
 	'massage': {'param_order': []},
@@ -1953,21 +1978,13 @@ STYLE_SPECS = {
 	'offsetslopesubtract': {'slope': 0, 'offset': 0, 'param_order': ['slope', 'offset']},
 	'resistance': {'linecutvalue': 0, 'dolinearfit': False, 'fitregion': 1, 'param_order': ['linecutvalue','dolinearfit','fitregion']},
 	'rshunt': {'r':1e-10,'gridresolutionfactor': 2, 'param_order': ['r','gridresolutionfactor']},
-	'savgol': {'condquant': False, 'axis': -1, 'difforder':1, 'samples': 7, 'order': 3, 'param_order': ['condquant','axis','difforder','samples','order']},
+	'savgol': {'condquant': False, 'axis': 0, 'difforder':1, 'samples': 7, 'order': 3, 'param_order': ['condquant','axis','difforder','samples','order']},
 	'sgtwodidv': {'samples': 21, 'order': 3, 'param_order': ['samples', 'order']},
 	'shapiro': {'rffreq': 2.15e9, 'nsteps': 1, 'millivolts': 1, 'param_order': ['rffreq','nsteps','millivolts']},
 	'unwrap': {'param_order': []},
 	'vbiascorrector':{'voffset': 0,'seriesr': 0, 'gridresolutionfactor': 2, 'param_order': ['voffset','seriesr','gridresolutionfactor']},
 }
 
-	#linecutvalue = w['linecut_value']
-	#axis = w['linecut_axis']
-
-	# useonlythreshold = 1
-	# pixelnoiserange = 10
-	# peaktoplateauthreshold = 0.5 # threshold
-	# stepoffset = 0
-	# strictzero = True
 #Backward compatibility
 styles = STYLE_FUNCS
 

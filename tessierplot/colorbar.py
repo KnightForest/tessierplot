@@ -19,7 +19,7 @@ class SuperColorbar(ColorbarBase):
 
         self.mappable = mappable
         kwargs['cmap'] = cmap = mappable.cmap
-        #kwargs['norm'] = norm = mappable.norm
+        kwargs['norm'] = norm = mappable.norm
         self.callbacksSM = cbook.CallbackRegistry()
         self._update_dict = {'array': False}
 
