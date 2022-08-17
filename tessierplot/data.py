@@ -4,6 +4,8 @@ import re
 import numpy as np
 from six.moves import xrange
 import json
+from collections import Counter
+from itertools import count
 
 class parser(object):
     def __init__(self):
@@ -31,16 +33,24 @@ class dat_parser(parser):
             self._filebuffer = filebuffer
         
         self._header,self._headerlength = self.parseheader()
+        # Checks for duplicate names and adds numbers to them
+        #print(self._header)
         names = [i['name'] for n,i in enumerate(self._header) if 'column' in self._header[n]]
+        print(self._header)
+        c = Counter(names)
+        iters = {k: count(1) for k, v in c.items() if v > 1}
+        names = [x+'_'+str(next(iters[x])) if x in iters else x for x in names]
+        print(names)
 
         self._data = pandas.read_csv(f,
-                                 sep='\t+|,',
+                                 sep='\t+|,\s+',
                                  comment='#',
                                  skiprows=self._headerlength,
                                  engine ='python',
                                  header=None,
                                  names=names)
         return super(dat_parser,self).parse()
+        print(self._data)
 
     def parse_header(self):
         return None
@@ -70,7 +80,10 @@ class qtm_parser(dat_parser):
         #thirdline = (filebuffer.readline().decode('utf-8', 'ignore'))#.rstrip()
         setgetlist = list(firstline.split('|')[1])
         #print(secondline)
-        columnnames = thirdline.split(',')
+        columnnames = thirdline.split(', ')
+        c = Counter(columnnames)
+        iters = {k: count(1) for k, v in c.items() if v > 1}
+        columnnames = [x+'_'+str(next(iters[x])) if x in iters else x for x in columnnames]
         headervalues=[]
         #units = []
         headerlength=0
