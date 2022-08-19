@@ -39,7 +39,6 @@ class dat_parser(parser):
         c = Counter(names)
         iters = {k: count(1) for k, v in c.items() if v > 1}
         names = [x+'_'+str(next(iters[x])) if x in iters else x for x in names]
-        print(names)
 
         self._data = pandas.read_csv(f,
                                  sep='\t+|,\s+',
