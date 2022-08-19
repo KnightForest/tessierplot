@@ -36,7 +36,6 @@ class dat_parser(parser):
         # Checks for duplicate names and adds numbers to them
         #print(self._header)
         names = [i['name'] for n,i in enumerate(self._header) if 'column' in self._header[n]]
-        print(self._header)
         c = Counter(names)
         iters = {k: count(1) for k, v in c.items() if v > 1}
         names = [x+'_'+str(next(iters[x])) if x in iters else x for x in names]
