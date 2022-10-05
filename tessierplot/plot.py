@@ -83,6 +83,17 @@ _quantiphy_ignorelist = ['dBm',
 						 r'2$e^2$/h',
 						 r'h/2$e^2$']
 
+_raw_filter = ['raw',
+			   'Raw', 
+			   'trit.temp', 
+			   'sr1.r', 
+		       'sr1.freq', 
+			   'sr1.amp', 
+		       'sr2.r', 
+		       'sr2.freq', 
+			   'sr2.amp', 
+			   'KBG.i']
+
 # Settings for 'normal' plots
 rcP = {	 'figure.figsize': (_plot_width, _plot_height), #(width in inch, height in inch)
 		'axes.labelsize':  _fontsize_axis_labels,
@@ -215,7 +226,7 @@ class plotR(object):
 						imshow=True, # Default uses imshow, else pcolormesh is used
 						cbar_orientation='horizontal', # Orientataion of colorbar, either vertical or horizontal
 						cbar_location ='normal', # 'inset' allows plotting colorbar inside the main fig
-						filter_raw = True, # Filters out all subplots whith the word 'raw' in the name or label of the plot
+						filter_raw = True, # Do not show plots used mainly for diagnostic purposes (x/y component for lock-in for instance)
 						ccmap = None, #Allows loading of custom colormap
 						supress_plot = False, #Suppression of all plotting functions, only processes data
 						norm = 'nan', #Added for NaN value support
@@ -246,7 +257,11 @@ class plotR(object):
 			value_labels_filtered = []
 			value_units_filtered = []
 			for n,value_label_raw in enumerate(value_labels_raw):
-				if value_label_raw.find('raw')==-1 and value_label_raw.find('Raw')== -1:
+				rawfound = False
+				for f in _raw_filter:
+					if value_label_raw.find(f)==0:
+						rawfound = True
+				if rawfound == False:
 					value_labels_filtered.append(value_label_raw)
 					value_keys_filtered.append(value_keys_raw[n])
 					value_units_filtered.append(value_units_raw[n])
@@ -731,7 +746,7 @@ class plotR(object):
 					fiddle=False,
 					supress_plot = False,
 					legend=False,
-					filter_raw=True, #Do not show plots with 'Raw' string in label
+					filter_raw=True, #Do not show plots used mainly for diagnostic purposes (x/y component for lock-in for instance)
 					axislabeltype = 'label', #Use 'label' or 'name' on axis labels
 					quantiphy = True, #Use quantiphy to convert units and axis labels to manageable quantities
 					**kwargs):
@@ -753,11 +768,15 @@ class plotR(object):
 			value_keys_filtered = []
 			value_labels_filtered = []
 			value_units_filtered = []
-			for n,value_label in enumerate(value_labels):
-				if value_label.find('raw')==-1 and value_label.find('Raw')== -1:
-					value_labels_filtered.append(value_label)
-					value_keys_filtered.append(value_keys[n])
-					value_units_filtered.append(value_units[n])
+			for n,value_label_raw in enumerate(value_labels_raw):
+				rawfound = False
+				for f in _raw_filter:
+					if value_label_raw.find(f)==0:
+						rawfound = True
+				if rawfound == False:
+					value_labels_filtered.append(value_label_raw)
+					value_keys_filtered.append(value_keys_raw[n])
+					value_units_filtered.append(value_units_raw[n])
 			value_keys = value_keys_filtered
 			value_units = value_units_filtered
 			value_labels = value_labels_filtered

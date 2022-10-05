@@ -19,9 +19,9 @@ lives. Any editing done will immediately carry over.
 Make your life easier by making thumbnails of all measurement files
 and plot them in a nice grid.
 ```python
-import imp
+import importlib		
 from tessierplot import view
-imp.reload(view)
+importlib.reload(view)
 
 view.tessierView(rootdir='/where/my/naturepublicationmeasurements/are',filterstring='',override=False, showfilenames=True)
 ```

@@ -11,6 +11,7 @@ class SuperColorbar(ColorbarBase):
     Limited in scope, since it doesnt take care if mappable is e.g. a contour.ContourSet
     '''
     def __init__(self,ax,mappable,**kwargs):
+        #self.ticklocation='top'
         self._normticks = []
         self._normtickhandles = []
         self._dragtick = None #current tick being dragged
@@ -88,48 +89,48 @@ class SuperColorbar(ColorbarBase):
         self.draw_all()
         self.mappable.autoscale()
         self.fig.canvas.draw()
-    def set_clim(self, vmin=None, vmax=None):
-        """
-        Set the norm limits for image scaling.
-        Parameters
-        ----------
-        vmin, vmax : float
-             The limits.
-             The limits may also be passed as a tuple (*vmin*, *vmax*) as a
-             single positional argument.
-             .. ACCEPTS: (vmin: float, vmax: float)
-        """
-        if vmax is None:
-            try:
-                vmin, vmax = vmin
-            except (TypeError, ValueError):
-                pass
-        if vmin != None:
-            self.norm.vmin = colors._sanitize_extrema(vmin)
-        if vmax != None:
-            self.norm.vmax = colors._sanitize_extrema(vmax)
-        self.changed()
-    def set_cmap(self, cmap):
-        """
-        Set the colormap for luminance data.
-        Parameters
-        ----------
-        cmap : `.Colormap` or str or None
-        """
-        in_init = self.cmap is None
-        #cmap = get_cmap(cmap)
-        self.cmap = cmap
-        #if not in_init:
-        self.changed()  # Things are not set up properly yet.
-    def changed(self):
-        """
-        Call this whenever the mappable is changed to notify all the
-        callbackSM listeners to the 'changed' signal.
-        """
-        self.callbacksSM.process('changed', self)
-        for key in self._update_dict:
-            self._update_dict[key] = True
-        self.stale = True
+    # def set_clim(self, vmin=None, vmax=None):
+    #     """
+    #     Set the norm limits for image scaling.
+    #     Parameters
+    #     ----------
+    #     vmin, vmax : float
+    #          The limits.
+    #          The limits may also be passed as a tuple (*vmin*, *vmax*) as a
+    #          single positional argument.
+    #          .. ACCEPTS: (vmin: float, vmax: float)
+    #     """
+    #     if vmax is None:
+    #         try:
+    #             vmin, vmax = vmin
+    #         except (TypeError, ValueError):
+    #             pass
+    #     if vmin != None:
+    #         self.norm.vmin = colors._sanitize_extrema(vmin)
+    #     if vmax != None:
+    #         self.norm.vmax = colors._sanitize_extrema(vmax)
+    #     self.changed()
+    # def set_cmap(self, cmap):
+    #     """
+    #     Set the colormap for luminance data.
+    #     Parameters
+    #     ----------
+    #     cmap : `.Colormap` or str or None
+    #     """
+    #     in_init = self.cmap is None
+    #     #cmap = get_cmap(cmap)
+    #     self.cmap = cmap
+    #     #if not in_init:
+    #     self.changed()  # Things are not set up properly yet.
+    # def changed(self):
+    #     """
+    #     Call this whenever the mappable is changed to notify all the
+    #     callbackSM listeners to the 'changed' signal.
+    #     """
+    #     self.callbacksSM.process('changed', self)
+    #     for key in self._update_dict:
+    #         self._update_dict[key] = True
+    #     self.stale = True
     def on_mappable_changed(self, mappable):
         cm = mappable.get_cmap()
         cl = mappable.get_clim()
