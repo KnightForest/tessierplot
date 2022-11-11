@@ -462,6 +462,7 @@ class Data(pandas.DataFrame):
 
         self._filepath = None #filepath
         self._header = None #header
+        self._unsorted_data = None
         self._sorted_data = None
         self._value_keys = None
 
@@ -555,6 +556,14 @@ class Data(pandas.DataFrame):
             self._sorted_data = self.sort_values(by=self.coordkeys)
             #self._sorted_data = self._sorted_data.dropna(how='any')
         return self._sorted_data
+    
+    @property
+    def unsorted_data(self):
+        if self._unsorted_data is None:
+            #sort the data from the last coordinate column backwards
+            self._unsorted_data = self#.sort_values(by=self.coordkeys)
+            #self._sorted_data = self._sorted_data.dropna(how='any')
+        return self._unsorted_data
 
     @property
     def ndim_sparse(self):

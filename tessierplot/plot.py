@@ -92,7 +92,11 @@ _raw_filter = ['raw',
 		       'sr2.r', 
 		       'sr2.freq', 
 			   'sr2.amp', 
-			   'KBG.i']
+			   'KBG.i',
+			   'ct.time',
+			   'kTG',
+			   'vrm'
+			   ]
 
 # Settings for 'normal' plots
 rcP = {	 'figure.figsize': (_plot_width, _plot_height), #(width in inch, height in inch)
@@ -759,9 +763,14 @@ class plotR(object):
 				n_index = None            
 
 		#determine how many subplots we need
-		n_subplots = 1
+		#n_subplots = 1
+		#coord_keys,coord_units,coord_labels = self.data.coordkeys_n
+		#value_keys,value_units,value_labels_raw = self.data.valuekeys_n
+		#coord_keys_raw,coord_units_raw,coord_labels_raw = self.data.coordkeys_n
+		
+		#make a list of uniques per column associated with column name
 		coord_keys,coord_units,coord_labels = self.data.coordkeys_n
-		value_keys,value_units,value_labels = self.data.valuekeys_n
+		value_keys_raw,value_units_raw,value_labels_raw = self.data.valuekeys_n
 		coord_keys_raw,coord_units_raw,coord_labels_raw = self.data.coordkeys_n
 		#Filtering raw value axes
 		if filter_raw== True:
@@ -817,7 +826,7 @@ class plotR(object):
 				if n_index != None:
 						if i not in n_index:
 							continue
-				data = self.data.sorted_data[j]
+				data = self.data.unsorted_data[j]
 				#filter out the keys corresponding to unique value columns
 				us=uniques_col_str
 				coord_keys = [key for key in coord_keys if key not in uniques_col_str]
