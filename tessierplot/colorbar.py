@@ -168,9 +168,9 @@ if __name__ == "__main__":
 def create_colorbar(ax,mappable,*args,**kwargs):
     cb=SuperColorbar(ax,mappable,*args,**kwargs)
     #create callback to notify supercolorbar that the mappable has changed
-    cid = mappable.callbacksSM.connect('changed',cb.on_mappable_changed)
-    mappable.colorbar = cb
-    mappable.colorbar_cid= cid
+    #cid = mappable.callbacksSM.connect('changed',cb.on_mappable_changed)
+    #mappable.colorbar = cb
+    #mappable.colorbar_cid= cid
     return cb
     
 def test():
