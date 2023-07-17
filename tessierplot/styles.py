@@ -2108,8 +2108,8 @@ def moving_average_1d(data, window):
     # (mode='same') and symmetrical boundary conditions are assumed
     # (boundary='symm').
     smoothed = signal.convolve(data, window, mode='same')
-    smoothed[-(np.int(len(window)/2)):] = np.nan
-    smoothed[0:np.int(len(window)/2)] = np.nan   
+    smoothed[-(int(len(window)/2)):] = np.nan
+    smoothed[0:int(len(window)/2)] = np.nan   
     return smoothed
 
 
