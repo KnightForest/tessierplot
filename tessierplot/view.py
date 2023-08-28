@@ -184,16 +184,8 @@ class tessierView(object):
                 #dirty, if filename ends e.g. in gz, also chops off the second extension
                 measname,ext2 = os.path.splitext(measname)
                 ext = ext2+ext1
-                #fulldir = os.path.dirname(fullpath)
-                #lastdir = os.path.basename(fulldir)
                 if len(measname) < len(measfiledir):
                     measname = measfiledir
-                #check if filterstring can be found in the set file (e.g. 'dac4: 1337.0')
-                if not isinfilterstring:
-                    setfilepath = data.filetype.getsetfilepath(fullpath)
-                    if setfilepath: # only check for filterstring if set file exists
-                        isinfilterstring = filterstring in open(setfilepath).read()
-
                 if isinfilterstring:    #liable for improvement
                     if self._showfilenames:
                         print(fullpath)
@@ -296,7 +288,7 @@ class tessierView(object):
                         <option value="{{"\\'int\\'"|e}}">int</option>
                         <option value="{{"\\'log\\'"|e}}">log</option>
                         <option value="{{"\\'logdb\\'"|e}}">logdb</option>
-                        <option value="{{"\\'mov_avg(n=12)\\'"|e}}">movavg</option>
+                        <option value="{{"\\'mov_avg(n=6)\\'"|e}}">movavg</option>
                         <option value="{{"\\'savgol(samples=7,order=3,difforder=0)\\'"|e}}">Savitzky-Golay_filter</option>
                         <option value="{{"\\'mov_avg(n=3)\\',\\'diff(condquant=False)\\',\\'mov_avg(n=3)\\'"|e}}">diff_movavg</option>
                         <option value="{{"\\'mov_avg(n=3)\\',\\'diff(condquant=False)\\',\\'mov_avg(n=3)\\',\\'log\\'"|e}}">diff_movavg_log</option>

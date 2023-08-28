@@ -3,14 +3,14 @@
 
 Go into the project folder and type:
 ```
-python setup.py install
+pip install {path to package}
 ```
-If you're feeling frisky
+For an editable install (recommended for easy repository updates):
 ```
-python setup.py develop
+pip install -e {path to package}
 ```
-installs in develop mode and the project folder is where the module
-lives. Any editing done will immediately carry over.
+Now, the project folder is where the module lives. 
+Any editing done will immediately carry over.
 
 
 ## Usage
@@ -72,33 +72,58 @@ data to make your life a bit easier.
 e.g.
 
 ```python
-p.plot3d(style=['mov_avg(n=1,m=2)','didv'])
+p.plot3d(style=['mov_avg(n=1,m=2)','diff'])
 ```
 applies a moving average filtering, and a subsequent derivative. Other
 filters at this time are:
 
 ```python
 STYLE_SPECS = {
+	'abs': {'param_order': []},
+	'changeaxis': {'xfactor': 1,'xoffset':0,'xlabel':None,'xunit':None, 'yfactor':1,'yoffset':0,'ylabel':None,'yunit':None, 'datafactor':1,'dataoffset':0,'dataquantity':None,'dataunit':None, 'param_order': ['xfactor','xoffset','xlabel','xunit', 'yfactor','yoffset','ylabel','yunit', 'datafactor','dataoffset','dataquantity','dataunit']},
+	'crosscorr': {'peakmin':None,'peakmax':None,'toFirstColumn':True,'param_order': ['peakmin','peakmax','toFirstColumn']},
+	'dbmtovolt': {'rfamp': False, 'attenuation': 0, 'gridresolutionfactor': 2, 'param_order': ['rfamp','attenuation','gridresolutionfactor']},
+	'deint_cross': {'param_order': []},
 	'deinterlace': {'param_order': []},
 	'deinterlace0': {'param_order': []},
 	'deinterlace1': {'param_order': []},
-	'didv': {'param_order': []},
-	'log': {'param_order': []},
-	'normal': {'param_order': []},
+	'deleteouterdatapoints': {'n':0,'param_order': ['n']},
+	'diff': {'condquant': False, 'axis': 0, 'gradient': True, 'order': 1, 'param_order': ['condquant','axis','gradient','order']},
+	'excesscurrent': {'datacutoff': 3, 'rangefactor': 0.15, 'plot': 0, 'plotval': 0,'param_order': ['datacutoff','rangefactor','plot','plotval']},
+	'factor': {'factor':1,'param_order': ['factor']},
+	'fancylog': {'cmin': None, 'cmax': None, 'param_order': ['cmin', 'cmax']},
+	'fixlabels': {'param_order': []},
 	'flipaxes': {'param_order': []},
 	'flipyaxis': {'param_order': []},
 	'flipxaxis': {'param_order': []},
-# 	'threshold_offset': {'threshold':0.2,'start':0.0,'stop':1.0,'param_order':[]},
-	'mov_avg': {'m': 1, 'n': 5, 'win': None, 'param_order': ['m', 'n', 'win']},
-	'abs': {'param_order': []},
-	'savgol': {'samples': 11, 'order': 3, 'param_order': ['samples', 'order']},
-	'sgdidv': {'samples': 11, 'order': 3, 'param_order': ['samples', 'order']},
-	'fancylog': {'cmin': None, 'cmax': None, 'param_order': ['cmin', 'cmax']},
-	'minsubtract': {'param_order': []},
-	'crosscorr': {'peakmin':None,'peakmax':None,'toFirstColumn':True,'param_order': ['peakmin','peakmax','toFirstColumn']},
+	'hardgap': {'gaprange': 0.1, 'outsidegapmin': 0.5, 'outsidegapmax': 0.6, 'alphafactor': 1e9, 'param_order': ['gaprange','outsidegapmin','outsidegapmax','alphafactor']},
+	'histogram':{'bins': 25, 'rangemin': -1, 'rangemax': 1, 'param_order': ['bins','rangemin','rangemax']},
+	'ic': {'param_order': []},
+	'icvsx': {'useonlythreshold': True, 'pixelnoiserange': 3, 'ppt': 0.5, 'stepoffset': 0, 'strictzero': True, 'plateaulim': 1e6,'gapmax': 1e6,'param_order': ['useonlythreshold','pixelnoiserange','ppt','stepoffset','strictzero','plateaulim','gapmax']},
+	'int': {'param_order': []},
+	'iretrap': {'param_order': []},
+	'ivreverser':{'gridresolutionfactor': 10, 'twodim': False, 'interpmethod': 'cubic', 'param_order': ['gridresolutionfactor','twodim','interpmethod']},
+	'linecut': {'linecutvalue': 1,'axis': None, 'quantiphy' : True, 'param_order': ['linecutvalue','axis', 'quantiphy']},
+	'log': {'param_order': []},
+	'logdb': {'param_order': []},
 	'massage': {'param_order': []},
-	'deint_cross': {'param_order': []}
+	'meansubtract': {'param_order': []},
+	'minsubtract': {'param_order': []},
+	'normalise': {'axis': 'x', 'index': 0, 'param_order': ['axis','index']},
+	'mov_avg': {'m': 1, 'n': 3, 'win': None, 'param_order': ['m', 'n', 'win']},
+	'movingmeansubtract': {'window': 2,'param_order': ['window']},
+    'movingmediansubtract': {'window': 1,'param_order': ['window']},
+	'normal': {'param_order': []},
+	'offsetslopesubtract': {'slope': 0, 'offset': 0, 'param_order': ['slope', 'offset']},
+	'resistance': {'linecutvalue': 0, 'dolinearfit': False, 'fitregion': 1, 'param_order': ['linecutvalue','dolinearfit','fitregion']},
+	'rshunt': {'r':1e-10,'gridresolutionfactor': 2, 'param_order': ['r','gridresolutionfactor']},
+	'savgol': {'condquant': False, 'axis': 0, 'difforder':1, 'samples': 7, 'order': 3, 'param_order': ['condquant','axis','difforder','samples','order']},
+	'sgtwodidv': {'samples': 21, 'order': 3, 'param_order': ['samples', 'order']},
+	'shapiro': {'rffreq': 2.15e9, 'nsteps': 1, 'millivolts': False, 'param_order': ['rffreq','nsteps','millivolts']},
+	'unwrap': {'param_order': []},
+	'vbiascorrector':{'voffset': 0,'seriesr': 0, 'gridresolutionfactor': 2, 'param_order': ['voffset','seriesr','gridresolutionfactor']},
 }
+
 ```
 #### The massage style
 you can also custom make a style without modifying the tessierplot module.
@@ -117,7 +142,7 @@ def special_style(wrapper):
 p.quickplot(style=['mov_avg', 'massage', 'didv'], massage_func=special_style)
 ```
 
-### the colorbar
+### the colorbar [functionality currently removed]
 The colorbar supports modifying the colormap nonlinearly by clicking in it. This
 will divide the colormap in n+1 segments, where n is the number of
 marks. Each mark can be dragged.

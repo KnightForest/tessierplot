@@ -1307,12 +1307,16 @@ def helper_shapiro(w):  #Needs equally spaced axes
 	Warning:
 	- Expects y-axis to be current in A
 	'''
+	
+	import scipy.constants as sc
+
+
 	#Looks for expected voltage of Shapiro step as function of applied frequency and order and returns closest measured index.
-	planck = 4.135668e-15
-	electron = 1#1.60e-19
+	planck = sc.h
+	electron = sc.elementary_charge
 	rffreq = w['shapiro_rffreq'] #Freq in GHz
 	nsteps = int(w['shapiro_nsteps']) #Up to which order
-	millivolts = w['shapiro_millivolts']
+	millivolts = strtobool(w['shapiro_millivolts'])
 	if millivolts:
 		w['XX'] = w['XX']*2*electron/(planck*rffreq*1000) #Convert XX to energy
 	else:
@@ -1980,7 +1984,7 @@ STYLE_SPECS = {
 	'rshunt': {'r':1e-10,'gridresolutionfactor': 2, 'param_order': ['r','gridresolutionfactor']},
 	'savgol': {'condquant': False, 'axis': 0, 'difforder':1, 'samples': 7, 'order': 3, 'param_order': ['condquant','axis','difforder','samples','order']},
 	'sgtwodidv': {'samples': 21, 'order': 3, 'param_order': ['samples', 'order']},
-	'shapiro': {'rffreq': 2.15e9, 'nsteps': 1, 'millivolts': 1, 'param_order': ['rffreq','nsteps','millivolts']},
+	'shapiro': {'rffreq': 2.15e9, 'nsteps': 1, 'millivolts': False, 'param_order': ['rffreq','nsteps','millivolts']},
 	'unwrap': {'param_order': []},
 	'vbiascorrector':{'voffset': 0,'seriesr': 0, 'gridresolutionfactor': 2, 'param_order': ['voffset','seriesr','gridresolutionfactor']},
 }
@@ -2108,8 +2112,8 @@ def moving_average_1d(data, window):
     # (mode='same') and symmetrical boundary conditions are assumed
     # (boundary='symm').
     smoothed = signal.convolve(data, window, mode='same')
-    smoothed[-(np.int(len(window)/2)):] = np.nan
-    smoothed[0:np.int(len(window)/2)] = np.nan   
+    smoothed[-(int(len(window)/2)):] = np.nan
+    smoothed[0:int(len(window)/2)] = np.nan   
     return smoothed
 
 
