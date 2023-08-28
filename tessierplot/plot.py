@@ -86,16 +86,25 @@ _quantiphy_ignorelist = ['dBm',
 _raw_filter = ['raw',
 			   'Raw', 
 			   'trit.temp', 
+			   'sr1.y',
 			   'sr1.r', 
 		       'sr1.freq', 
 			   'sr1.amp', 
+			   'sr1.theta',
+			   'sr2.y',
 		       'sr2.r', 
 		       'sr2.freq', 
 			   'sr2.amp', 
+			   'sr2.theta',
 			   'KBG.i',
 			   'ct.time',
 			   'kTG',
-			   'vrm'
+			   'vrm',
+			   'ice',
+			   'DF',
+			   'cm',
+			   'ct.time',
+			   'dac',
 			   ]
 
 # Settings for 'normal' plots
@@ -174,9 +183,9 @@ class plotR(object):
 		try:
 			if self.isthumbnail: # If generating thumbnails, different arguments can be given to plot2d or plot3d
 				if self.is2d():
-					fig = self.plot2d(uniques_col_str=uniques_col_str,**kwargs)
+					fig = self.plot2d(uniques_col_str=uniques_col_str,filter_raw=True,**kwargs)
 				else:
-					fig = self.plot3d(uniques_col_str=uniques_col_str,cbar_orientation='vertical',**kwargs)
+					fig = self.plot3d(uniques_col_str=uniques_col_str,cbar_orientation='vertical',filter_raw=True,**kwargs)
 				fig.savefig(self.thumbfile,bbox_inches='tight', dpi=100 )
 				fig.savefig(self.thumbfile_datadir,bbox_inches='tight', dpi=100 )
 				plt.close(fig)
@@ -230,7 +239,7 @@ class plotR(object):
 						imshow=True, # Default uses imshow, else pcolormesh is used
 						cbar_orientation='horizontal', # Orientataion of colorbar, either vertical or horizontal
 						cbar_location ='normal', # 'inset' allows plotting colorbar inside the main fig
-						filter_raw = True, # Do not show plots used mainly for diagnostic purposes (x/y component for lock-in for instance)
+						filter_raw = False, # Do not show plots used mainly for diagnostic purposes (x/y component for lock-in for instance)
 						ccmap = None, #Allows loading of custom colormap
 						supress_plot = False, #Suppression of all plotting functions, only processes data
 						norm = 'nan', #Added for NaN value support
@@ -750,7 +759,7 @@ class plotR(object):
 					fiddle=False,
 					supress_plot = False,
 					legend=False,
-					filter_raw=True, #Do not show plots used mainly for diagnostic purposes (x/y component for lock-in for instance)
+					filter_raw=False, #Do not show plots used mainly for diagnostic purposes (x/y component for lock-in for instance)
 					axislabeltype = 'label', #Use 'label' or 'name' on axis labels
 					quantiphy = True, #Use quantiphy to convert units and axis labels to manageable quantities
 					**kwargs):
@@ -789,6 +798,10 @@ class plotR(object):
 			value_keys = value_keys_filtered
 			value_units = value_units_filtered
 			value_labels = value_labels_filtered
+		else:
+			value_keys = value_keys_raw
+			value_units = value_units_raw
+			value_labels = value_labels_raw
 		#make a list of uniques per column associated with column name
 		uniques_by_column = dict(zip(coord_keys + value_keys, self.data.dims))
 

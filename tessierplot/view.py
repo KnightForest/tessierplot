@@ -568,7 +568,7 @@ class tessierView(object):
         """
         temp = jj.Template(out)
 
-        plotcommand = """\\nimport matplotlib.pyplot as plt\\nimport imp\\nif not plt.get_fignums():\\n from tessierplot import plot as ts\\n imp.reload(ts)\\np = ts.plotR(filename)\\np.quickplot(style=%s,value_axis=[%a],n_index=[%c])\\n"""
+        plotcommand = """\\nimport matplotlib.pyplot as plt\\nimport imp\\nif not plt.get_fignums():\\n from tessierplot import plot as ts\\n imp.reload(ts)\\np = ts.plotR(filename)\\np.quickplot(style=%s,value_axis=[%a],n_index=[%c],filter_raw=True)\\n"""
         
         import datetime
         d=datetime.datetime.utcnow()
