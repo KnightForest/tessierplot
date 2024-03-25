@@ -19,6 +19,7 @@ setup(name='tessierplot',
           'scipy',
           'peakutils',
           'numpy',
-          'pyqt5'
+          'pyqt5',
+          'jupyter notebook==6.5.6'
       ],
       zip_safe=False)
