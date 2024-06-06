@@ -375,7 +375,7 @@ class filetype():
     @classmethod
     def selectparser(cls,filepath=''):
         cls._SUPPORTED_FILETYPES = ['.dat', '.csv', '.gz']
-        cls._SUPPORTED_METATYPES = ['.set', '.txt', '.json']
+        cls._SUPPORTED_METATYPES = ['.set', '.txt', '.json', '.csv']
         file_Path, file_Extension = os.path.splitext(filepath)
         # look for supported metadata files
         exts = []
@@ -406,12 +406,12 @@ class filetype():
             else: 
                 parser =  qcodes_parser
         
-        elif meta_Extension == '.txt':
+        elif meta_Extension == '.txt' or meta_Extension == '.csv' :
             if file_Extension ==  '.gz':
                 file_Path = os.path.splitext(file_Path)[0]
                 parser = factory_gz_parser(qtm_parser)
             elif file_Extension != '.csv':
-                print('Wrong file extension for qtlab parser: ' + file_Extension)
+                print('Wrong file extension for qtmlab parser: ' + file_Extension)
                 parser =  None
             else: 
                 parser =  qtm_parser
