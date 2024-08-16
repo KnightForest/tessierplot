@@ -258,7 +258,7 @@ class plotR(object):
 		if ccmap:
 			self.ccmap = loadCustomColormap()
 		else:
-			self.ccmap = copy.copy(mpl.cm.get_cmap("inferno"))		
+			self.ccmap = copy.copy(mpl.colormaps.get_cmap("inferno"))		
 
 		#make a list of uniques per column associated with column name
 		value_keys_raw,value_units_raw,value_labels_raw = self.data.valuekeys_n
