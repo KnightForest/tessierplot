@@ -39,7 +39,7 @@ class dat_parser(parser):
         c = Counter(names)
         iters = {k: count(1) for k, v in c.items() if v > 1}
         names = [x+'_'+str(next(iters[x])) if x in iters else x for x in names]
-
+        print(self._headerlength)
         self._data = pandas.read_csv(f,
                                  sep='\t+|,\s+',
                                  comment='#',
@@ -48,6 +48,7 @@ class dat_parser(parser):
                                  header=None,
                                  names=names)
         return super(dat_parser,self).parse()
+        f.close()
         print(self._data)
 
     def parse_header(self):
@@ -173,10 +174,26 @@ class qcodes_parser(dat_parser):
         if 'interdependencies' in json_data:
             #read the column names from the .dat file
             filebuffer = self._filebuffer
-            firstline = (filebuffer.readline().decode('utf-8', 'ignore')).rstrip()
-            secondline = (filebuffer.readline().decode('utf-8', 'ignore')).rstrip()
-            thirdline = (filebuffer.readline().decode('utf-8', 'ignore')).rstrip()
-            fourthline = (filebuffer.readline().decode('utf-8', 'ignore')).rstrip()
+            filebuffer.seek(0)
+            headerlines = []
+            for i, linebuffer in enumerate(filebuffer):
+                line = linebuffer.decode('utf-8', 'ignore').rstrip()
+                if line[0] != '#': #find the skiprows accounting for the first linebreak in the header
+                    headerlength = i-1
+                    break
+                headerlines.append(line)
+                if i > 1e9: #Claudius wants infinite endlines in his comments, such metadata
+                    break
+            firstline = headerlines[0]
+            if headerlength > 4:
+                commentlist = headerlines[1:-3]
+                secondline = ''
+                for i, elem in enumerate(commentlist):
+                    secondline += elem[2:] + '\n'
+            else:
+                secondline = headerlines[1]
+            thirdline = headerlines[-2]
+            fourthline = headerlines[-1]
 
             names = thirdline[2:].split('\t')
             
@@ -210,7 +227,7 @@ class qcodes_parser(dat_parser):
                             header.append(h)
                             break
             titleline = firstline.split(',')
-            comment = secondline[2:]
+            comment = secondline
             if comment == 'Comment:':
                 comment = 'n.a.'
             else:
@@ -225,6 +242,7 @@ class qcodes_parser(dat_parser):
             }
             header.append(headertitledict)
         #print(json.dumps(header, sort_keys=True, indent=4))
+        json_filebuffer.close()
         return header,headerlength #git c,headertitledict
 
 class qtlab_parser(dat_parser):
@@ -359,7 +377,7 @@ def factory_gz_parser(cls):
                 print('Not a valid gzip file')
                 gz = super(gz_parser,self).__init__(filename=filename,filebuffer=None)
                 return gz
-    
+            f.close()
     return gz_parser
 
 #class for supported filetypes, handles which parser class to call

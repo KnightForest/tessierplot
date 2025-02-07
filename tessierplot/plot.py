@@ -805,10 +805,10 @@ class plotR(object):
 		#make a list of uniques per column associated with column name
 		uniques_by_column = dict(zip(coord_keys + value_keys, self.data.dims))
 
+		print(value_keys, value_keys_raw)
 		#assume 2d plots with data in the two last columns
 		if len(uniques_col_str)==0:
 			uniques_col_str = coord_keys[:-1]
-
 		value_axes = []	
 		if type(value_axis) != list:
 			value_axes = [value_axis]
