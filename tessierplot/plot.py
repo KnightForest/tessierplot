@@ -258,7 +258,7 @@ class plotR(object):
 		if ccmap:
 			self.ccmap = loadCustomColormap()
 		else:
-			self.ccmap = copy.copy(mpl.cm.get_cmap("inferno"))		
+			self.ccmap = copy.copy(mpl.colormaps.get_cmap("inferno"))		
 
 		#make a list of uniques per column associated with column name
 		value_keys_raw,value_units_raw,value_labels_raw = self.data.valuekeys_n
@@ -805,10 +805,10 @@ class plotR(object):
 		#make a list of uniques per column associated with column name
 		uniques_by_column = dict(zip(coord_keys + value_keys, self.data.dims))
 
+		print(value_keys, value_keys_raw)
 		#assume 2d plots with data in the two last columns
 		if len(uniques_col_str)==0:
 			uniques_col_str = coord_keys[:-1]
-
 		value_axes = []	
 		if type(value_axis) != list:
 			value_axes = [value_axis]
