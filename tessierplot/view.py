@@ -16,7 +16,7 @@ import shutil
 if os.name == 'nt':
     import win32api
 
-import imp
+import importlib as imp
 imp.reload(ts)
 
 plotstyle = 'normal'

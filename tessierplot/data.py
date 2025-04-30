@@ -41,7 +41,7 @@ class dat_parser(parser):
         names = [x+'_'+str(next(iters[x])) if x in iters else x for x in names]
 
         self._data = pandas.read_csv(f,
-                                 sep='\t+|,\s+',
+                                 sep='\t+|,\\s+',
                                  comment='#',
                                  skiprows=self._headerlength,
                                  engine ='python',
@@ -375,7 +375,7 @@ class filetype():
     @classmethod
     def selectparser(cls,filepath=''):
         cls._SUPPORTED_FILETYPES = ['.dat', '.csv', '.gz']
-        cls._SUPPORTED_METATYPES = ['.set', '.txt', '.json']
+        cls._SUPPORTED_METATYPES = ['.set', '.txt', '.json', '.csv']
         file_Path, file_Extension = os.path.splitext(filepath)
         # look for supported metadata files
         exts = []
@@ -406,7 +406,7 @@ class filetype():
             else: 
                 parser =  qcodes_parser
         
-        elif meta_Extension == '.txt':
+        elif meta_Extension == '.txt' or meta_Extension == '.csv'  :
             if file_Extension ==  '.gz':
                 file_Path = os.path.splitext(file_Path)[0]
                 parser = factory_gz_parser(qtm_parser)
