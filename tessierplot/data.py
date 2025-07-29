@@ -34,12 +34,11 @@ class dat_parser(parser):
         
         self._header,self._headerlength = self.parseheader()
         # Checks for duplicate names and adds numbers to them
-        #print(self._header)
         names = [i['name'] for n,i in enumerate(self._header) if 'column' in self._header[n]]
         c = Counter(names)
         iters = {k: count(1) for k, v in c.items() if v > 1}
         names = [x+'_'+str(next(iters[x])) if x in iters else x for x in names]
-        print(self._headerlength)
+        f.seek(0)
         self._data = pandas.read_csv(f,
                                  sep='\t+|,\\s+',
                                  comment='#',
@@ -49,7 +48,6 @@ class dat_parser(parser):
                                  names=names)
         return super(dat_parser,self).parse()
         f.close()
-        print(self._data)
 
     def parse_header(self):
         return None
@@ -199,7 +197,7 @@ class qcodes_parser(dat_parser):
             
             headervalues=[]
             units = []
-            headerlength=0
+            #headerlength=0
 
             headerdict = json_data['interdependencies']['paramspecs']
             for i,val in enumerate(headerdict):             
@@ -218,7 +216,6 @@ class qcodes_parser(dat_parser):
                     line_x = zip(['column','name','label','type','unit'],line)
                     headervalues.append(line_x)
             headervalues = [dict(x) for x in headervalues]
-            # print('headervalues',headervalues)
             # sort according to the column order in the dat file
             header=[]
             for i, col in enumerate(names):
@@ -228,20 +225,18 @@ class qcodes_parser(dat_parser):
                             break
             titleline = firstline.split(',')
             comment = secondline
-            if comment == 'Comment:':
+            if comment == '# Comment:':
                 comment = 'n.a.'
             else:
-                comment = comment.replace('Comment: ', '')
-            #print('titline',titleline)
+                comment = comment.replace('# Comment: ', '')
             headertitledict = {
-            'measname'   : titleline[0],
+            'measname'   : titleline[0][2:],
             'experiment' : titleline[1],
             'samplename' : titleline[2],
             'nvals'      : titleline[3],
             'comment'    : comment
             }
             header.append(headertitledict)
-        #print(json.dumps(header, sort_keys=True, indent=4))
         json_filebuffer.close()
         return header,headerlength #git c,headertitledict
 

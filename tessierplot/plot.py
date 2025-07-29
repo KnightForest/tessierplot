@@ -194,9 +194,10 @@ class plotR(object):
 					fig = self.plot2d(uniques_col_str=uniques_col_str,**kwargs)
 				else:
 					fig = self.plot3d(uniques_col_str=uniques_col_str,**kwargs)
+					print()
 		except Exception as e:
 			print('Error occured in quickplot: ',e)
-		return fig
+		return True#fig
 
 	# Automatic calibration of colorscale for colorplots
 	def autoColorScale(self,data):
@@ -289,7 +290,7 @@ class plotR(object):
 		#make a list of uniques per column associated with column name
 		uniques_by_column = dict(zip(self.data.coordkeys + self.data.valuekeys, self.data.dims))
 		if len(uniques_by_column)>2:
-			if not uniques_col_str:
+			if uniques_col_str.size == 0:
 				uniques_col_str = list(uniques_by_column)[0:-2]
 			titlecube = 'Higher order measurement, '
 		else:
@@ -805,7 +806,6 @@ class plotR(object):
 		#make a list of uniques per column associated with column name
 		uniques_by_column = dict(zip(coord_keys + value_keys, self.data.dims))
 
-		print(value_keys, value_keys_raw)
 		#assume 2d plots with data in the two last columns
 		if len(uniques_col_str)==0:
 			uniques_col_str = coord_keys[:-1]
