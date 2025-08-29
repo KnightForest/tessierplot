@@ -290,7 +290,7 @@ class plotR(object):
 		#make a list of uniques per column associated with column name
 		uniques_by_column = dict(zip(self.data.coordkeys + self.data.valuekeys, self.data.dims))
 		if len(uniques_by_column)>2:
-			if uniques_col_str.size == 0:
+			if len(uniques_col_str) == 0:
 				uniques_col_str = list(uniques_by_column)[0:-2]
 			titlecube = 'Higher order measurement, '
 		else:
