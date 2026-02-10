@@ -101,7 +101,7 @@ class Fiddle:
 		a = event.inaxes.images
 		for i in a:
 			self.clim = i.get_clim()
-
+			
 	def on_motion(self, event):
 		'on motion we will move the rect if the mouse is over us'
 		if self.press is None: return
@@ -132,7 +132,13 @@ class Fiddle:
 			if (newvmax > newvmin):
 				i.set_clim(vmax=newvmax, vmin=newvmin)
 
-		self.fig.canvas.draw()
+		axes = self.fig.get_axes()
+		for ii in axes:
+			if ii.get_ylabel() == "":
+				ii.xaxis.set_label_position('top')
+				ii.xaxis.set_ticks_position('top')
+
+		self.fig.canvas.draw_idle()
 
 
 	def on_release(self, event):
