@@ -665,12 +665,12 @@ class plotR(object):
 				#Tclk = Quantity(10e-9, 'S')
 
 
-				if 'flipaxes' in style:
-					xaxislabelwithunit = self.ylabel +	' (' + yunit + ')'
-					yaxislabelwithunit = self.xlabel +	' (' + xunit + ')'
-				else:
-					xaxislabelwithunit = self.xlabel +	' (' + xunit + ')'
-					yaxislabelwithunit = self.ylabel +	' (' + yunit + ')'
+				# if 'flipaxes' in style:
+				# 	xaxislabelwithunit = self.ylabel +	' (' + yunit + ')'
+				# 	yaxislabelwithunit = self.xlabel +	' (' + xunit + ')'
+				# else:
+				xaxislabelwithunit = self.xlabel +	' (' + xunit + ')'
+				yaxislabelwithunit = self.ylabel +	' (' + yunit + ')'
 				cbar_title = self.datalabel + ' (' + dataunit + ')'
 
 				#xaxislabelwithunit = [ '\n'.join(wrap(l, 15)) for l in xaxislabelwithunit]
