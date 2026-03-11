@@ -743,32 +743,57 @@ def helper_movingmeansubtract(w):  #Needs equally spaced axes
 	Subtracts averaged value of multiple fast axis sweeps from itself. Used to remove slow moving noise.
 	
 	Arguments:
-	window (int) - number of fast axis sweeps to average over
+	window (int) - number of sweeps to average over
+	direction (boolean) - 0 for x-axis, 1 for y-axis
 
 	'''
 	XX = w['XX']
 	xn, yn = XX.shape
-	meanarray = np.zeros(xn)
-	for i in range(0,xn):
-		meanarray[i] = np.nanmean(XX[i][:])
-	#print meanarray.shape
-	win=int(w['movingmeansubtract_window'])
-	print(win)
-	padleft = int(round((win-1+0.0001)/2))
-	padright = int(np.floor((win-1)/2))
-	valleft = meanarray[0]
-	valright = meanarray[-1]
-	#print padleft,padright,valleft,valright
-	meanarray = np.lib.pad(meanarray,(padleft,padright), 'constant', constant_values=(valleft,valright))
-	#print meanarray.shape
-	window = np.ones(win)
-	window /= window.sum()
-	if type(meanarray).__name__ not in ['ndarray', 'MaskedArray']:
-		meanarray = np.asarray(meanarray)
-	meanarray = signal.convolve(meanarray, window, mode='valid')
-	#print meanarray.shape
-	for i in range(0,len(meanarray)):
-		XX[i] = XX[i]-meanarray[i]
+	if int(w['movingmeansubtract_direction']) == 0:
+		meanarray = np.zeros(xn)
+		for i in range(0,xn):
+			meanarray[i] = np.nanmean(XX[i,:])
+		#print meanarray.shape
+		win=int(w['movingmeansubtract_window'])
+		print(win)
+		padleft = int(round((win-1+0.0001)/2))
+		padright = int(np.floor((win-1)/2))
+		valleft = meanarray[0]
+		valright = meanarray[-1]
+		#print padleft,padright,valleft,valright
+		meanarray = np.lib.pad(meanarray,(padleft,padright), 'constant', constant_values=(valleft,valright))
+		#print meanarray.shape
+		window = np.ones(win)
+		window /= window.sum()
+		if type(meanarray).__name__ not in ['ndarray', 'MaskedArray']:
+			meanarray = np.asarray(meanarray)
+		meanarray = signal.convolve(meanarray, window, mode='valid')
+		#print meanarray.shape
+		for i in range(0,len(meanarray)):
+			XX[i] = XX[i]-meanarray[i]
+
+	if int(w['movingmeansubtract_direction']) == 1:
+		meanarray = np.zeros(yn)
+		for i in range(0,yn):
+			meanarray[i] = np.nanmean(XX[:,i])
+		#print meanarray.shape
+		win=int(w['movingmeansubtract_window'])
+		print(win)
+		padleft = int(round((win-1+0.0001)/2))
+		padright = int(np.floor((win-1)/2))
+		valleft = meanarray[0]
+		valright = meanarray[-1]
+		#print padleft,padright,valleft,valright
+		meanarray = np.lib.pad(meanarray,(padleft,padright), 'constant', constant_values=(valleft,valright))
+		#print meanarray.shape
+		window = np.ones(win)
+		window /= window.sum()
+		if type(meanarray).__name__ not in ['ndarray', 'MaskedArray']:
+			meanarray = np.asarray(meanarray)
+		meanarray = signal.convolve(meanarray, window, mode='valid')
+		#print meanarray.shape
+		for i in range(0,len(meanarray)):
+			XX[:,i] = XX[:,i]-meanarray[i]
 	#fig = plt.figure()
 	#plt.plot(meanarray)
 	w['XX'] = XX
@@ -898,7 +923,7 @@ def helper_rshunt(w): #Needs equally spaced axes
 	#voffset = w['vbiascorrector_voffset'] # Voltage offset
 	shuntr = w['rshunt_r'] # Series resistance
 	ycorrected = np.zeros(shape=(xn,yn))
-	gridresolutionfactor = w['rshunt_gridresolutionfactor'] # Example: Factor of 2 doubles the number of y datapoints for non-linear interpolation
+	gridresolutionfactor = int(w['rshunt_gridresolutionfactor']) # Example: Factor of 2 doubles the number of y datapoints for non-linear interpolation
 	for i in range(0,xn):
 		rtot = (XX[i,:]/yaxis)
 		try:
@@ -920,7 +945,8 @@ def helper_rshunt(w): #Needs equally spaced axes
 	w['Y'] = numpy.matlib.repmat(gridyaxis,xn,1)
 	w['X'] = np.transpose(numpy.matlib.repmat(xaxis,yn*gridresolutionfactor,1))
 	w['XX'] = XX_new
-	w['ext'] = [w['ext'][0],w['ext'][1],ylimitneg,ylimitpos]	
+	w['ext'] = [w['ext'][0],w['ext'][1],ylimitneg,ylimitpos]
+	print(XX_new)	
 
 def helper_vbiascorrector(w): #Needs equally spaced axes
 	'''
@@ -1488,6 +1514,15 @@ def helper_flipaxes(w):
 	'''
 	w['XX'] = np.transpose( w['XX'])
 	w['ext'] = (w['ext'][2],w['ext'][3],w['ext'][0],w['ext'][1])
+	xlabel = w['xlabel']
+	xunit = w['xunit']
+	ylabel = w['ylabel']
+	yunit = w['yunit']
+
+	w['xlabel'] = ylabel
+	w['xunit'] = yunit
+	w['ylabel'] = xlabel
+	w['yunit'] = xunit
 	
 def helper_flipyaxis(w):
 	#remember, this is before the final rot90
@@ -1998,7 +2033,7 @@ STYLE_SPECS = {
 	'minsubtract': {'param_order': []},
 	'normalise': {'axis': 'x', 'index': 0, 'param_order': ['axis','index']},
 	'mov_avg': {'m': 1, 'n': 3, 'win': None, 'param_order': ['m', 'n', 'win']},
-	'movingmeansubtract': {'window': 2,'param_order': ['window']},
+	'movingmeansubtract': {'window': 2, 'direction': 0,'param_order': ['window', 'direction']},
     'movingmediansubtract': {'window': 1,'param_order': ['window']},
 	'normal': {'param_order': []},
 	'offsetslopesubtract': {'slope': 0, 'offset': 0, 'param_order': ['slope', 'offset']},
