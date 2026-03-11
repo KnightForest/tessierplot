@@ -7,6 +7,7 @@ import re
 import collections
 import matplotlib.colors as mplc
 import matplotlib.pyplot as plt
+import scipy.ndimage as nd
 
 REGEX_STYLE_WITH_PARAMS = re.compile('(.+)\((.+)\)')
 REGEX_VARVALPAIR = re.compile('(\w+)=(.*)')
@@ -62,6 +63,25 @@ def helper_deinterlace1(w):
 	w['XX'] = w['XX'][1::2,1:] #take odd column in a sweepback measurement
 	w['Y'] = w['Y'][1::2,1:]
 	w['X'] = w['X'][1::2,1:]
+
+def helper_gauss(w):
+	'''
+	Take gaussian filter of XX
+	
+	Arguments:
+	m (int) - size of window along x-axis
+	n (int) - size of window along y-axis
+	
+	Warnings:
+	- Only works properly on evenly spaced datapoints
+	'''
+	sigma = [int(w['gauss_sigm']), int(w['gauss_sign'])]     # The shape of the window array
+	
+	data = w['XX']
+	if data.ndim == 1:
+		w['XX'] = nd.gaussian_filter1d(data, sigma[1])
+	else:
+		w['XX'] = nd.filters.gaussian_filter(data,sigma)
 
 def helper_mov_avg(w):
 	'''
@@ -1908,6 +1928,7 @@ STYLE_FUNCS = {
 	'flipaxes': helper_flipaxes,
 	'flipxaxis': helper_flipxaxis,
 	'flipyaxis': helper_flipyaxis,
+	'gauss': helper_gauss,
 	'hardgap': helper_hardgap,
 	'histogram': helper_histogram,
 	'ic': helper_ic,
@@ -1961,6 +1982,7 @@ STYLE_SPECS = {
 	'flipaxes': {'param_order': []},
 	'flipyaxis': {'param_order': []},
 	'flipxaxis': {'param_order': []},
+	'gauss': {'sigm': 0.5, 'sign': 0.5, 'param_order': ['sigm', 'sign']},
 	'hardgap': {'gaprange': 0.1, 'outsidegapmin': 0.5, 'outsidegapmax': 0.6, 'alphafactor': 1e9, 'param_order': ['gaprange','outsidegapmin','outsidegapmax','alphafactor']},
 	'histogram':{'bins': 25, 'rangemin': -1, 'rangemax': 1, 'param_order': ['bins','rangemin','rangemax']},
 	'ic': {'param_order': []},
