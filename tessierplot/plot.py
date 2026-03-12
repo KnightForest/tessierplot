@@ -513,7 +513,8 @@ class plotR(object):
 						'xlabel':xaxislabel, 
 						'xunit':xaxisunit, 
 						'ylabel':yaxislabel, 
-						'yunit':yaxisunit}
+						'yunit':yaxisunit,
+						'samplingrate': self.data.samplingrate}
 				for k in w2:
 					w[k] = w2[k]
 				w['massage_func']=massage_func
@@ -885,6 +886,7 @@ class plotR(object):
 				wrap['data_quantity'] = data_quantity
 				wrap['data_unit'] = data_unit
 				wrap['massage_func'] = massage_func
+				wrap['samplingrate'] = self.data.samplingrate
 				styles.processStyle(style,wrap)
 
 				self.stylebuffer = wrap['buffer'] 

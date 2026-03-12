@@ -8,6 +8,7 @@ import collections
 import matplotlib.colors as mplc
 import matplotlib.pyplot as plt
 import scipy.ndimage as nd
+from . import killpulsetubenoise
 
 REGEX_STYLE_WITH_PARAMS = re.compile('(.+)\((.+)\)')
 REGEX_VARVALPAIR = re.compile('(\w+)=(.*)')
@@ -103,6 +104,27 @@ def helper_mov_avg(w):
 	else:
 		win = np.ones((m, n))
 		w['XX'] = moving_average_2d(w['XX'], win)
+
+def helper_killpulsetube(w):
+	print(w['samplingrate'])
+	if w['killpulsetube_samplingrate'] != None:
+		samplingrate = float(w['killpulsetube_samplingrate'])
+	else:
+		samplingrate = w['samplingrate']
+	XX = w['XX']
+	Y = w['Y']
+	X = w['X']
+	xunit = w['xunit']
+	yunit = w['yunit']
+	data_q = w['data_quantity']
+	data_u = w['data_unit']	
+	XX_new = XX
+	#for i in range(0,10):
+	XX_new,trash = killpulsetubenoise.remove_artifact(XX_new,X,samplingrate)
+	#plt.figure()
+	#plt.plot(X,XX)
+	#plt.plot(X,XX_new)
+	w['XX'] = XX_new
 
 def helper_fixlabels(w):
 	'''
@@ -1974,6 +1996,7 @@ STYLE_FUNCS = {
 	'linecut': helper_linecut,
 	'log': helper_log,
 	'logdb': helper_logdb,
+	'killpulsetube': helper_killpulsetube,
 	'massage': helper_massage,
 	'meansubtract': helper_meansubtract,
 	'minsubtract': helper_minsubtract,
@@ -2025,6 +2048,7 @@ STYLE_SPECS = {
 	'int': {'param_order': []},
 	'iretrap': {'param_order': []},
 	'ivreverser':{'gridresolutionfactor': 10, 'twodim': False, 'interpmethod': 'cubic', 'param_order': ['gridresolutionfactor','twodim','interpmethod']},
+	'killpulsetube': {'samplingrate': None, 'axis': None, 'param_order': ['samplingrate','axis']},
 	'linecut': {'linecutvalue': 1,'axis': None, 'quantiphy' : True, 'param_order': ['linecutvalue','axis', 'quantiphy']},
 	'log': {'param_order': []},
 	'logdb': {'param_order': []},
