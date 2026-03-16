@@ -223,6 +223,7 @@ class qcodes_parser(dat_parser):
                         if col == h['name']:
                             header.append(h)
                             break
+
             titleline = firstline.split(',')
             comment = secondline
             if comment == '# Comment:':
@@ -231,14 +232,15 @@ class qcodes_parser(dat_parser):
                 comment = comment.replace('# Comment: ', '')
             headertitledict = {
             'measname'   : titleline[0][2:],
-            'experiment' : titleline[1],
-            'samplename' : titleline[2],
-            'nvals'      : titleline[3],
+            'experiment' : titleline[1].split(':')[1],
+            'samplename' : titleline[2].split(':')[1],
+            'nvals'      : int(titleline[3].split(':')[1]),
+            'samplingrate' : float(titleline[4].split(':')[1]),
             'comment'    : comment
             }
             header.append(headertitledict)
         json_filebuffer.close()
-        return header,headerlength #git c,headertitledict
+        return header,headerlength
 
 class qtlab_parser(dat_parser):
     def __init__(self,filename=None,filebuffer=None):
@@ -539,16 +541,17 @@ class Data(pandas.DataFrame):
         self._value_keys=value_keys
         return value_keys
 
+    @property
+    def samplingrate(self):
+        samplingrate = [i['samplingrate'] for n,i in enumerate(self._header) if ('measname' in self._header[n])]
+        return samplingrate[0]
+    
 
     @property
     def coordkeys_n(self):
         coord_keys = [i['name'] for n,i in enumerate(self._header) if ('column' in self._header[n] and i['type']=='coordinate')]
         units = [i['unit'] for n,i in enumerate(self._header) if ('column' in self._header[n] and i['type']=='coordinate')]
         labels= [i['label'] for n,i in enumerate(self._header) if ('column' in self._header[n] and i['type']=='coordinate')]
-        # for i in range(0,len(self._header)):
-        #     if 'label' in self._header[i]:
-        #         if self._header[i]['type']=='coordinate':
-        #             labels.append(self._header[i]['label'])
         return coord_keys, units, labels
     
     @property
@@ -556,10 +559,6 @@ class Data(pandas.DataFrame):
         value_keys = [i['name'] for n,i in enumerate(self._header) if ('column' in self._header[n] and i['type']=='value')]
         units = [i['unit'] for n,i in enumerate(self._header) if ('column' in self._header[n] and i['type']=='value')]
         labels= [i['label'] for n,i in enumerate(self._header) if ('column' in self._header[n] and i['type']=='value')]
-        # for i in range(0,len(self._header)):
-        #     if 'label' in self._header[i]:
-        #         if self._header[i]['type']=='value':
-        #             labels.append(self._header[i]['label'])
         return value_keys, units,labels
 
     @property

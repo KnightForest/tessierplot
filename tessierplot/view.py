@@ -318,7 +318,9 @@ class tessierView(object):
                         {% endfor %}
                     </select>
                     </br>
-                    <input type="checkbox" name="stylechecker" value="{{"\\'flipaxes\\',"|e}} ">Flip axes
+                    <input type="checkbox" name="flipaxis" value="{{"\\'flipaxes\\',"|e}} ">Flip axes
+                    </br>
+                    <input type="checkbox" name="killpulsetube" value="{{"\\'killpulsetube\\',"|e}} ">Kill pulsetube noise
                     </br>
                     {% if (item.higherdim_coords != None) %}
                         {% for key in item.higherdim_coords[0] %}
@@ -410,8 +412,11 @@ class tessierView(object):
                 selector = form.selector;
                 var stylevalues = selector.options[selector.selectedIndex].value
                 //window.alert(stylevalues);
-                if(form.stylechecker.checked) {
-                    stylevalues = form.stylechecker.value + stylevalues
+                if(form.flipaxis.checked) {
+                    stylevalues = form.flipaxis.value + stylevalues
+                }
+                if(form.killpulsetube.checked) {
+                    stylevalues = form.killpulsetube.value + stylevalues
                 }
                 var style = "["{{" + stylevalues + "|e}}"]";
                 return style

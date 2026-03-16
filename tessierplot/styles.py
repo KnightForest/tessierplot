@@ -7,6 +7,8 @@ import re
 import collections
 import matplotlib.colors as mplc
 import matplotlib.pyplot as plt
+import scipy.ndimage as nd
+from . import killpulsetubenoise
 
 REGEX_STYLE_WITH_PARAMS = re.compile('(.+)\((.+)\)')
 REGEX_VARVALPAIR = re.compile('(\w+)=(.*)')
@@ -63,6 +65,25 @@ def helper_deinterlace1(w):
 	w['Y'] = w['Y'][1::2,1:]
 	w['X'] = w['X'][1::2,1:]
 
+def helper_gauss(w):
+	'''
+	Take gaussian filter of XX
+	
+	Arguments:
+	m (int) - size of window along x-axis
+	n (int) - size of window along y-axis
+	
+	Warnings:
+	- Only works properly on evenly spaced datapoints
+	'''
+	sigma = [int(w['gauss_sigm']), int(w['gauss_sign'])]     # The shape of the window array
+	
+	data = w['XX']
+	if data.ndim == 1:
+		w['XX'] = nd.gaussian_filter1d(data, sigma[1])
+	else:
+		w['XX'] = nd.filters.gaussian_filter(data,sigma)
+
 def helper_mov_avg(w):
 	'''
 	Take moving average of XX
@@ -83,6 +104,27 @@ def helper_mov_avg(w):
 	else:
 		win = np.ones((m, n))
 		w['XX'] = moving_average_2d(w['XX'], win)
+
+def helper_killpulsetube(w):
+	print(w['samplingrate'])
+	if w['killpulsetube_samplingrate'] != None:
+		samplingrate = float(w['killpulsetube_samplingrate'])
+	else:
+		samplingrate = w['samplingrate']
+	XX = w['XX']
+	Y = w['Y']
+	X = w['X']
+	xunit = w['xunit']
+	yunit = w['yunit']
+	data_q = w['data_quantity']
+	data_u = w['data_unit']	
+	XX_new = XX
+	#for i in range(0,10):
+	XX_new,trash = killpulsetubenoise.remove_artifact(XX_new,X,samplingrate)
+	#plt.figure()
+	#plt.plot(X,XX)
+	#plt.plot(X,XX_new)
+	w['XX'] = XX_new
 
 def helper_fixlabels(w):
 	'''
@@ -723,32 +765,57 @@ def helper_movingmeansubtract(w):  #Needs equally spaced axes
 	Subtracts averaged value of multiple fast axis sweeps from itself. Used to remove slow moving noise.
 	
 	Arguments:
-	window (int) - number of fast axis sweeps to average over
+	window (int) - number of sweeps to average over
+	direction (boolean) - 0 for x-axis, 1 for y-axis
 
 	'''
 	XX = w['XX']
 	xn, yn = XX.shape
-	meanarray = np.zeros(xn)
-	for i in range(0,xn):
-		meanarray[i] = np.nanmean(XX[i][:])
-	#print meanarray.shape
-	win=int(w['movingmeansubtract_window'])
-	print(win)
-	padleft = int(round((win-1+0.0001)/2))
-	padright = int(np.floor((win-1)/2))
-	valleft = meanarray[0]
-	valright = meanarray[-1]
-	#print padleft,padright,valleft,valright
-	meanarray = np.lib.pad(meanarray,(padleft,padright), 'constant', constant_values=(valleft,valright))
-	#print meanarray.shape
-	window = np.ones(win)
-	window /= window.sum()
-	if type(meanarray).__name__ not in ['ndarray', 'MaskedArray']:
-		meanarray = np.asarray(meanarray)
-	meanarray = signal.convolve(meanarray, window, mode='valid')
-	#print meanarray.shape
-	for i in range(0,len(meanarray)):
-		XX[i] = XX[i]-meanarray[i]
+	if int(w['movingmeansubtract_direction']) == 0:
+		meanarray = np.zeros(xn)
+		for i in range(0,xn):
+			meanarray[i] = np.nanmean(XX[i,:])
+		#print meanarray.shape
+		win=int(w['movingmeansubtract_window'])
+		print(win)
+		padleft = int(round((win-1+0.0001)/2))
+		padright = int(np.floor((win-1)/2))
+		valleft = meanarray[0]
+		valright = meanarray[-1]
+		#print padleft,padright,valleft,valright
+		meanarray = np.lib.pad(meanarray,(padleft,padright), 'constant', constant_values=(valleft,valright))
+		#print meanarray.shape
+		window = np.ones(win)
+		window /= window.sum()
+		if type(meanarray).__name__ not in ['ndarray', 'MaskedArray']:
+			meanarray = np.asarray(meanarray)
+		meanarray = signal.convolve(meanarray, window, mode='valid')
+		#print meanarray.shape
+		for i in range(0,len(meanarray)):
+			XX[i] = XX[i]-meanarray[i]
+
+	if int(w['movingmeansubtract_direction']) == 1:
+		meanarray = np.zeros(yn)
+		for i in range(0,yn):
+			meanarray[i] = np.nanmean(XX[:,i])
+		#print meanarray.shape
+		win=int(w['movingmeansubtract_window'])
+		print(win)
+		padleft = int(round((win-1+0.0001)/2))
+		padright = int(np.floor((win-1)/2))
+		valleft = meanarray[0]
+		valright = meanarray[-1]
+		#print padleft,padright,valleft,valright
+		meanarray = np.lib.pad(meanarray,(padleft,padright), 'constant', constant_values=(valleft,valright))
+		#print meanarray.shape
+		window = np.ones(win)
+		window /= window.sum()
+		if type(meanarray).__name__ not in ['ndarray', 'MaskedArray']:
+			meanarray = np.asarray(meanarray)
+		meanarray = signal.convolve(meanarray, window, mode='valid')
+		#print meanarray.shape
+		for i in range(0,len(meanarray)):
+			XX[:,i] = XX[:,i]-meanarray[i]
 	#fig = plt.figure()
 	#plt.plot(meanarray)
 	w['XX'] = XX
@@ -878,7 +945,7 @@ def helper_rshunt(w): #Needs equally spaced axes
 	#voffset = w['vbiascorrector_voffset'] # Voltage offset
 	shuntr = w['rshunt_r'] # Series resistance
 	ycorrected = np.zeros(shape=(xn,yn))
-	gridresolutionfactor = w['rshunt_gridresolutionfactor'] # Example: Factor of 2 doubles the number of y datapoints for non-linear interpolation
+	gridresolutionfactor = int(w['rshunt_gridresolutionfactor']) # Example: Factor of 2 doubles the number of y datapoints for non-linear interpolation
 	for i in range(0,xn):
 		rtot = (XX[i,:]/yaxis)
 		try:
@@ -900,7 +967,8 @@ def helper_rshunt(w): #Needs equally spaced axes
 	w['Y'] = numpy.matlib.repmat(gridyaxis,xn,1)
 	w['X'] = np.transpose(numpy.matlib.repmat(xaxis,yn*gridresolutionfactor,1))
 	w['XX'] = XX_new
-	w['ext'] = [w['ext'][0],w['ext'][1],ylimitneg,ylimitpos]	
+	w['ext'] = [w['ext'][0],w['ext'][1],ylimitneg,ylimitpos]
+	print(XX_new)	
 
 def helper_vbiascorrector(w): #Needs equally spaced axes
 	'''
@@ -1468,6 +1536,15 @@ def helper_flipaxes(w):
 	'''
 	w['XX'] = np.transpose( w['XX'])
 	w['ext'] = (w['ext'][2],w['ext'][3],w['ext'][0],w['ext'][1])
+	xlabel = w['xlabel']
+	xunit = w['xunit']
+	ylabel = w['ylabel']
+	yunit = w['yunit']
+
+	w['xlabel'] = ylabel
+	w['xunit'] = yunit
+	w['ylabel'] = xlabel
+	w['yunit'] = xunit
 	
 def helper_flipyaxis(w):
 	#remember, this is before the final rot90
@@ -1908,6 +1985,7 @@ STYLE_FUNCS = {
 	'flipaxes': helper_flipaxes,
 	'flipxaxis': helper_flipxaxis,
 	'flipyaxis': helper_flipyaxis,
+	'gauss': helper_gauss,
 	'hardgap': helper_hardgap,
 	'histogram': helper_histogram,
 	'ic': helper_ic,
@@ -1918,6 +1996,7 @@ STYLE_FUNCS = {
 	'linecut': helper_linecut,
 	'log': helper_log,
 	'logdb': helper_logdb,
+	'killpulsetube': helper_killpulsetube,
 	'massage': helper_massage,
 	'meansubtract': helper_meansubtract,
 	'minsubtract': helper_minsubtract,
@@ -1961,6 +2040,7 @@ STYLE_SPECS = {
 	'flipaxes': {'param_order': []},
 	'flipyaxis': {'param_order': []},
 	'flipxaxis': {'param_order': []},
+	'gauss': {'sigm': 0.5, 'sign': 0.5, 'param_order': ['sigm', 'sign']},
 	'hardgap': {'gaprange': 0.1, 'outsidegapmin': 0.5, 'outsidegapmax': 0.6, 'alphafactor': 1e9, 'param_order': ['gaprange','outsidegapmin','outsidegapmax','alphafactor']},
 	'histogram':{'bins': 25, 'rangemin': -1, 'rangemax': 1, 'param_order': ['bins','rangemin','rangemax']},
 	'ic': {'param_order': []},
@@ -1968,6 +2048,7 @@ STYLE_SPECS = {
 	'int': {'param_order': []},
 	'iretrap': {'param_order': []},
 	'ivreverser':{'gridresolutionfactor': 10, 'twodim': False, 'interpmethod': 'cubic', 'param_order': ['gridresolutionfactor','twodim','interpmethod']},
+	'killpulsetube': {'samplingrate': None, 'axis': None, 'param_order': ['samplingrate','axis']},
 	'linecut': {'linecutvalue': 1,'axis': None, 'quantiphy' : True, 'param_order': ['linecutvalue','axis', 'quantiphy']},
 	'log': {'param_order': []},
 	'logdb': {'param_order': []},
@@ -1976,7 +2057,7 @@ STYLE_SPECS = {
 	'minsubtract': {'param_order': []},
 	'normalise': {'axis': 'x', 'index': 0, 'param_order': ['axis','index']},
 	'mov_avg': {'m': 1, 'n': 3, 'win': None, 'param_order': ['m', 'n', 'win']},
-	'movingmeansubtract': {'window': 2,'param_order': ['window']},
+	'movingmeansubtract': {'window': 2, 'direction': 0,'param_order': ['window', 'direction']},
     'movingmediansubtract': {'window': 1,'param_order': ['window']},
 	'normal': {'param_order': []},
 	'offsetslopesubtract': {'slope': 0, 'offset': 0, 'param_order': ['slope', 'offset']},
