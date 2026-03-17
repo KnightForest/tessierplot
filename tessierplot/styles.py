@@ -120,7 +120,20 @@ def helper_killpulsetube(w):
 	data_u = w['data_unit']	
 	XX_new = XX
 	#for i in range(0,10):
-	XX_new,trash = killpulsetubenoise.remove_artifact(XX_new,X,samplingrate)
+	if XX.ndim == 1:
+		XX_new,meta = killpulsetubenoise.remove_artifact(XX_new,X,duration = None, fs = samplingrate)
+		killpulsetubenoise.plot_results(XX, X, XX_new, meta, save_path = "test.png")
+	else:
+		for i in range(0,XX.shape[0]):
+			XX_new[i,:],meta = killpulsetubenoise.remove_artifact(voltage = XX_new[i,:],
+																   current = Y[i,:],
+																   duration = None, 
+																   fs = samplingrate,
+																   f_scan_lo=1.2,
+																   f_scan_hi=1.6,
+																   thresh_mult=50)
+			if i == 0:#XX.shape[0] -1:
+				killpulsetubenoise.plot_results(XX[i,:], Y[i,:], XX_new[i,:], meta, save_path = "test2d.png")
 	#plt.figure()
 	#plt.plot(X,XX)
 	#plt.plot(X,XX_new)

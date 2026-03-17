@@ -1,472 +1,416 @@
 """
-killpulsetubenoise.py
+iv_artifact_removal.py
 ======================
 Remove a sinusoidal interference artifact from IV-curve measurements of
 superconducting devices.
 
-Background
-----------
-The artifact is a ~1.4 Hz sine (e.g. mains-related mechanical or electrical
-pickup) superimposed on the measured voltage.  Key properties exploited:
-
-  * The artifact is physically independent of the device, so its phase is
-    CONTINUOUS across sharp voltage jumps in the IV curve.
-  * The true frequency is close to but not exactly 1.4 Hz and must be
-    estimated from the data.
-  * The amplitude and phase may drift slowly over the sweep duration
-    (slow_drift compensation).
-  * The IV curve baseline is captured per-segment (between transitions) as
-    a low-order polynomial in normalised current, which is non-degenerate
-    with the time-domain sine.
-
 Algorithm
 ---------
-1. Detect voltage transitions (sharp jumps) and build a spike mask.
-2. Estimate the true artifact frequency via sliding-window phase tracking
-   in the (Gaussian-smoothed, differentiated) signal.
-3. Build a single global design matrix:
-     - Per-segment polynomial in normalised current  (IV baseline)
-     - Chebyshev-modulated sin/cos carriers           (slowly-varying sine)
-       S(t)*sin(2π f t) + C(t)*cos(2π f t)
-       where S(t), C(t) are degree-`envelope_degree` Chebyshev polynomials.
-4. Solve one linear least-squares problem on the clean (non-spike) samples.
-5. Subtract the reconstructed artifact from the raw voltage.
+1.  FREQUENCY DETECTION (segmentation-free)
+    - Differentiate voltage → kills slow IV baseline
+    - Bandpass 1.0–1.6 Hz (Butterworth order 4) → isolates artifact band
+    - Exclude spike samples (|dV/dt| > median + 8·MAD, dilated 20 samples)
+    - Scan f_scan_lo–f_scan_hi Hz on bandpassed dV, minimise residual std → f₀
+    - Sub-bin refinement via scipy minimize_scalar
+
+2.  SLIDING-WINDOW PHASE TRACKING (segmentation-free)
+    - Window = 3 artifact cycles, step = window/4
+    - Per window: fit local poly(I) baseline (degree 3) + sin/cos at f₀
+      directly in voltage space → extract phase φ = arctan2(C, S)
+    - Unwrap phase across windows
+
+3.  FREQUENCY REFINEMENT
+    - Fit SNR-weighted linear trend to unwrapped phase
+    - Slope → correction to f₀ giving f_refined
+    - Subtract linear trend → detrended nonlinear phase residual
+
+4.  PHASE OUTLIER REMOVAL
+    - Compute second derivative d²φ/dt² of the full raw phase sequence
+    - Fix threshold = thresh_mult × median(|d²φ/dt²|)  (computed once only)
+    - Iterate: recompute d²φ on current valid set, remove middle point of
+      any triplet exceeding the FIXED threshold; repeat until convergence
+    - Fixed threshold prevents adaptive cascade from eating valid points
+
+5.  AMPLITUDE ESTIMATION
+    - SNR²-weighted average of per-window amplitude estimates
+
+6.  ARTIFACT SUBTRACTION
+    - CubicSpline through valid detrended phase points → φ_smooth(t)
+    - Full phase = linear trend (from f_refined) + φ_smooth(t)
+    - Subtract A₀ · sin(2π f₀ t + φ_full(t))
 
 Usage
 -----
-Standalone (file in, file out):
-    python killpulsetubenoise.py input.dat output.dat
+Standalone:
+    python iv_artifact_removal.py input.dat output.dat --duration 67 --plot
 
 As a library:
-    from killpulsetubenoise import remove_artifact
-    voltage_clean, meta = remove_artifact(voltage, current, fs=18.77)
+    from iv_artifact_removal import remove_artifact, plot_results
+    voltage_clean, meta = remove_artifact(voltage, current, duration=67.0)
 
-Input file format
------------------
-ASCII, two tab-separated columns, comment lines start with '#':
+Input format
+------------
+ASCII, two columns, comment lines start with '#':
     column 0 : source-drain current  (A)
     column 1 : drain voltage         (V)
 """
 
 import numpy as np
-from scipy.ndimage import uniform_filter1d, binary_dilation, gaussian_filter1d
-from scipy.signal import find_peaks
+from scipy.ndimage import binary_dilation
+from scipy.signal import butter, filtfilt
+from scipy.optimize import minimize_scalar
+from scipy.interpolate import CubicSpline, PchipInterpolator
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-#  Blind frequency discovery
-# ──────────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# 1. Frequency detection
+# ─────────────────────────────────────────────────────────────────────────────
 
-def discover_frequency(voltage, fs, f_min=0.1, f_max=None, verbose=True):
+def _spike_mask(voltage, dilation=20):
+    """Return (spike_bool_mask, dV/dt array)."""
+    dv     = np.gradient(voltage)
+    abs_dv = np.abs(dv)
+    mad    = np.median(np.abs(abs_dv - np.median(abs_dv)))
+    thresh = np.median(abs_dv) + 8.0 * mad
+    return binary_dilation(abs_dv > thresh, iterations=dilation), dv
+
+
+def detect_frequency(voltage, t,
+                     f_scan_lo=1.30, f_scan_hi=1.45, n_scan=300,
+                     bp_lo=1.0, bp_hi=1.6, bp_order=4):
     """
-    Blindly discover the dominant periodic interference frequency from a
-    voltage trace, with no prior knowledge of the expected frequency.
-
-    Method: Gaussian smooth (sigma=1) -> gradient -> FFT -> find dominant
-    non-DC spectral peak.  The Gaussian+gradient step suppresses the slow
-    IV-curve drift (low frequency) and high-frequency noise, leaving the
-    periodic artifact as the clearest spectral feature.
-
-    Parameters
-    ----------
-    voltage : 1-D array  (V)
-    fs      : float      Sample rate (S/s)
-    f_min   : float      Lower bound for candidate peaks (Hz, default 0.1)
-    f_max   : float      Upper bound (Hz, default fs/4)
-    verbose : bool
+    Detect artifact frequency from bandpassed dV/dt (no segmentation).
 
     Returns
     -------
-    f_peak : float   Frequency of the dominant peak (Hz)
-    meta   : dict    Keys: freqs, amplitude_spectrum, peak_bin, peak_prominence
+    f0 : float – estimated artifact frequency (Hz)
     """
-    voltage = np.asarray(voltage, dtype=float)
-    N       = len(voltage)
-    if f_max is None:
-        f_max = fs / 4.0
+    fs = 1.0 / (t[1] - t[0])
+    spikes, dv = _spike_mask(voltage)
+    clean = ~spikes
 
-    # Gaussian smooth + gradient: amplifies periodic signal, kills slow drift
-    smoothed  = gaussian_filter1d(voltage, sigma=1)
-    grad      = np.gradient(smoothed)
-    spectrum  = np.fft.rfft(grad)
-    freqs     = np.fft.rfftfreq(N, d=1.0 / fs)
-    amplitude = np.abs(spectrum)
+    b, a  = butter(bp_order, [bp_lo / (fs/2), bp_hi / (fs/2)], btype='band')
+    dv_bp = filtfilt(b, a, dv)
 
-    # Restrict search to the requested band
-    band           = (freqs >= f_min) & (freqs <= f_max)
-    amp_band       = amplitude.copy()
-    amp_band[~band] = 0.0
+    def _score(f):
+        M = np.column_stack([np.sin(2*np.pi*f*t), np.cos(2*np.pi*f*t)])
+        c, _, _, _ = np.linalg.lstsq(M[clean], dv_bp[clean], rcond=None)
+        return np.std(dv_bp[clean] - M[clean] @ c)
 
-    peaks, props = find_peaks(amp_band, prominence=amp_band[band].max() * 0.05)
-    if len(peaks) == 0:
-        raise RuntimeError(
-            f"No spectral peak found between {f_min} and {f_max} Hz. "
-            "Check f_min/f_max or verify the data contains a periodic artifact."
-        )
-
-    best       = peaks[np.argmax(props["prominences"])]
-    f_peak     = float(freqs[best])
-    prominence = float(props["prominences"][np.argmax(props["prominences"])])
-
-    if verbose:
-        print("Frequency discovery (Gaussian -> gradient -> FFT):")
-        print(f"  Dominant peak : bin {best},  f = {f_peak:.5f} Hz")
-        print(f"  Amplitude     : {amplitude[best]:.4e}")
-        print(f"  Prominence    : {prominence:.4e}  "
-              f"({100*prominence / amp_band[band].max():.0f}% of band max)")
-        order = np.argsort(props["prominences"])[::-1][:4]
-        print("  Top peaks     : " +
-              "  ".join(f"{freqs[peaks[i]]:.4f} Hz" for i in order))
-        print()
-
-    return f_peak, dict(
-        freqs              = freqs,
-        amplitude_spectrum = amplitude,
-        peak_bin           = int(best),
-        peak_prominence    = prominence,
-    )
+    freqs    = np.linspace(f_scan_lo, f_scan_hi, n_scan)
+    f_coarse = freqs[np.argmin([_score(f) for f in freqs])]
+    res = minimize_scalar(_score,
+                          bounds=(f_coarse - 0.02, f_coarse + 0.02),
+                          method='bounded', options={'xatol': 1e-7})
+    return res.x
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-#  Public API
-# ──────────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# 2 & 3. Sliding-window phase tracking + frequency refinement
+# ─────────────────────────────────────────────────────────────────────────────
 
-def remove_artifact(
-    voltage,
-    current,
-    fs,
-    f_nominal        = None,
-    envelope_degree  = 4,
-    poly_iv_degree   = 4,
-    spike_thresh_mad = 8,
-    spike_dilation   = 20,
-    verbose          = True,
-):
+def _window_phase(voltage, current, t, f0, win, step):
     """
-    Remove a sinusoidal artifact from a voltage trace.
+    Slide a window across the full record; fit local poly(I) + sin/cos.
+
+    Returns wt, phi_unwrapped, snr, amp  (all length = number of windows).
+    """
+    N = len(t)
+    wt, phi_raw, snr_arr, amp_arr = [], [], [], []
+
+    for s in range(0, N - win, step):
+        e   = s + win
+        tw  = t[s:e];  vw = voltage[s:e];  I_s = current[s:e]
+        I_n = (I_s - I_s.mean()) / (I_s.max() - I_s.min() + 1e-20)
+        M   = np.column_stack([
+            np.ones(win), I_n, I_n**2, I_n**3,
+            np.sin(2*np.pi*f0*tw),
+            np.cos(2*np.pi*f0*tw),
+        ])
+        c, _, _, _ = np.linalg.lstsq(M, vw, rcond=None)
+        S, C  = c[4], c[5]
+        A_loc = np.sqrt(S**2 + C**2)
+        resid = np.std(vw - M @ c)
+        wt.append(tw.mean())
+        phi_raw.append(np.arctan2(C, S))
+        snr_arr.append(float(A_loc / (resid + 1e-30)))
+        amp_arr.append(float(A_loc))
+
+    return (np.array(wt),
+            np.unwrap(np.array(phi_raw)),
+            np.array(snr_arr),
+            np.array(amp_arr))
+
+
+def _refine_frequency(wt, phi_uw, snr, f0):
+    """Fit SNR-weighted linear phase trend; return refined f, slope, intercept, residual."""
+    slope, intercept = np.polyfit(wt, phi_uw, 1, w=snr)
+    f_refined = f0 + slope / (2*np.pi)
+    phi_det   = phi_uw - (slope * wt + intercept)
+    return f_refined, slope, intercept, phi_det
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 4. Phase outlier removal
+# ─────────────────────────────────────────────────────────────────────────────
+
+def filter_phase_outliers(wt, phi_det, thresh_mult=5.0, max_iter=20):
+    """
+    Iteratively remove phase points with implausible d²φ/dt².
+
+    Threshold is computed ONCE from the full raw sequence and held fixed
+    throughout all iterations — prevents the adaptive cascade that would
+    tighten the threshold and remove valid points near transition regions.
 
     Parameters
     ----------
-    voltage : 1-D array  (V)
-    current : 1-D array  (A), same length as voltage
-    fs      : float      Sample rate (samples / second)
-
-    f_nominal        : float or None
-                        Expected artifact frequency (Hz).
-                        If None (default), the frequency is discovered
-                        automatically via Gaussian-smooth -> gradient -> FFT
-                        peak detection (no prior knowledge required).
-                        Supply a value to skip discovery and seed the
-                        phase-tracking refinement directly — useful when
-                        the frequency is known from a reference channel or
-                        a previous sweep in the same dataset.
-    envelope_degree  : int    Chebyshev degree for slow amplitude/phase drift.
-                              0 = static sine, 3-5 = recommended for long sweeps.
-    poly_iv_degree   : int    Polynomial degree for IV baseline per segment.
-    spike_thresh_mad : float  Threshold for transition detection (× MAD of |dV/dn|).
-    spike_dilation   : int    Half-width (samples) of the exclusion zone around
-                              each detected transition.
-    verbose          : bool
+    wt          : window centre times (s)
+    phi_det     : detrended phase (rad)
+    thresh_mult : threshold = thresh_mult × median(|d²φ/dt²|), default 5.0
+    max_iter    : iteration cap
 
     Returns
     -------
-    voltage_clean : 1-D array   Corrected voltage (V)
-    meta          : dict        Fit diagnostics (see keys below)
+    valid        : bool array, True = kept
+    fixed_thresh : threshold used (rad/s², for diagnostics)
+    """
+    def _d2(t_v, phi_v):
+        dt = np.diff(t_v)
+        return np.diff(np.diff(phi_v) / dt) / dt[:-1]
 
-    meta keys
-    ---------
-    f_nominal       : float    Seed frequency (discovered or supplied, Hz)
-    f_true          : float    Refined artifact frequency (Hz)
-    amplitude_mean  : float    Mean artifact amplitude (V)
-    amplitude_std   : float    Std of slowly-varying amplitude (V)
-    phase_swing_deg : float    Peak-to-peak phase variation (degrees)
-    condition       : float    Condition number of design matrix
-    envelope_degree : int      As supplied
-    segments        : list     [(start, end), ...] clean plateau segments
-    artifact        : 1-D array  The subtracted waveform (V)
+    # Fix threshold from the full raw sequence (never updated)
+    fixed_thresh = thresh_mult * np.median(np.abs(_d2(wt, phi_det)))
+
+    valid = np.ones(len(wt), dtype=bool)
+    for _ in range(max_iter):
+        t_v, phi_v = wt[valid], phi_det[valid]
+        if len(t_v) < 4:
+            break
+        bad_v = np.abs(_d2(t_v, phi_v)) > fixed_thresh
+        if not bad_v.any():
+            break
+        vi = np.where(valid)[0]
+        valid[vi[1:-1][bad_v]] = False
+
+    return valid, fixed_thresh
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Full pipeline
+# ─────────────────────────────────────────────────────────────────────────────
+
+def remove_artifact(voltage, current, duration=None, fs=None,
+                    f_scan_lo=1.30, f_scan_hi=1.45,
+                    thresh_mult=5.0):
+    """
+    Remove sinusoidal artifact from IV-curve voltage data.
+
+    Parameters
+    ----------
+    voltage    : 1-D array, measured voltage (V)
+    current    : 1-D array, source-drain current (A)
+    duration   : total sweep duration in seconds  (provide this OR fs)
+    fs         : sample rate in Hz                (provide this OR duration)
+    f_scan_lo  : lower bound of frequency scan (Hz), default 1.30
+    f_scan_hi  : upper bound of frequency scan (Hz), default 1.45
+    thresh_mult: d²φ/dt² threshold multiplier, default 5.0
+
+    Returns
+    -------
+    voltage_clean : artifact-subtracted voltage (V)
+    meta          : dict with diagnostic fields —
+                      f0, f_refined, A0, t, wt, phi_det, phi_smooth,
+                      valid, fixed_thresh, snr, amp
     """
     voltage = np.asarray(voltage, dtype=float)
     current = np.asarray(current, dtype=float)
     N = len(voltage)
+
+    if duration is not None:
+        fs = N / duration
+    elif fs is None:
+        raise ValueError("Provide either 'duration' or 'fs'.")
     t = np.arange(N) / fs
 
+    # 1. Frequency
+    f0 = detect_frequency(voltage, t, f_scan_lo=f_scan_lo, f_scan_hi=f_scan_hi)
 
-    # ── 0. Blind frequency discovery (when no nominal given) ────────────────────
-    if f_nominal is None:
-        if verbose:
-            print('f_nominal not supplied — running blind frequency discovery …')
-        f_nominal, _disc_meta = discover_frequency(voltage, fs, verbose=verbose)
-    # ── 1. Transition detection ───────────────────────────────────────────────
-    dv        = np.gradient(voltage)
-    dv_smooth = uniform_filter1d(dv, size=6)
-    abs_dv    = np.abs(dv_smooth)
-    mad       = np.median(np.abs(abs_dv - np.median(abs_dv)))
-    thresh    = np.median(abs_dv) + spike_thresh_mad * mad
+    # 2. Sliding window
+    win  = int(3 * fs / f0)
+    step = max(1, win // 4)
+    wt, phi_uw, snr, amp = _window_phase(voltage, current, t, f0, win, step)
 
-    spikes_narrow = binary_dilation(abs_dv > thresh, iterations=4)
-    spikes_wide   = binary_dilation(abs_dv > thresh, iterations=spike_dilation)
-    edges         = np.where(np.diff(spikes_narrow.astype(int)))[0]
+    # 3. Frequency refinement
+    f_refined, slope, intercept, phi_det = _refine_frequency(wt, phi_uw, snr, f0)
 
-    # Build plateau segments: clean regions between transitions
-    boundaries = [0] + list(edges) + [N]
-    segments   = []
-    for i in range(0, len(boundaries) - 1, 2):
-        s = boundaries[i]
-        e = boundaries[i + 1] if i + 1 < len(boundaries) else N
-        if (e - s) > int(2 * fs / f_nominal):   # need at least 2 cycles
-            segments.append((int(s), int(e)))
+    # 4. Phase outlier removal — fixed threshold
+    valid, fixed_thresh = filter_phase_outliers(wt, phi_det,
+                                                thresh_mult=thresh_mult)
 
-    if not segments:
-        raise RuntimeError("No clean segments found — check spike_thresh_mad.")
+    # 5. Amplitude
+    A0 = np.average(amp, weights=snr**2)
 
-    # Fit mask: inside segments, outside dilated spikes
-    mask = np.zeros(N, bool)
-    for s, e in segments:
-        mask[s:e] = True
-    mask &= ~spikes_wide
-
-    if verbose:
-        print(f"Segments : {[(s, e) for s,e in segments]}")
-        print(f"Clean    : {mask.sum()} / {N} samples ({100*mask.mean():.1f} %)")
-
-    # ── 2. Frequency estimation (phase tracking in differential domain) ───────
-    dv_sg   = uniform_filter1d(dv_smooth, size=81)   # slow IV slope
-    dv_res  = dv_smooth - dv_sg
-    win_ph  = int(4 * fs / f_nominal)
-    step_ph = win_ph // 4
-    wt_ph, wph = [], []
-    for s in range(0, N - win_ph, step_ph):
-        e = s + win_ph
-        if spikes_wide[s:e].any():
-            continue
-        Am = np.column_stack([np.cos(2*np.pi*f_nominal*t[s:e]),
-                              np.sin(2*np.pi*f_nominal*t[s:e])])
-        c, _, _, _ = np.linalg.lstsq(Am, dv_res[s:e], rcond=None)
-        wt_ph.append(t[s + win_ph // 2])
-        wph.append(np.arctan2(-c[1], c[0]))
-
-    if len(wph) < 3:
-        raise RuntimeError("Too few clean windows for frequency refinement.")
-
-    sl, _ = np.polyfit(np.array(wt_ph), np.unwrap(np.array(wph)), 1)
-    f_true = f_nominal + sl / (2 * np.pi)
-
-    if verbose:
-        print(f"f_nominal: {f_nominal:.6f} Hz  (coarse, from FFT peak)")
-        print(f"f_true   : {f_true:.6f} Hz  "
-              f"(refined; offset {(f_true - f_nominal)*1000:+.3f} mHz)")
-
-    # ── 3. Design matrix ──────────────────────────────────────────────────────
-    t_norm      = 2*(t - t[0])/(t[-1] - t[0]) - 1      # [-1, 1]
-    sin_carrier = np.sin(2*np.pi*f_true*t)
-    cos_carrier = np.cos(2*np.pi*f_true*t)
-    cheby       = np.polynomial.chebyshev.chebvander(t_norm, envelope_degree)
-    # (N, envelope_degree+1)
-
-    # IV baseline block: per-segment polynomial in normalised current
-    n_iv = len(segments) * (poly_iv_degree + 1)
-    M_iv = np.zeros((N, n_iv))
-    for k, (s, e) in enumerate(segments):
-        I_seg  = current[s:e]
-        span   = I_seg.max() - I_seg.min()
-        I_norm = (I_seg - I_seg.mean()) / (span if span > 0 else 1.0)
-        for d in range(poly_iv_degree + 1):
-            M_iv[s:e, k*(poly_iv_degree+1) + d] = I_norm**d
-
-    # Sine envelope block: [T_0*sin … T_K*sin | T_0*cos … T_K*cos]
-    M_sin = cheby * sin_carrier[:, None]
-    M_cos = cheby * cos_carrier[:, None]
-
-    M = np.hstack([M_iv, M_sin, M_cos])
-
-    # ── 4. Solve ──────────────────────────────────────────────────────────────
-    coeffs, _, rank, sv = np.linalg.lstsq(M[mask], voltage[mask], rcond=None)
-    condition = float(sv[0] / sv[-1])
-
-    ne = envelope_degree + 1
-    S_t = cheby @ coeffs[n_iv       : n_iv +   ne]
-    C_t = cheby @ coeffs[n_iv + ne  : n_iv + 2*ne]
-
-    A_t   = np.sqrt(S_t**2 + C_t**2)
-    phi_t = np.arctan2(C_t, S_t)
-
-    if verbose:
-        print(f"Amplitude: {A_t.mean()*1e9:.1f} ± {A_t.std()*1e9:.1f} nV  "
-              f"(range {A_t.min()*1e9:.1f}–{A_t.max()*1e9:.1f} nV)")
-        print(f"Phase swing: {np.degrees(phi_t.max()-phi_t.min()):.1f}°")
-        print(f"Condition: {condition:.2e}  rank {rank}/{M.shape[1]}")
-
-    # ── 5. Subtract ───────────────────────────────────────────────────────────
-    artifact      = S_t * sin_carrier + C_t * cos_carrier
+    # 6. Spline + subtract
+    # Interpolate through valid points; clamp flat beyond the boundary points
+    t_v   = wt[valid];  phi_v = phi_det[valid]
+    cs    = PchipInterpolator(t_v, phi_v, extrapolate=False)
+    phi_smooth = np.where(t < t_v[0],  phi_v[0],
+                 np.where(t > t_v[-1], phi_v[-1],
+                          cs(t)))
+    phi_full      = slope * t + intercept + phi_smooth
+    artifact      = A0 * np.sin(2*np.pi*f0*t + phi_full)
     voltage_clean = voltage - artifact
 
     meta = dict(
-        f_nominal       = f_nominal,
-        f_true          = f_true,
-        amplitude_mean  = float(A_t.mean()),
-        amplitude_std   = float(A_t.std()),
-        phase_swing_deg = float(np.degrees(phi_t.max() - phi_t.min())),
-        condition       = condition,
-        envelope_degree = envelope_degree,
-        segments        = segments,
-        artifact        = artifact,
-        A_t             = A_t,
-        phi_t           = phi_t,
+        f0=f0, f_refined=f_refined, A0=A0,
+        t=t, wt=wt, phi_det=phi_det, phi_smooth=phi_smooth,
+        valid=valid, fixed_thresh=fixed_thresh,
+        snr=snr, amp=amp,
     )
     return voltage_clean, meta
 
 
-def plot_results(current, voltage, voltage_clean, meta, fs, save_path=None):
-    """
-    Diagnostic plot: IV curve, smoothed differential, amplitude/phase envelope,
-    and zoom around the largest transition.
-    """
+# ─────────────────────────────────────────────────────────────────────────────
+# Plotting
+# ─────────────────────────────────────────────────────────────────────────────
+
+def plot_results(voltage, current, voltage_clean, meta, save_path=None):
+    """Five-panel diagnostic plot."""
+    import matplotlib
+    matplotlib.use('Agg')
     import matplotlib.pyplot as plt
+    from scipy.ndimage import uniform_filter1d
 
-    N  = len(voltage)
-    t  = np.arange(N) / fs
-    dv_raw   = uniform_filter1d(np.gradient(voltage),       size=6)
-    dv_clean = uniform_filter1d(np.gradient(voltage_clean), size=6)
+    t          = meta['t']
+    wt         = meta['wt']
+    phi_det    = meta['phi_det']
+    phi_smooth = meta['phi_smooth']
+    valid      = meta['valid']
+    snr        = meta['snr']
 
-    fig, axes = plt.subplots(4, 1, figsize=(13, 16))
-    f_true = meta['f_true']
+    N    = len(t)
+    dv_r = uniform_filter1d(np.gradient(voltage),       size=6)
+    dv_c = uniform_filter1d(np.gradient(voltage_clean), size=6)
+
+    fig, axes = plt.subplots(5, 1, figsize=(13, 20))
     fig.suptitle(
-        f'IV Artifact Removal\n'
-        f'f = {f_true:.5f} Hz   '
-        f'A = {meta["amplitude_mean"]*1e9:.0f} ± {meta["amplitude_std"]*1e9:.0f} nV   '
-        f'phase swing = {meta["phase_swing_deg"]:.1f}°   '
-        f'envelope degree = {meta["envelope_degree"]}',
-        fontsize=11, fontweight='bold',
+        f"IV artifact removal\n"
+        f"f₀={meta['f0']:.5f} Hz  f_refined={meta['f_refined']:.5f} Hz  "
+        f"A={meta['A0']*1e9:.0f} nV\n"
+        f"d²φ threshold={np.degrees(meta['fixed_thresh']):.1f} deg/s²  "
+        f"valid={meta['valid'].sum()}/{len(meta['valid'])} windows",
+        fontsize=11, fontweight='bold'
     )
 
-    # Panel 1: slowly-varying amplitude and phase
-    ax = axes[0]
-    ax2 = ax.twinx()
-    ax.plot(t, meta['A_t']*1e9,            lw=1.5, color='steelblue', label='A(t) (nV)')
-    ax2.plot(t, np.degrees(meta['phi_t']), lw=1.5, color='orange',    label='φ(t) (°)')
-    ax.set_ylabel('Amplitude (nV)', color='steelblue')
-    ax2.set_ylabel('Phase (°)',     color='orange')
-    ax.set_title('Slowly-varying sine envelope')
-    ax.legend(loc='upper left', fontsize=8); ax2.legend(loc='upper right', fontsize=8)
+    # Phase track
+    ax = axes[0]; ax2 = ax.twinx()
+    sc = ax.scatter(wt, np.degrees(phi_det), c=snr, cmap='RdYlGn',
+                    s=15, zorder=4, vmin=0, vmax=np.percentile(snr, 90))
+    ax.scatter(wt[~valid], np.degrees(phi_det[~valid]),
+               color='red', s=30, marker='x', zorder=5, label='excluded')
+    ax.plot(t, np.degrees(phi_smooth), color='steelblue', lw=1.5, label='spline')
+    ax2.plot(t, np.degrees(np.gradient(phi_smooth, t)),
+             color='orange', lw=1, alpha=0.6, label='dφ/dt (deg/s)')
+    ax.axhline(0, color='k', lw=0.5)
+    plt.colorbar(sc, ax=ax, label='SNR', fraction=0.02)
+    ax.set_ylabel('Δφ (deg)'); ax2.set_ylabel('dφ/dt (deg/s)', color='orange')
+    ax.set_title('Detrended phase  (colour = SNR,  red × = excluded)')
+    ax.legend(loc='upper left', fontsize=8)
+    ax2.legend(loc='upper right', fontsize=8)
 
-    # Panel 2: full smoothed differential
+    # Differential — full record
     ax = axes[1]
-    ax.plot(t, dv_raw*1e9,   lw=0.8, color='steelblue', alpha=0.5, label='Raw dV/dn')
-    ax.plot(t, dv_clean*1e9, lw=0.9, color='darkgreen',            label='Cleaned dV/dn')
-    ylim = np.percentile(np.abs(dv_raw*1e9), 97)
-    ax.set_ylim(-ylim*0.3, ylim*1.2)
-    ax.set_xlabel('Time (s)'); ax.set_ylabel('nV/sample')
-    ax.set_title('Smoothed differential: before vs after')
-    ax.legend(fontsize=8)
+    ax.plot(t, dv_r*1e9, lw=0.8, color='steelblue', alpha=0.5, label='Raw')
+    ax.plot(t, dv_c*1e9, lw=0.9, color='darkgreen',             label='Cleaned')
+    ylim = np.percentile(np.abs(dv_r*1e9), 97)
+    ax.set_ylim(-ylim*0.3, ylim*1.2); ax.set_ylabel('nV/sample')
+    ax.set_title('Smoothed differential'); ax.legend(fontsize=8)
 
-    # Panel 3: IV curve
+    # Zoom second quarter
     ax = axes[2]
-    ax.plot(current*1e6, voltage*1e6,       lw=0.8, color='steelblue', alpha=0.5, label='Original')
-    ax.plot(current*1e6, voltage_clean*1e6, lw=1.0, color='darkgreen',            label='Cleaned')
-    ax.set_xlabel('Current (µA)'); ax.set_ylabel('Voltage (µV)')
-    ax.set_title('IV curve before and after artifact removal')
-    ax.legend(fontsize=8)
+    q1, q2 = int(N*0.25), int(N*0.55)  # approximate flat region
+    ax.plot(t[q1:q2], voltage[q1:q2]*1e6,       lw=0.8, color='steelblue', alpha=0.5, label='Raw')
+    ax.plot(t[q1:q2], voltage_clean[q1:q2]*1e6, lw=1.0, color='darkgreen',             label='Cleaned')
+    ax.set_ylabel('Voltage (µV)'); ax.set_title('Zoom 25–55 % of record'); ax.legend(fontsize=8)
 
-    # Panel 4: zoom around largest transition
-    segs = meta['segments']
-    if len(segs) >= 2:
-        # gap between first two segments
-        gap_centre = (segs[0][1] + segs[1][0]) // 2
-        hw = int(3 * fs)   # ±3 s window
-        sl = slice(max(0, gap_centre-hw), min(N, gap_centre+hw))
-        ax = axes[3]
-        ax.plot(current[sl]*1e6, voltage[sl]*1e6,
-                lw=0.8, color='steelblue', alpha=0.5, label='Original')
-        ax.plot(current[sl]*1e6, voltage_clean[sl]*1e6,
-                lw=1.0, color='darkgreen', label='Cleaned')
-        ax.set_xlabel('Current (µA)'); ax.set_ylabel('Voltage (µV)')
-        ax.set_title('Zoom around first transition — step should be clean, no ringing')
-        ax.legend(fontsize=8)
-    else:
-        axes[3].axis('off')
+    # Zoom first quarter
+    ax = axes[3]
+    q0 = int(N*0.05); q1 = int(N*0.42)
+    ax.plot(t[q0:q1], voltage[q0:q1]*1e6,       lw=0.8, color='steelblue', alpha=0.5, label='Raw')
+    ax.plot(t[q0:q1], voltage_clean[q0:q1]*1e6, lw=1.0, color='darkgreen',             label='Cleaned')
+    ax.set_ylabel('Voltage (µV)'); ax.set_title('Zoom 5–42 % of record'); ax.legend(fontsize=8)
+
+    # Full IV
+    ax = axes[4]
+    ax.plot(current*1e6, voltage*1e6,       lw=0.8, color='steelblue', alpha=0.5, label='Raw')
+    ax.plot(current*1e6, voltage_clean*1e6, lw=1.0, color='darkgreen',             label='Cleaned')
+    ax.set_xlabel('Current (µA)'); ax.set_ylabel('Voltage (µV)')
+    ax.set_title('Full IV curve'); ax.legend(fontsize=8)
 
     plt.tight_layout()
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
-        if save_path: print(f"Plot saved → {save_path}")
+        plt.close()
     else:
         plt.show()
-    plt.close(fig)
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-#  Command-line entry point
-# ──────────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# CLI
+# ─────────────────────────────────────────────────────────────────────────────
 
-def _main():
-    import argparse, sys
+if __name__ == '__main__':
+    import argparse
+    from scipy.ndimage import uniform_filter1d
 
-    parser = argparse.ArgumentParser(
-        description="Remove sinusoidal interference from an IV-curve dat file."
-    )
-    parser.add_argument("input",  help="Input  .dat file (two-column ASCII)")
-    parser.add_argument("output", help="Output .dat file (cleaned voltage)")
-    parser.add_argument("--fs",             type=float, default=None,
-                        help="Sample rate (S/s). If omitted, estimated from "
-                             "--duration or --n-samples + --duration.")
-    parser.add_argument("--duration",       type=float, default=None,
-                        help="Total sweep duration (s). Used with N to compute fs.")
-    parser.add_argument("--f-nominal",      type=float, default=None,
-                        help="Nominal artifact frequency in Hz. If omitted, "
-                             "the frequency is discovered automatically from "
-                             "the data (Gaussian -> gradient -> FFT).")
-    parser.add_argument("--envelope-degree",type=int,   default=4,
-                        help="Chebyshev degree for slow drift compensation "
-                             "(0=static, 3-5 recommended; default 4).")
-    parser.add_argument("--poly-iv-degree", type=int,   default=4,
-                        help="IV baseline polynomial degree per segment (default 4).")
-    parser.add_argument("--plot",           action="store_true",
-                        help="Save a diagnostic PNG alongside the output file.")
+    parser = argparse.ArgumentParser(description='Remove sinusoidal artifact from IV data')
+    parser.add_argument('input',  help='Input  .dat file  (current, voltage)')
+    parser.add_argument('output', help='Output .dat file  (current, voltage_clean)')
+    parser.add_argument('--duration',    type=float, default=None, help='Sweep duration (s)')
+    parser.add_argument('--fs',          type=float, default=None, help='Sample rate (Hz)')
+    parser.add_argument('--f-lo',        type=float, default=1.30, help='Freq scan lower bound (Hz)')
+    parser.add_argument('--f-hi',        type=float, default=1.45, help='Freq scan upper bound (Hz)')
+    parser.add_argument('--thresh-mult', type=float, default=5.0,  help='d²φ threshold multiplier')
+    parser.add_argument('--plot', action='store_true', help='Save diagnostic PNG alongside output')
     args = parser.parse_args()
 
-    # Load
     data    = np.loadtxt(args.input, comments='#')
-    current = data[:, 0]
-    voltage = data[:, 1]
-    N       = len(voltage)
+    current = data[:, 0];  voltage = data[:, 1]
 
-    # Sample rate
-    if args.fs is not None:
-        fs = args.fs
-    elif args.duration is not None:
-        fs = N / args.duration
-    else:
-        sys.exit("ERROR: supply --fs or --duration so the sample rate is known.")
-
-    print(f"Input  : {args.input}  ({N} samples, fs={fs:.4f} S/s)")
-
-    # Run
-    voltage_clean, meta = remove_artifact(
-        voltage, current, fs,
-        f_nominal       = args.f_nominal,
-        envelope_degree = args.envelope_degree,
-        poly_iv_degree  = args.poly_iv_degree,
+    vc, meta = remove_artifact(
+        voltage, current,
+        duration=args.duration, fs=args.fs,
+        f_scan_lo=args.f_lo, f_scan_hi=args.f_hi,
+        thresh_mult=args.thresh_mult,
     )
 
-    # Save cleaned data
-    header = (
-        f"Artifact removed by iv_artifact_removal.py\n"
-        f"f_true={meta['f_true']:.6f} Hz  "
-        f"A={meta['amplitude_mean']*1e9:.1f} nV  "
-        f"envelope_degree={meta['envelope_degree']}\n"
-        f"Current (A)\tVoltage_cleaned (V)"
-    )
     np.savetxt(args.output,
-               np.column_stack([current, voltage_clean]),
-               header=header, delimiter='\t')
-    print(f"Output : {args.output}")
+               np.column_stack([current, vc]),
+               fmt='%.6e', delimiter='\t',
+               header='current(A)\tvoltage_clean(V)')
+    print(f'Saved: {args.output}')
 
-    # Optional plot
+    t    = meta['t']
+    dv_r = uniform_filter1d(np.gradient(voltage), size=6)
+    dv_c = uniform_filter1d(np.gradient(vc),       size=6)
+    total = t[-1]
+
+    print(f"\nf0          = {meta['f0']:.6f} Hz")
+    print(f"f_refined   = {meta['f_refined']:.6f} Hz")
+    print(f"A0          = {meta['A0']*1e9:.1f} nV")
+    print(f"d²φ thresh  = {np.degrees(meta['fixed_thresh']):.2f} deg/s²  "
+          f"(= {args.thresh_mult:.1f} × median)")
+    print(f"Valid wins  = {meta['valid'].sum()} / {len(meta['valid'])}")
+    print()
+    print(f"{'Region':<14} {'Raw (nV/s)':>12} {'Clean (nV/s)':>13} {'Suppression':>12}")
+    for label, ts, te in [('First third',  0,         total/3),
+                           ('Middle third', total/3,   2*total/3),
+                           ('Last third',   2*total/3, total)]:
+        seg = (t >= ts) & (t < te)
+        r   = np.std(dv_r[seg]); c = np.std(dv_c[seg])
+        print(f"  {label:<12} {r*1e9:>12.1f} {c*1e9:>13.1f} {r/(c+1e-30):>11.1f}x")
+
     if args.plot:
         plot_path = args.output.replace('.dat', '_diagnostic.png')
-        plot_results(current, voltage, voltage_clean, meta, fs,
-                     save_path=plot_path)
-
-
-if __name__ == "__main__":
-    _main()
+        plot_results(voltage, current, vc, meta, save_path=plot_path)
+        print(f'\nDiagnostic plot: {plot_path}')
