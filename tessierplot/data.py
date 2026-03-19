@@ -235,7 +235,7 @@ class qcodes_parser(dat_parser):
             'experiment' : titleline[1].split(':')[1],
             'samplename' : titleline[2].split(':')[1],
             'nvals'      : int(titleline[3].split(':')[1]),
-            'samplingrate' : float(titleline[4].split(':')[1]),
+            'samplingrate' : float(titleline[4].split(':')[1]) if len(titleline) > 4 else None,
             'comment'    : comment
             }
             header.append(headertitledict)
