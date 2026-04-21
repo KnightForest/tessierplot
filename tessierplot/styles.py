@@ -122,7 +122,7 @@ def helper_killpulsetube(w):
 	#for i in range(0,10):
 	if XX.ndim == 1:
 		XX_new,meta = killpulsetubenoise.remove_artifact(XX_new,X,duration = None, fs = samplingrate)
-		killpulsetubenoise.plot_results(XX, X, XX_new, meta, save_path = "test.png")
+		#killpulsetubenoise.plot_results(XX, X, XX_new, meta, save_path = "test.png")
 	else:
 		for i in range(0,XX.shape[0]):
 			XX_new[i,:],meta = killpulsetubenoise.remove_artifact(voltage = XX_new[i,:],
